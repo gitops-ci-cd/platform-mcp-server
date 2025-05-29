@@ -55,7 +55,15 @@ npm run dev
 
 ### Available Tools
 
-Tools are registered in the <./src/tools> directory. Each tool is registered via <./src/tools/index.ts>. See the helloWorldTool as an example.
+[Tools](https://modelcontextprotocol.io/docs/concepts/tools) are registered in the <./src/tools> directory.
+
+### Available Resources
+
+[Resources & Templates](https://modelcontextprotocol.io/docs/concepts/resources) are registered in the <./src/resources> directory.
+
+### Available Prompts
+
+[Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) are registered in the <./src/prompts> directory.
 
 ### Debugging
 
@@ -63,4 +71,4 @@ To debug the server, you can use [modelcontextprotocol/inspector](https://github
 
 ## Development
 
-To add new tools, create a new file in the `src/tools` directory and export it in `src/tools/index.ts`. Then update the `setupToolHandlers` method in `src/index.ts` to include the new tool.
+Most of the development from here out will be done in the <./src/tools>, <./src/resources>, and <./src/prompts> directories. You can add new functionality by creating new files and functions in these directories.
