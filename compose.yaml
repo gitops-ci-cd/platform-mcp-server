@@ -1,0 +1,82 @@
+services:
+  npm: &npm
+    env_file:
+      - path: .env
+        required: false
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      target: builder
+    entrypoint: npm
+    command: help
+    volumes:
+      - .:/usr/src/app:delegated
+      - node_modules:/node_modules:cached
+
+  npx: &npx
+    <<: *npm
+    entrypoint: npx
+    command: -h
+
+  node:
+    <<: *npm
+    profiles: [tasks]
+    entrypoint: node
+    command: --help
+
+  # We can't use <<: *npm with develop.watch due to the volume overlap.
+  # app:
+  #   env_file:
+  #     - path: .env
+  #       required: false
+  #   tty: true
+  #   stdin_open: true
+  #   build:
+  #     context: .
+  #     target: builder
+  #   entrypoint: npm
+  #   command: run start
+  #   ports:
+  #     - ${PORT:-8080}:${PORT:-8080}
+  #   develop:
+  #     watch:
+  #       - action: sync+restart
+  #         path: ./src/
+  #         target: /usr/src/app/src/
+  #       - action: sync+restart
+  #         path: ./package.json
+  #         target: /usr/src/app/package.json
+  #       - action: sync+restart
+  #         path: ./package-lock.json
+  #         target: /usr/src/app/package-lock.json
+  #   volumes:
+  #     - node_modules:/node_modules:cached
+
+  inspector:
+    <<: *npx
+    command: '--yes @modelcontextprotocol/inspector node dist/src/index.js'
+    ports:
+      - 6274:6274
+
+  install:
+    <<: *npm
+    profiles: [tasks]
+    command: install --include=dev
+
+  lint:
+    <<: *npx
+    profiles: [tasks]
+    command: eslint
+    depends_on:
+      - install
+
+  test:
+    <<: *npm
+    profiles: [tasks]
+    command: run test
+    depends_on:
+      - install
+
+volumes:
+  node_modules: {}
