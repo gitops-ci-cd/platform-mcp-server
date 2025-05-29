@@ -50,7 +50,7 @@ docker compose watch
 If you have node installed locally, you can use:
 
 ```sh
-npm run dev
+npm run start
 ```
 
 ### Available Tools
