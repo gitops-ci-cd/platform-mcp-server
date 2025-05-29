@@ -71,4 +71,4 @@ To debug the server, you can use [modelcontextprotocol/inspector](https://github
 
 ## Development
 
-Most of the development from here out will be done in the <./src/tools>, <./src/resources>, and <./src/prompts> directories. You can add new functionality by creating new files and functions in these directories.
+Most of the development from here out will be done in the ./src/tools, <./src/resources>, and <./src/prompts> directories. You can add new functionality by creating new files and functions in these directories.
