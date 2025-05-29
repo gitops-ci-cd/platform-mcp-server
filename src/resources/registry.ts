@@ -1,6 +1,15 @@
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ServerRequest, ServerNotification, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
-import { McpServer, ResourceTemplate, ResourceMetadata, ReadResourceCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  ServerRequest,
+  ServerNotification,
+  ReadResourceResult,
+} from "@modelcontextprotocol/sdk/types.js";
+import {
+  McpServer,
+  ResourceTemplate,
+  ResourceMetadata,
+  ReadResourceCallback,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 
 // Resource handler type definition
 export type ResourceHandler = (uri: string) => Promise<string>;
@@ -37,7 +46,7 @@ const templateRegistry: ResourceTemplateDefinition[] = [];
 // Register a direct resource in the registry
 export function registerResource(resourceDef: ResourceDefinition): void {
   // Check if resource with same URI already exists
-  const existingIndex = resourceRegistry.findIndex(r => r.uri === resourceDef.uri);
+  const existingIndex = resourceRegistry.findIndex((r) => r.uri === resourceDef.uri);
   if (existingIndex >= 0) {
     // Replace existing resource
     resourceRegistry[existingIndex] = resourceDef;
@@ -50,7 +59,9 @@ export function registerResource(resourceDef: ResourceDefinition): void {
 // Register a resource template in the registry
 export function registerResourceTemplate(templateDef: ResourceTemplateDefinition): void {
   // Check if template with same URI template already exists
-  const existingIndex = templateRegistry.findIndex(t => t.uriTemplate === templateDef.uriTemplate);
+  const existingIndex = templateRegistry.findIndex(
+    (t) => t.uriTemplate === templateDef.uriTemplate
+  );
   if (existingIndex >= 0) {
     // Replace existing template
     templateRegistry[existingIndex] = templateDef;
@@ -62,27 +73,29 @@ export function registerResourceTemplate(templateDef: ResourceTemplateDefinition
 
 // Get resources filtered by permissions (for future auth integration)
 export function getAuthorizedResources(userPermissions: string[] = []): ResourceDefinition[] {
-  return resourceRegistry.filter(resource => {
+  return resourceRegistry.filter((resource) => {
     // If no permissions required, resource is available to everyone
     if (!resource.requiredPermissions || resource.requiredPermissions.length === 0) {
       return true;
     }
 
     // Check if user has any of the required permissions
-    return resource.requiredPermissions.some(perm => userPermissions.includes(perm));
+    return resource.requiredPermissions.some((perm) => userPermissions.includes(perm));
   });
 }
 
 // Get templates filtered by permissions (for future auth integration)
-export function getAuthorizedTemplates(userPermissions: string[] = []): ResourceTemplateDefinition[] {
-  return templateRegistry.filter(template => {
+export function getAuthorizedTemplates(
+  userPermissions: string[] = []
+): ResourceTemplateDefinition[] {
+  return templateRegistry.filter((template) => {
     // If no permissions required, template is available to everyone
     if (!template.requiredPermissions || template.requiredPermissions.length === 0) {
       return true;
     }
 
     // Check if user has any of the required permissions
-    return template.requiredPermissions.some(perm => userPermissions.includes(perm));
+    return template.requiredPermissions.some((perm) => userPermissions.includes(perm));
   });
 }
 
@@ -101,10 +114,13 @@ export function registerResourcesWithServer(
       resource.name,
       resource.uri,
       {
-        mimeType: resource.mimeType || 'text/plain',
-        description: resource.description
+        mimeType: resource.mimeType || "text/plain",
+        description: resource.description,
       },
-      async (uri: URL, extra: RequestHandlerExtra<ServerRequest, ServerNotification>): Promise<ReadResourceResult> => {
+      async (
+        _uri: URL,
+        _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+      ): Promise<ReadResourceResult> => {
         try {
           const content = await resource.handler(resource.uri);
           return {
@@ -112,9 +128,9 @@ export function registerResourcesWithServer(
               {
                 uri: resource.uri,
                 text: content,
-                mimeType: resource.mimeType || 'text/plain'
-              }
-            ]
+                mimeType: resource.mimeType || "text/plain",
+              },
+            ],
           };
         } catch (error: any) {
           throw new Error(`Error retrieving resource: ${error.message}`);
@@ -135,21 +151,22 @@ export function registerResourceTemplatesWithServer(
   // Register resource templates
   for (const template of authorizedTemplates) {
     // Create a proper ResourceTemplate instance
-    const resourceTemplate = new ResourceTemplate(
-      template.uriTemplate,
-      {
-        list: undefined, // No list callback for now
-      }
-    );
+    const resourceTemplate = new ResourceTemplate(template.uriTemplate, {
+      list: undefined, // No list callback for now
+    });
 
     server.resource(
       template.name,
       resourceTemplate,
       {
-        mimeType: template.mimeType || 'text/plain',
-        description: template.description
+        mimeType: template.mimeType || "text/plain",
+        description: template.description,
       },
-      async (uri: URL, variables: any, extra: RequestHandlerExtra<ServerRequest, ServerNotification>): Promise<ReadResourceResult> => {
+      async (
+        uri: URL,
+        _variables: any,
+        _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+      ): Promise<ReadResourceResult> => {
         try {
           const content = await template.handler(uri.toString());
           return {
@@ -157,9 +174,9 @@ export function registerResourceTemplatesWithServer(
               {
                 uri: uri.toString(),
                 text: content,
-                mimeType: template.mimeType || 'text/plain'
-              }
-            ]
+                mimeType: template.mimeType || "text/plain",
+              },
+            ],
           };
         } catch (error: any) {
           throw new Error(`Error retrieving resource: ${error.message}`);

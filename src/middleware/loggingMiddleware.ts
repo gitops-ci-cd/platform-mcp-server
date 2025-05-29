@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 export const loggingMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const start = Date.now();

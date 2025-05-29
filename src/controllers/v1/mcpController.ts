@@ -1,17 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport, } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { registerToolsWithServer } from "../../tools/registry.js";
-import { registerResourcesWithServer, registerResourceTemplatesWithServer } from "../../resources/registry.js";
+import {
+  registerResourcesWithServer,
+  registerResourceTemplatesWithServer,
+} from "../../resources/registry.js";
 import { registerPromptsWithServer } from "../../prompts/registry.js";
 import { initializeTools } from "../../tools/index.js";
 import { initializeResources } from "../../resources/index.js";
 import { initializePrompts } from "../../prompts/index.js";
 
-import pkg from '../../../package.json' with { type: "json" };
+import pkg from "../../../package.json" with { type: "json" };
 
 const { name, version } = pkg;
 
@@ -23,12 +26,12 @@ initializePrompts();
 // Map to store transports by session ID
 const transports = {
   streamable: {} as Record<string, StreamableHTTPServerTransport>,
-  sse: {} as Record<string, SSEServerTransport>
+  sse: {} as Record<string, SSEServerTransport>,
 };
 
-export const mcpController = async (req: Request, res: Response, next: NextFunction) => {
+export const mcpController = async (req: Request, res: Response, _next: NextFunction) => {
   // Check for existing session ID
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  const sessionId = req.headers["mcp-session-id"] as string | undefined;
   let transport: StreamableHTTPServerTransport;
 
   if (sessionId && transports.streamable[sessionId]) {
@@ -41,7 +44,7 @@ export const mcpController = async (req: Request, res: Response, next: NextFunct
       onsessioninitialized: (sessionId) => {
         // Store the transport by session ID
         transports.streamable[sessionId] = transport;
-      }
+      },
     });
 
     // Clean up transport when closed
@@ -68,10 +71,10 @@ export const mcpController = async (req: Request, res: Response, next: NextFunct
   } else {
     // Invalid request
     res.status(400).json({
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       error: {
         code: -32000,
-        message: 'Bad Request: No valid session ID provided',
+        message: "Bad Request: No valid session ID provided",
       },
       id: null,
     });
@@ -80,13 +83,13 @@ export const mcpController = async (req: Request, res: Response, next: NextFunct
 
   // Handle the request
   await transport.handleRequest(req, res, req.body);
-}
+};
 
 // Reusable handler for GET and DELETE requests
-export const handleSessionRequest = async (req: Request, res: Response, next: NextFunction) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+export const handleSessionRequest = async (req: Request, res: Response, _next: NextFunction) => {
+  const sessionId = req.headers["mcp-session-id"] as string | undefined;
   if (!sessionId || !transports.streamable[sessionId]) {
-    res.status(400).send('Invalid or missing session ID');
+    res.status(400).send("Invalid or missing session ID");
     return;
   }
 
@@ -95,11 +98,11 @@ export const handleSessionRequest = async (req: Request, res: Response, next: Ne
 };
 
 // Legacy SSE initialization
-export const handleLegacySSE = async (req: Request, res: Response, next: NextFunction) => {
+export const handleLegacySSE = async (req: Request, res: Response, _next: NextFunction) => {
   const server = new McpServer({ name, version });
 
   // Create SSE transport for legacy clients
-  const transport = new SSEServerTransport('execute/v1/messages', res);
+  const transport = new SSEServerTransport("execute/v1/messages", res);
   transports.sse[transport.sessionId] = transport;
 
   res.on("close", () => {
@@ -117,15 +120,15 @@ export const handleLegacySSE = async (req: Request, res: Response, next: NextFun
   registerPromptsWithServer(server, userPermissions);
 
   await server.connect(transport);
-}
+};
 
 // Legacy message handling for SSE
-export const handleLegacyMessage = async (req: Request, res: Response, next: NextFunction) => {
-   const sessionId = req.query.sessionId as string;
+export const handleLegacyMessage = async (req: Request, res: Response, _next: NextFunction) => {
+  const sessionId = req.query.sessionId as string;
   const transport = transports.sse[sessionId];
   if (transport) {
     await transport.handlePostMessage(req, res, req.body);
   } else {
-    res.status(400).send('No transport found for sessionId');
+    res.status(400).send("No transport found for sessionId");
   }
-}
+};

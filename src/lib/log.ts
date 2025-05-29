@@ -1,4 +1,4 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 const levels: Record<LogLevel, number> = {
   debug: 0,
@@ -10,9 +10,8 @@ const levels: Record<LogLevel, number> = {
 export const LOG_LEVEL = process.env.LOG_LEVEL || Object.keys(levels)[levels.info];
 
 // Ensure the log level is valid, default to 'info' if not
-const normalizedLogLevel = (LOG_LEVEL.toLowerCase() as LogLevel) in levels
-  ? LOG_LEVEL.toLowerCase() as LogLevel
-  : 'info';
+const normalizedLogLevel =
+  (LOG_LEVEL.toLowerCase() as LogLevel) in levels ? (LOG_LEVEL.toLowerCase() as LogLevel) : "info";
 
 const currentLevel = levels[normalizedLogLevel];
 

@@ -1,12 +1,12 @@
-import { ToolDefinition } from './registry.js';
+import { ToolDefinition } from "./registry.js";
 
-const helloWorldHandler: ToolDefinition['handler'] = async (args, extra) => {
-  const name = args.name || 'World';
+const helloWorldHandler: ToolDefinition["handler"] = async (args, _extra) => {
+  const name = args.name || "World";
 
   return {
     result: {
       greeting: `Hello, ${name}!`,
-      message: "Here's a fun story about Earth's origins:"
+      message: "Here's a fun story about Earth's origins:",
     },
     content: [
       {
@@ -21,9 +21,9 @@ In the primordial seas, under lightning-filled skies, simple molecules combined 
 
 From those humble beginnings arose an incredible diversity of life, from dinosaurs to daisies, from mammoths to mankind. And here we are now, made of stardust, telling stories about our cosmic origins.
 
-So when you say "Hello World," remember you're actually greeting a remarkable planet with a 4.5-billion-year history, formed from the remnants of ancient stars!`
-      }
-    ]
+So when you say "Hello World," remember you're actually greeting a remarkable planet with a 4.5-billion-year history, formed from the remnants of ancient stars!`,
+      },
+    ],
   };
 };
 

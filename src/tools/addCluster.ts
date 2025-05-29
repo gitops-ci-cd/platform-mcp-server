@@ -1,5 +1,5 @@
-import { ToolDefinition } from './registry.js';
-import * as k8s from '@kubernetes/client-node';
+import { ToolDefinition } from "./registry.js";
+import * as k8s from "@kubernetes/client-node";
 
 interface AddClusterRequest {
   name: string;
@@ -7,7 +7,7 @@ interface AddClusterRequest {
   context?: string;
 }
 
-const addClusterHandler: ToolDefinition['handler'] = async (args, extra) => {
+const addClusterHandler: ToolDefinition["handler"] = async (args, _extra) => {
   const { name, kubeconfig, context } = args as AddClusterRequest;
 
   try {
@@ -42,25 +42,25 @@ const addClusterHandler: ToolDefinition['handler'] = async (args, extra) => {
         serverInfo: {
           major: version.major,
           minor: version.minor,
-          platform: version.platform
-        }
+          platform: version.platform,
+        },
       },
       content: [
         {
           type: "text",
-          text: `Cluster "${name}" has been successfully added with Kubernetes version ${version.gitVersion}`
-        }
-      ]
+          text: `Cluster "${name}" has been successfully added with Kubernetes version ${version.gitVersion}`,
+        },
+      ],
     };
   } catch (error: any) {
     return {
       content: [
         {
           type: "text",
-          text: `Failed to add cluster "${name}": ${error.message}`
-        }
+          text: `Failed to add cluster "${name}": ${error.message}`,
+        },
       ],
-      isError: true
+      isError: true,
     };
   }
 };
@@ -70,5 +70,5 @@ export const addClusterTool: ToolDefinition = {
   description: "Add a Kubernetes cluster configuration",
   handler: addClusterHandler,
   // For future auth integration
-  requiredPermissions: ["k8s:admin"]
+  requiredPermissions: ["k8s:admin"],
 };

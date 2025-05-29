@@ -1,9 +1,9 @@
-import express, { Express, RequestHandler, ErrorRequestHandler } from 'express';
+import express, { Express, RequestHandler, ErrorRequestHandler } from "express";
 
-import { loggingMiddleware } from './middleware/loggingMiddleware.js';
-import { notFoundHandler } from './middleware/notFoundHandler.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import routes from './routes/index.js';
+import { loggingMiddleware } from "./middleware/loggingMiddleware.js";
+import { notFoundHandler } from "./middleware/notFoundHandler.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import routes from "./routes/index.js";
 
 const app: Express = express();
 

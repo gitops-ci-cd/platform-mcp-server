@@ -1,4 +1,4 @@
-import { registerPrompt, PromptHandler } from './registry.js';
+import { PromptHandler } from "./registry.js";
 
 // Handler for Kubernetes best practices
 const bestPracticesHandler: PromptHandler = async () => {
@@ -101,13 +101,13 @@ kubectl run -it --rm debug --image=busybox -- sh
 };
 
 export const bestPracticesPrompt = {
-  name: 'k8s_best_practices',
-  description: 'Get Kubernetes best practices for production deployments',
-  handler: bestPracticesHandler
+  name: "k8s_best_practices",
+  description: "Get Kubernetes best practices for production deployments",
+  handler: bestPracticesHandler,
 };
 
 export const troubleshootingPrompt = {
-  name: 'k8s_troubleshooting',
-  description: 'Get Kubernetes troubleshooting steps for common issues',
-  handler: troubleshootingHandler
+  name: "k8s_troubleshooting",
+  description: "Get Kubernetes troubleshooting steps for common issues",
+  handler: troubleshootingHandler,
 };
