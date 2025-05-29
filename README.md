@@ -50,20 +50,20 @@ docker compose watch
 If you have node installed locally, you can use:
 
 ```sh
-npm run dev
+npm run start
 ```
 
 ### Available Tools
 
-[Tools](https://modelcontextprotocol.io/docs/concepts/tools) are registered in the <./src/tools> directory.
+[Tools](https://modelcontextprotocol.io/docs/concepts/tools) are registered in the [./src/tools](./src/tools) directory.
 
 ### Available Resources
 
-[Resources & Templates](https://modelcontextprotocol.io/docs/concepts/resources) are registered in the <./src/resources> directory.
+[Resources & Templates](https://modelcontextprotocol.io/docs/concepts/resources) are registered in the [./src/resources](./src/resources) directory.
 
 ### Available Prompts
 
-[Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) are registered in the <./src/prompts> directory.
+[Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) are registered in the [./src/prompts](./src/prompts) directory.
 
 ### Debugging
 
@@ -71,4 +71,4 @@ To debug the server, you can use [modelcontextprotocol/inspector](https://github
 
 ## Development
 
-Most of the development from here out will be done in the <./src/tools>, <./src/resources>, and <./src/prompts> directories. You can add new functionality by creating new files and functions in these directories.
+Most of the development from here out will be done in the [./src/tools](./src/tools), [./src/resources](./src/resources), and [./src/prompts](./src/prompts) directories. You can add new functionality by creating new files and functions in these directories.
