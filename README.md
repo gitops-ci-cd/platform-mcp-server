@@ -29,12 +29,9 @@ To add this MCP server to your MCP settings, add the following configuration to 
 ```json
 {
   "mcpServers": {
-    "platform-mcp": {
-      "command": "node",
-      "args": ["/path/to/platform-mcp-server/dist/index.js"],
-      "env": {
-        "KUBECONFIG": "/path/to/.kube/config"
-      },
+    "platform-mcp-server": {
+      "url": "http://localhost:8080/execute/v1/sse/",
+      "transportType": "sse",
       "disabled": false,
       "autoApprove": []
     }
