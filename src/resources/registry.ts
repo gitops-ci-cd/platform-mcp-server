@@ -1,79 +1,40 @@
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import {
-  ServerRequest,
-  ServerNotification,
-  ReadResourceResult,
-} from "@modelcontextprotocol/sdk/types.js";
 import {
   McpServer,
-  ResourceTemplate,
-  ResourceMetadata,
-  ReadResourceCallback,
+  RegisteredResource,
+  RegisteredResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-// Resource handler type definition
-export type ResourceHandler = (uri: string) => Promise<string>;
-
 // Resource definition interface
-export interface ResourceDefinition {
+export interface ResourceDefinition extends Pick<RegisteredResource, "name" | "metadata" | "readCallback"> {
   uri: string;
-  name: string;
-  mimeType?: string;
-  description?: string;
-  handler: ResourceHandler;
   // For future authentication/authorization
   requiredPermissions?: string[];
 }
 
-// Template handler type definition
-export type ResourceTemplateHandler = (uri: string) => Promise<string>;
-
 // Template definition interface
-export interface ResourceTemplateDefinition {
-  uriTemplate: string;
+export interface ResourceTemplateDefinition extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "metadata" | "readCallback"> {
   name: string;
-  mimeType?: string;
-  description?: string;
-  handler: ResourceTemplateHandler;
   // For future authentication/authorization
   requiredPermissions?: string[];
 }
 
 // Registry to store all available resources
-const resourceRegistry: ResourceDefinition[] = [];
-const templateRegistry: ResourceTemplateDefinition[] = [];
+export const resourceRegistry = new Map<string, ResourceDefinition>();
+export const templateRegistry = new Map<string, ResourceTemplateDefinition>();
 
 // Register a direct resource in the registry
 export function registerResource(resourceDef: ResourceDefinition): void {
-  // Check if resource with same URI already exists
-  const existingIndex = resourceRegistry.findIndex((r) => r.uri === resourceDef.uri);
-  if (existingIndex >= 0) {
-    // Replace existing resource
-    resourceRegistry[existingIndex] = resourceDef;
-  } else {
-    // Add new resource
-    resourceRegistry.push(resourceDef);
-  }
+  resourceRegistry.set(resourceDef.uri, resourceDef);
 }
 
 // Register a resource template in the registry
 export function registerResourceTemplate(templateDef: ResourceTemplateDefinition): void {
-  // Check if template with same URI template already exists
-  const existingIndex = templateRegistry.findIndex(
-    (t) => t.uriTemplate === templateDef.uriTemplate
-  );
-  if (existingIndex >= 0) {
-    // Replace existing template
-    templateRegistry[existingIndex] = templateDef;
-  } else {
-    // Add new template
-    templateRegistry.push(templateDef);
-  }
+  templateRegistry.set(templateDef.name, templateDef);
 }
 
 // Get resources filtered by permissions (for future auth integration)
 export function getAuthorizedResources(userPermissions: string[] = []): ResourceDefinition[] {
-  return resourceRegistry.filter((resource) => {
+  return Array.from(resourceRegistry.values()).filter((resource) => {
     // If no permissions required, resource is available to everyone
     if (!resource.requiredPermissions || resource.requiredPermissions.length === 0) {
       return true;
@@ -85,10 +46,8 @@ export function getAuthorizedResources(userPermissions: string[] = []): Resource
 }
 
 // Get templates filtered by permissions (for future auth integration)
-export function getAuthorizedTemplates(
-  userPermissions: string[] = []
-): ResourceTemplateDefinition[] {
-  return templateRegistry.filter((template) => {
+export function getAuthorizedTemplates(userPermissions: string[] = []): ResourceTemplateDefinition[] {
+  return Array.from(templateRegistry.values()).filter((template) => {
     // If no permissions required, template is available to everyone
     if (!template.requiredPermissions || template.requiredPermissions.length === 0) {
       return true;
@@ -109,33 +68,12 @@ export function registerResourcesWithServer(
 
   // Register direct resources
   for (const resource of authorizedResources) {
-    // Using the signature: resource(name: string, uri: string, metadata: ResourceMetadata, readCallback: ReadResourceCallback)
+    const { name, uri, metadata, readCallback } = resource;
     server.resource(
-      resource.name,
-      resource.uri,
-      {
-        mimeType: resource.mimeType || "text/plain",
-        description: resource.description,
-      },
-      async (
-        _uri: URL,
-        _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-      ): Promise<ReadResourceResult> => {
-        try {
-          const content = await resource.handler(resource.uri);
-          return {
-            contents: [
-              {
-                uri: resource.uri,
-                text: content,
-                mimeType: resource.mimeType || "text/plain",
-              },
-            ],
-          };
-        } catch (error: any) {
-          throw new Error(`Error retrieving resource: ${error.message}`);
-        }
-      }
+      name,
+      uri,
+      metadata || {},
+      readCallback
     );
   }
 }
@@ -150,38 +88,12 @@ export function registerResourceTemplatesWithServer(
 
   // Register resource templates
   for (const template of authorizedTemplates) {
-    // Create a proper ResourceTemplate instance
-    const resourceTemplate = new ResourceTemplate(template.uriTemplate, {
-      list: undefined, // No list callback for now
-    });
-
+    const { name, resourceTemplate, metadata, readCallback } = template;
     server.resource(
-      template.name,
+      name,
       resourceTemplate,
-      {
-        mimeType: template.mimeType || "text/plain",
-        description: template.description,
-      },
-      async (
-        uri: URL,
-        _variables: any,
-        _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-      ): Promise<ReadResourceResult> => {
-        try {
-          const content = await template.handler(uri.toString());
-          return {
-            contents: [
-              {
-                uri: uri.toString(),
-                text: content,
-                mimeType: template.mimeType || "text/plain",
-              },
-            ],
-          };
-        } catch (error: any) {
-          throw new Error(`Error retrieving resource: ${error.message}`);
-        }
-      }
+      metadata || {},
+      readCallback,
     );
   }
 }

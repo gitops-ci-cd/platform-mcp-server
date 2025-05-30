@@ -1,30 +1,24 @@
-import { ToolDefinition } from "./registry.js";
+import { z } from "zod";
 import * as k8s from "@kubernetes/client-node";
 
-interface AddClusterRequest {
-  name: string;
-  kubeconfig?: string;
-  context?: string;
-}
+import { ToolDefinition } from "./registry.js";
 
-const addClusterHandler: ToolDefinition["handler"] = async (args, _extra) => {
-  const { name, kubeconfig, context } = args as AddClusterRequest;
-
+const addClusterHandler: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     // Create a new KubeConfig
     const kc = new k8s.KubeConfig();
 
-    if (kubeconfig) {
+    if (args.kubeconfig) {
       // Load from provided kubeconfig string
-      kc.loadFromString(kubeconfig);
+      kc.loadFromString(args.kubeconfig);
     } else {
       // Load from default location
       kc.loadFromDefault();
     }
 
     // Set current context if provided
-    if (context) {
-      kc.setCurrentContext(context);
+    if (args.context) {
+      kc.setCurrentContext(args.context);
     }
 
     // Verify connection by getting server version
@@ -37,7 +31,7 @@ const addClusterHandler: ToolDefinition["handler"] = async (args, _extra) => {
     // For this example, we'll just return success with the version info
     return {
       result: {
-        message: `Successfully added cluster "${name}"`,
+        message: `Successfully added cluster "${args.name}"`,
         serverVersion: version.gitVersion,
         serverInfo: {
           major: version.major,
@@ -48,7 +42,7 @@ const addClusterHandler: ToolDefinition["handler"] = async (args, _extra) => {
       content: [
         {
           type: "text",
-          text: `Cluster "${name}" has been successfully added with Kubernetes version ${version.gitVersion}`,
+          text: `Cluster "${args.name}" has been successfully added with Kubernetes version ${version.gitVersion}`,
         },
       ],
     };
@@ -57,7 +51,7 @@ const addClusterHandler: ToolDefinition["handler"] = async (args, _extra) => {
       content: [
         {
           type: "text",
-          text: `Failed to add cluster "${name}": ${error.message}`,
+          text: `Failed to add cluster "${args.name}": ${error.message}`,
         },
       ],
       isError: true,
@@ -68,7 +62,12 @@ const addClusterHandler: ToolDefinition["handler"] = async (args, _extra) => {
 export const addClusterTool: ToolDefinition = {
   name: "add_cluster",
   description: "Add a Kubernetes cluster configuration",
-  handler: addClusterHandler,
+  callback: addClusterHandler,
+  inputSchema: z.object({
+    name: z.string().describe("The name of the cluster to add"),
+    kubeconfig: z.string().optional().describe("Optional kubeconfig string to use for the cluster"),
+    context: z.string().optional().describe("Optional context to set as current for the cluster")
+  }),
   // For future auth integration
   requiredPermissions: ["k8s:admin"],
 };

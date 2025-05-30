@@ -1,8 +1,14 @@
-import { PromptHandler } from "./registry.js";
+import { PromptDefinition } from "./registry.js";
 
 // Handler for Kubernetes best practices
-const bestPracticesHandler: PromptHandler = async () => {
-  return `# Kubernetes Best Practices for Production Deployments
+const bestPracticesHandler: PromptDefinition["callback"] = async (_extra) => {
+  return {
+    messages: [
+      {
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `# Kubernetes Best Practices for Production Deployments
 
 ## Resource Management
 - **Set resource requests and limits** for all containers to ensure proper scheduling and prevent resource starvation
@@ -47,12 +53,22 @@ const bestPracticesHandler: PromptHandler = async () => {
 ## Upgrade Strategy
 - Use **rolling updates** with proper maxSurge and maxUnavailable settings
 - Test upgrades in **staging environments** before production
-- Have a **rollback plan** for failed upgrades`;
+- Have a **rollback plan** for failed upgrades`
+        }
+      }
+    ]
+  };
 };
 
 // Handler for Kubernetes troubleshooting
-const troubleshootingHandler: PromptHandler = async () => {
-  return `# Kubernetes Troubleshooting Guide
+const troubleshootingHandler: PromptDefinition["callback"] = async (_extra) => {
+  return {
+    messages: [
+      {
+        role: "assistant",
+        content: {
+          type: "text",
+          text: `# Kubernetes Troubleshooting Guide
 
 ## Pod Issues
 - **Pod stuck in Pending**: Check node resources, PVC availability, or node selectors
@@ -97,17 +113,21 @@ kubectl run -it --rm debug --image=busybox -- sh
 - Use \`kubectl top\` to identify resource-intensive pods
 - Check for resource limits and requests
 - Look for pod evictions due to resource constraints
-- Consider cluster autoscaling if consistently resource-constrained`;
+- Consider cluster autoscaling if consistently resource-constrained`
+        }
+      }
+    ]
+  };
 };
 
-export const bestPracticesPrompt = {
+export const bestPracticesPrompt: PromptDefinition = {
   name: "k8s_best_practices",
   description: "Get Kubernetes best practices for production deployments",
-  handler: bestPracticesHandler,
+  callback: bestPracticesHandler,
 };
 
-export const troubleshootingPrompt = {
+export const troubleshootingPrompt: PromptDefinition = {
   name: "k8s_troubleshooting",
   description: "Get Kubernetes troubleshooting steps for common issues",
-  handler: troubleshootingHandler,
+  callback: troubleshootingHandler,
 };

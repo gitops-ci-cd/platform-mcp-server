@@ -1,4 +1,4 @@
-import { ToolDefinition } from "./registry.js";
+import { z } from "zod";
 import * as k8s from "@kubernetes/client-node";
 import {
   V1Deployment,
@@ -7,14 +7,9 @@ import {
   V1PodTemplateSpec,
 } from "@kubernetes/client-node";
 
-interface RestartServiceRequest {
-  service: string;
-  environment: string;
-}
+import { ToolDefinition } from "./registry.js";
 
-const restartServiceHandler: ToolDefinition["handler"] = async (args, _extra) => {
-  const { service, environment } = args as RestartServiceRequest;
-
+const restartServiceHandler: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     // Load kubeconfig from default location
     const kc = new k8s.KubeConfig();
@@ -25,8 +20,8 @@ const restartServiceHandler: ToolDefinition["handler"] = async (args, _extra) =>
     // Get the deployment
     // In Kubernetes client 1.x, the method signature has changed to accept a request object
     const deployment: V1Deployment = await appsV1Api.readNamespacedDeployment({
-      name: service,
-      namespace: environment,
+      name: args.service,
+      namespace: args.environment,
     });
 
     // Add or update the annotation to trigger a restart
@@ -73,14 +68,14 @@ const restartServiceHandler: ToolDefinition["handler"] = async (args, _extra) =>
     // Update the deployment
     // In Kubernetes client 1.x, the method signature has changed to accept a request object
     await appsV1Api.replaceNamespacedDeployment({
-      name: service,
-      namespace: environment,
+      name: args.service,
+      namespace: args.environment,
       body: deployment,
     });
 
     return {
       result: {
-        message: `Service ${service} in environment ${environment} has been restarted successfully.`,
+        message: `Service ${args.service} in environment ${args.environment} has been restarted successfully.`,
       },
       content: [],
     };
@@ -89,7 +84,7 @@ const restartServiceHandler: ToolDefinition["handler"] = async (args, _extra) =>
       content: [
         {
           type: "text",
-          text: `Failed to restart service ${service} in environment ${environment}: ${error.message}`,
+          text: `Failed to restart service ${args.service} in environment ${args.environment}: ${error.message}`,
         },
       ],
     };
@@ -99,7 +94,11 @@ const restartServiceHandler: ToolDefinition["handler"] = async (args, _extra) =>
 export const restartServiceTool: ToolDefinition = {
   name: "restartService",
   description: "Restart a Kubernetes service",
-  handler: restartServiceHandler,
+  callback: restartServiceHandler,
+  inputSchema: z.object({
+    service: z.string().describe("The name of the service to restart"),
+    environment: z.string().describe("The environment where the service is running"),
+  }),
   // For future auth integration
   requiredPermissions: ["k8s:restart"],
 };

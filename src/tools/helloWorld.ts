@@ -1,11 +1,11 @@
+import { z } from "zod";
+
 import { ToolDefinition } from "./registry.js";
 
-const helloWorldHandler: ToolDefinition["handler"] = async (args, _extra) => {
-  const name = args.name || "World";
-
+const helloWorldHandler: ToolDefinition["callback"] = async (args, _extra) => {
   return {
     result: {
-      greeting: `Hello, ${name}!`,
+      greeting: `Hello, ${args.name}!`,
       message: "Here's a fun story about Earth's origins:",
     },
     content: [
@@ -28,8 +28,11 @@ So when you say "Hello World," remember you're actually greeting a remarkable pl
 };
 
 export const helloWorldTool: ToolDefinition = {
-  name: "helloWorld",
+  name: "Hello World",
   description: "A simple greeting tool that tells the story of Earth's origins",
-  handler: helloWorldHandler,
+  inputSchema: z.object({
+    name: z.string().optional().describe("The name to greet").default("World"),
+  }),
+  callback: helloWorldHandler,
   // No permissions required - everyone can say hello!
 };

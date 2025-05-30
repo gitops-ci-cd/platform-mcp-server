@@ -1,45 +1,21 @@
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import {
-  CallToolResult,
-  ServerRequest,
-  ServerNotification,
-} from "@modelcontextprotocol/sdk/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-// Tool handler type definition
-export type ToolHandler = (
-  args: { [x: string]: any },
-  extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-) => Promise<CallToolResult>;
-
-// Tool definition interface
-export interface ToolDefinition {
+export interface ToolDefinition extends Pick<RegisteredTool, "description" | "inputSchema" | "outputSchema" | "annotations" | "callback"> {
   name: string;
-  description: string;
-  handler: ToolHandler;
-  // For future authentication/authorization
-  requiredPermissions?: string[];
+  requiredPermissions?: string[]; // For future authentication/authorization
 }
 
 // Registry to store all available tools
-const toolRegistry: ToolDefinition[] = [];
+const toolRegistry = new Map<string, ToolDefinition>();
 
 // Register a tool in the registry
 export function registerTool(toolDef: ToolDefinition): void {
-  // Check if tool with same name already exists
-  const existingIndex = toolRegistry.findIndex((t) => t.name === toolDef.name);
-  if (existingIndex >= 0) {
-    // Replace existing tool
-    toolRegistry[existingIndex] = toolDef;
-  } else {
-    // Add new tool
-    toolRegistry.push(toolDef);
-  }
+  toolRegistry.set(toolDef.name, toolDef);
 }
 
 // Get tools filtered by permissions (for future auth integration)
 export function getAuthorizedTools(userPermissions: string[] = []): ToolDefinition[] {
-  return toolRegistry.filter((tool) => {
+  return Array.from(toolRegistry.values()).filter((tool) => {
     // If no permissions required, tool is available to everyone
     if (!tool.requiredPermissions || tool.requiredPermissions.length === 0) {
       return true;
@@ -55,6 +31,16 @@ export function registerToolsWithServer(server: McpServer, userPermissions: stri
   const authorizedTools = getAuthorizedTools(userPermissions);
 
   for (const tool of authorizedTools) {
-    server.registerTool(tool.name, { description: tool.description }, tool.handler);
+    const { name, description, inputSchema, outputSchema, annotations, callback } = tool;
+    server.registerTool(
+      name,
+      {
+        description,
+        inputSchema: inputSchema ? inputSchema.shape : undefined,
+        outputSchema: outputSchema ? outputSchema.shape : undefined,
+        annotations
+      },
+      callback
+    );
   }
 }
