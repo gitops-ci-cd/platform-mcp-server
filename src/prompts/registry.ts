@@ -10,12 +10,12 @@ export interface PromptDefinition extends Pick<RegisteredPrompt, "description" |
 const promptRegistry = new Map<string, PromptDefinition>();
 
 // Register a prompt in the registry
-export function registerPrompt(promptDef: PromptDefinition): void {
+export const registerPrompt = (promptDef: PromptDefinition): void => {
   promptRegistry.set(promptDef.name, promptDef);
-}
+};
 
 // Get prompts filtered by permissions (for future auth integration)
-export function getAuthorizedPrompts(userPermissions: string[] = []): PromptDefinition[] {
+export const getAuthorizedPrompts = (userPermissions: string[] = []): PromptDefinition[] => {
   return Array.from(promptRegistry.values()).filter((prompt) => {
     // If no permissions required, prompt is available to everyone
     if (!prompt.requiredPermissions || prompt.requiredPermissions.length === 0) {
@@ -25,10 +25,10 @@ export function getAuthorizedPrompts(userPermissions: string[] = []): PromptDefi
     // Check if user has any of the required permissions
     return prompt.requiredPermissions.some((perm) => userPermissions.includes(perm));
   });
-}
+};
 
 // Register prompts with an MCP server instance
-export function registerPromptsWithServer(server: McpServer, userPermissions: string[] = []): void {
+export const registerPromptsWithServer = (server: McpServer, userPermissions: string[] = []): void => {
   // Filter prompts by permissions
   const authorizedPrompts = getAuthorizedPrompts(userPermissions);
 
@@ -41,4 +41,4 @@ export function registerPromptsWithServer(server: McpServer, userPermissions: st
       callback
     );
   }
-}
+};
