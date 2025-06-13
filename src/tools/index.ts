@@ -5,9 +5,9 @@ import { restartServiceTool } from "./restartService.js";
 import { addClusterTool } from "./addCluster.js";
 
 // Register all available tools
-export function initializeTools(): void {
+export const initializeTools = (): void => {
   registerTool(helloWorldTool);
   registerTool(samplingTool);
   registerTool(restartServiceTool);
   registerTool(addClusterTool);
-}
+};

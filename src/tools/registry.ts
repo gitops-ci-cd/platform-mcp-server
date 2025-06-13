@@ -9,12 +9,12 @@ export interface ToolDefinition extends Pick<RegisteredTool, "description" | "in
 const toolRegistry = new Map<string, ToolDefinition>();
 
 // Register a tool in the registry
-export function registerTool(toolDef: ToolDefinition): void {
+export const registerTool = (toolDef: ToolDefinition): void => {
   toolRegistry.set(toolDef.name, toolDef);
-}
+};
 
 // Get tools filtered by permissions (for future auth integration)
-export function getAuthorizedTools(userPermissions: string[] = []): ToolDefinition[] {
+export const getAuthorizedTools = (userPermissions: string[] = []): ToolDefinition[] => {
   return Array.from(toolRegistry.values()).filter((tool) => {
     // If no permissions required, tool is available to everyone
     if (!tool.requiredPermissions || tool.requiredPermissions.length === 0) {
@@ -24,10 +24,10 @@ export function getAuthorizedTools(userPermissions: string[] = []): ToolDefiniti
     // Check if user has any of the required permissions
     return tool.requiredPermissions.some((perm) => userPermissions.includes(perm));
   });
-}
+};
 
 // Register all authorized tools with an MCP server instance
-export function registerToolsWithServer(server: McpServer, userPermissions: string[] = []): void {
+export const registerToolsWithServer = (server: McpServer, userPermissions: string[] = []): void => {
   const authorizedTools = getAuthorizedTools(userPermissions);
 
   for (const tool of authorizedTools) {
@@ -43,4 +43,4 @@ export function registerToolsWithServer(server: McpServer, userPermissions: stri
       callback
     );
   }
-}
+};

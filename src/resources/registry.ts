@@ -23,17 +23,17 @@ export const resourceRegistry = new Map<string, ResourceDefinition>();
 export const templateRegistry = new Map<string, ResourceTemplateDefinition>();
 
 // Register a direct resource in the registry
-export function registerResource(resourceDef: ResourceDefinition): void {
+export const registerResource = (resourceDef: ResourceDefinition): void => {
   resourceRegistry.set(resourceDef.uri, resourceDef);
-}
+};
 
 // Register a resource template in the registry
-export function registerResourceTemplate(templateDef: ResourceTemplateDefinition): void {
+export const registerResourceTemplate = (templateDef: ResourceTemplateDefinition): void => {
   templateRegistry.set(templateDef.name, templateDef);
-}
+};
 
 // Get resources filtered by permissions (for future auth integration)
-export function getAuthorizedResources(userPermissions: string[] = []): ResourceDefinition[] {
+export const getAuthorizedResources = (userPermissions: string[] = []): ResourceDefinition[] => {
   return Array.from(resourceRegistry.values()).filter((resource) => {
     // If no permissions required, resource is available to everyone
     if (!resource.requiredPermissions || resource.requiredPermissions.length === 0) {
@@ -43,10 +43,10 @@ export function getAuthorizedResources(userPermissions: string[] = []): Resource
     // Check if user has any of the required permissions
     return resource.requiredPermissions.some((perm) => userPermissions.includes(perm));
   });
-}
+};
 
 // Get templates filtered by permissions (for future auth integration)
-export function getAuthorizedTemplates(userPermissions: string[] = []): ResourceTemplateDefinition[] {
+export const getAuthorizedTemplates = (userPermissions: string[] = []): ResourceTemplateDefinition[] => {
   return Array.from(templateRegistry.values()).filter((template) => {
     // If no permissions required, template is available to everyone
     if (!template.requiredPermissions || template.requiredPermissions.length === 0) {
@@ -56,13 +56,13 @@ export function getAuthorizedTemplates(userPermissions: string[] = []): Resource
     // Check if user has any of the required permissions
     return template.requiredPermissions.some((perm) => userPermissions.includes(perm));
   });
-}
+};
 
 // Register resources with an MCP server instance
-export function registerResourcesWithServer(
+export const registerResourcesWithServer = (
   server: McpServer,
   userPermissions: string[] = []
-): void {
+): void => {
   // Filter resources by permissions
   const authorizedResources = getAuthorizedResources(userPermissions);
 
@@ -76,13 +76,13 @@ export function registerResourcesWithServer(
       readCallback
     );
   }
-}
+};
 
 // Register resource templates with an MCP server instance
-export function registerResourceTemplatesWithServer(
+export const registerResourceTemplatesWithServer = (
   server: McpServer,
   userPermissions: string[] = []
-): void {
+): void => {
   // Filter templates by permissions
   const authorizedTemplates = getAuthorizedTemplates(userPermissions);
 
@@ -96,4 +96,4 @@ export function registerResourceTemplatesWithServer(
       readCallback,
     );
   }
-}
+};
