@@ -13,8 +13,14 @@ import { registerPromptsWithServer } from "../../prompts/registry.js";
 import { initializeTools } from "../../tools/index.js";
 import { initializeResources } from "../../resources/index.js";
 import { initializePrompts } from "../../prompts/index.js";
+import { AuthenticatedUser } from "../../auth/index.js";
 
 import pkg from "../../../package.json" with { type: "json" };
+
+// Extend Request type to include authenticated user
+interface AuthenticatedRequest extends Request {
+  user?: AuthenticatedUser;
+}
 
 const { name, version } = pkg;
 
@@ -56,9 +62,14 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
 
     const server = new McpServer({ name, version });
 
-    // Get user permissions (for future auth integration)
-    // const userPermissions = getUserPermissions(req);
-    const userPermissions: string[] = []; // No permissions check for now
+    // Get user permissions from authenticated user
+    const user = (req as AuthenticatedRequest).user;
+    const userPermissions = user?.permissions || [];
+
+    // Log user access for audit purposes
+    if (user) {
+      console.log(`User ${user.email} (${user.id}) accessing MCP server with permissions:`, userPermissions);
+    }
 
     // Register all authorized capabilities
     registerToolsWithServer(server, userPermissions);
@@ -109,9 +120,14 @@ export const handleLegacySSE = async (req: Request, res: Response, _next: NextFu
     delete transports.sse[transport.sessionId];
   });
 
-  // Get user permissions (for future auth integration)
-  // const userPermissions = getUserPermissions(req);
-  const userPermissions: string[] = []; // No permissions check for now
+  // Get user permissions from authenticated user
+  const user = (req as AuthenticatedRequest).user;
+  const userPermissions = user?.permissions || [];
+
+  // Log user access for audit purposes
+  if (user) {
+    console.log(`User ${user.email} (${user.id}) accessing SSE MCP server with permissions:`, userPermissions);
+  }
 
   // Register all authorized capabilities
   registerToolsWithServer(server, userPermissions);

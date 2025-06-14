@@ -6,10 +6,9 @@ import {
   V1ObjectMeta,
   V1PodTemplateSpec,
 } from "@kubernetes/client-node";
-
 import { ToolDefinition } from "./registry.js";
 
-const restartServiceHandler: ToolDefinition["callback"] = async (args, _extra) => {
+const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     // Load kubeconfig from default location
     const kc = new k8s.KubeConfig();
@@ -94,7 +93,7 @@ const restartServiceHandler: ToolDefinition["callback"] = async (args, _extra) =
 export const restartServiceTool: ToolDefinition = {
   name: "restartService",
   description: "Restart a Kubernetes service",
-  callback: restartServiceHandler,
+  callback,
   inputSchema: z.object({
     service: z.string().describe("The name of the service to restart"),
     environment: z.string().describe("The environment where the service is running"),

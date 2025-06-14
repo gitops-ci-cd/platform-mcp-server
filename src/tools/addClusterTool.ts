@@ -1,9 +1,8 @@
 import { z } from "zod";
 import * as k8s from "@kubernetes/client-node";
-
 import { ToolDefinition } from "./registry.js";
 
-const addClusterHandler: ToolDefinition["callback"] = async (args, _extra) => {
+const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     // Create a new KubeConfig
     const kc = new k8s.KubeConfig();
@@ -62,11 +61,11 @@ const addClusterHandler: ToolDefinition["callback"] = async (args, _extra) => {
 export const addClusterTool: ToolDefinition = {
   name: "add_cluster",
   description: "Add a Kubernetes cluster configuration",
-  callback: addClusterHandler,
+  callback,
   inputSchema: z.object({
     name: z.string().describe("The name of the cluster to add"),
     kubeconfig: z.string().optional().describe("Optional kubeconfig string to use for the cluster"),
-    context: z.string().optional().describe("Optional context to set as current for the cluster")
+    context: z.string().optional().describe("Optional context name to use from the kubeconfig"),
   }),
   // For future auth integration
   requiredPermissions: ["k8s:admin"],

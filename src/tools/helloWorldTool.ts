@@ -1,8 +1,7 @@
 import { z } from "zod";
-
 import { ToolDefinition } from "./registry.js";
 
-const helloWorldHandler: ToolDefinition["callback"] = async (args, _extra) => {
+const callback: ToolDefinition["callback"] = async (args, _extra) => {
   return {
     result: {
       greeting: `Hello, ${args.name}!`,
@@ -33,6 +32,6 @@ export const helloWorldTool: ToolDefinition = {
   inputSchema: z.object({
     name: z.string().optional().describe("The name to greet").default("World"),
   }),
-  callback: helloWorldHandler,
+  callback,
   // No permissions required - everyone can say hello!
 };

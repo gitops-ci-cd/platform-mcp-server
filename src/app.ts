@@ -1,22 +1,26 @@
-import express, { Express, RequestHandler, ErrorRequestHandler } from "express";
+import express, { Express } from "express";
+import cors from "cors";
 
 import { loggingMiddleware } from "./middleware/loggingMiddleware.js";
 import { notFoundHandler } from "./middleware/notFoundHandler.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { loadAppConfig } from "./config.js";
 import routes from "./routes/index.js";
+
+// Load configuration
+const appConfig = loadAppConfig();
 
 const app: Express = express();
 
-// Middleware stack
-const stack: (RequestHandler | ErrorRequestHandler)[] = [
-  express.json(),
-  loggingMiddleware,
-  routes,
-  notFoundHandler,
-  errorHandler,
-];
+// Basic middleware (applied to all routes)
+app.use(cors(appConfig.cors));
+app.use(express.json());
+app.use(loggingMiddleware);
 
-// Attach each middleware in the stack to the app
-stack.forEach((middleware) => app.use(middleware));
+app.use(routes);
+
+// Error handling middleware
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;

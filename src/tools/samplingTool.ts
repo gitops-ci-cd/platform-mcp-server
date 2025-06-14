@@ -1,9 +1,8 @@
 import { z } from "zod";
-
 import { ToolDefinition } from "./registry.js";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 
-const samplingHandler: ToolDefinition["callback"] = async (args, extra) => {
+const callback: ToolDefinition["callback"] = async (args, extra) => {
   // Create style-specific instructions
   let styleInstruction = "";
   switch (args.style) {
@@ -95,5 +94,5 @@ export const samplingTool: ToolDefinition = {
     maxTokens: z.number().int().positive().max(1000).optional().default(250)
       .describe("Maximum number of tokens to generate")
   }),
-  callback: samplingHandler
+  callback
 };
