@@ -90,7 +90,7 @@ export const troubleshootingPrompt: PromptDefinition = {
   name: "k8s_troubleshooting",
   description: "Get Kubernetes troubleshooting steps for common issues",
   argsSchema: z.object({
-    category: z.string().optional().describe("The type of troubleshooting guide to show: pod, node, networking, or all")
+    category: z.enum(["pod", "node", "networking", "all"]).optional().describe("The type of troubleshooting guide to show")
   }),
   callback,
 };
