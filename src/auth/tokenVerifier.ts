@@ -3,29 +3,7 @@ import { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provid
 import JwksClient, { SigningKey } from "jwks-client";
 import jwt from "jsonwebtoken";
 
-/**
- * Configuration for MS Entra ID authentication
- */
-interface EntraConfig {
-  tenantId: string;
-  clientId: string;
-}
-
-/**
- * Load Entra ID configuration from environment
- */
-const loadEntraConfig = (): EntraConfig => {
-  const { MS_ENTRA_TENANT_ID: tenantId, MS_ENTRA_CLIENT_ID: clientId } = process.env;
-
-  if (!tenantId || !clientId) {
-    throw new Error("MS_ENTRA_TENANT_ID and MS_ENTRA_CLIENT_ID are required");
-  }
-
-  return {
-    tenantId,
-    clientId
-  };
-};
+import { loadEntraConfig, EntraConfig } from "./config.js";
 
 /**
  * Simple and efficient MS Entra ID token verifier
