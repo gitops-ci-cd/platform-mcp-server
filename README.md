@@ -36,7 +36,7 @@ To configure VS Code to use this MCP server, add the following to your `settings
   "mcp": {
     "servers": {
       "platform-mcp-server": {
-        "url": "http://localhost:8080/execute/v1/mcp/",
+        "url": "http://localhost:8080/execute",
         "type": "http",
       }
     }

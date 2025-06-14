@@ -1,5 +1,4 @@
-import { McpServer, RegisteredPrompt, PromptCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { McpServer, RegisteredPrompt } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 export interface PromptDefinition extends Pick<RegisteredPrompt, "description" | "argsSchema"> {
   name: string;

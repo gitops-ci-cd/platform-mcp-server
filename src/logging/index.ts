@@ -26,3 +26,6 @@ if (currentLevel > levels.info) {
 if (currentLevel > levels.warn) {
   console.warn = () => {};
 }
+
+// Re-export logging middleware for barrel file pattern
+export { loggingMiddleware } from "./middleware.js";

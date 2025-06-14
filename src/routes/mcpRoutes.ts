@@ -1,9 +1,6 @@
 import { Router } from "express";
 
-import {
-  mcpController,
-  handleSessionRequest,
-} from "../controllers/mcpController.js";
+import { mcpController, handleSessionRequest } from "../controllers/index.js";
 
 const router: Router = Router();
 

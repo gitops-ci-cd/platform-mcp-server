@@ -1,11 +1,10 @@
 import express, { Express } from "express";
 import cors from "cors";
 
-import { loggingMiddleware } from "./logging/middleware.js";
-import { notFoundHandler } from "./controllers/notFoundHandler.js";
-import { errorHandler } from "./controllers/errorHandler.js";
+import { loggingMiddleware } from "./logging/index.js";
+import { notFoundHandler, errorHandler } from "./controllers/index.js";
 import { loadAppConfig } from "./config.js";
-import routes from "./routes/index.js";
+import { router } from "./routes/index.js";
 
 export const app: Express = express();
 export const config = loadAppConfig();
@@ -15,10 +14,8 @@ app.use(cors(config.cors));
 app.use(express.json());
 app.use(loggingMiddleware);
 
-app.use(routes);
+app.use(router);
 
 // Error handling middleware
 app.use(notFoundHandler);
 app.use(errorHandler);
-
-export default app;

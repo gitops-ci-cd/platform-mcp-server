@@ -5,13 +5,10 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
-import { registerToolsWithServer } from "../tools/registry.js";
-import { registerResourcesWithServer, registerResourceTemplatesWithServer } from "../resources/registry.js";
-import { registerPromptsWithServer } from "../prompts/registry.js";
-import { initializeTools } from "../tools/index.js";
-import { initializeResources } from "../resources/index.js";
-import { initializePrompts } from "../prompts/index.js";
-import { getUserInfo } from "../auth/user.js";
+import { registerToolsWithServer, initializeTools } from "../tools/index.js";
+import { registerResourcesWithServer, registerResourceTemplatesWithServer, initializeResources } from "../resources/index.js";
+import { registerPromptsWithServer, initializePrompts } from "../prompts/index.js";
+import { getUserInfo } from "../auth/index.js";
 
 import pkg from "../../package.json" with { type: "json" };
 

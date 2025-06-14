@@ -1,7 +1,7 @@
 import { PromptDefinition } from "./registry.js";
 import { z } from "zod";
 
-const callback: PromptDefinition["callback"] = async (args: any, extra: any) => {
+const callback: PromptDefinition["callback"] = async (args: any, _extra: any) => {
   // When argsSchema is provided, args is the first parameter
   const category = args?.category || "all";
 
