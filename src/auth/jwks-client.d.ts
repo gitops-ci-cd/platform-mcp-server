@@ -16,11 +16,9 @@ declare module "jwks-client" {
     publicKey?: string;
   }
 
-  export class JwksClient {
+  export default class JwksClient {
     constructor(options: JwksClientOptions);
     getSigningKey(kid: string): Promise<SigningKey>;
     getSigningKey(kid: string, callback: (err: Error | null, key: SigningKey) => void): void;
   }
-
-  export default function jwksClient(options: JwksClientOptions): JwksClient;
 }

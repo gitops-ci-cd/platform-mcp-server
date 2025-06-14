@@ -3,8 +3,6 @@ import { Router } from "express";
 import {
   mcpController,
   handleSessionRequest,
-  handleLegacySSE,
-  handleLegacyMessage,
 } from "../../controllers/v1/mcpController.js";
 
 const router: Router = Router();
@@ -16,11 +14,5 @@ router.post("/mcp", mcpController);
 router.get("/mcp", handleSessionRequest);
 // Handle DELETE requests for session termination
 router.delete("/mcp", handleSessionRequest);
-
-// TODO: REMOVE LEGACY ENDPOINTS IN FUTURE RELEASES
-// Legacy SSE endpoint for older clients
-router.get("/sse", handleLegacySSE);
-// Legacy message endpoint for older clients
-router.post("/messages", handleLegacyMessage);
 
 export default router;

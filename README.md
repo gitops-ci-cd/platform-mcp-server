@@ -4,8 +4,9 @@ A [Model Context Protocol (MCP) server](https://modelcontextprotocol.io/introduc
 
 ## Features
 
-- **🔐 JWT Authentication**: Secure authentication using Microsoft Entra ID (Azure AD)
+- **🔐 MCP SDK Authentication**: Native MCP authentication using Microsoft Entra ID (Azure AD)
 - **👥 Role-Based Access Control**: Fine-grained permissions based on user roles
+- **📦 Standards-Compliant**: Uses MCP SDK's ProxyOAuthServerProvider and requireBearerAuth
 - **Hello World**: Basic endpoint to verify server functionality
 - **Kubernetes Service Restart Tool**: Restart Kubernetes services in specified environments
 - **📊 Health Check Endpoints**: Public and authenticated health checks
@@ -45,7 +46,7 @@ To add this MCP server to your MCP settings, add the following configuration to 
 
 ## Authentication
 
-This server implements **JWT-based authentication** using the [MCP Draft Authorization Spec](https://spec.modelcontextprotocol.io/specification/server/auth/). It acts as a **Resource Server** that validates JWT tokens from Microsoft Entra ID.
+This server implements **JWT-based authentication** using the **[MCP SDK's native authentication system](https://modelcontextprotocol.io/)** with Microsoft Entra ID integration. The server acts as a **Resource Server** that validates JWT tokens from Microsoft Entra ID using the MCP SDK's `ProxyOAuthServerProvider` and `requireBearerAuth` middleware.
 
 ### Quick Setup
 

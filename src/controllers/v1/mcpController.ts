@@ -4,6 +4,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+
 import { registerToolsWithServer } from "../../tools/registry.js";
 import {
   registerResourcesWithServer,
@@ -13,13 +15,13 @@ import { registerPromptsWithServer } from "../../prompts/registry.js";
 import { initializeTools } from "../../tools/index.js";
 import { initializeResources } from "../../resources/index.js";
 import { initializePrompts } from "../../prompts/index.js";
-import { AuthenticatedUser } from "../../auth/index.js";
+import { getUserFromAuthInfo } from "../../auth/entra.js";
 
 import pkg from "../../../package.json" with { type: "json" };
 
-// Extend Request type to include authenticated user
+// Extend Request type to include MCP auth info
 interface AuthenticatedRequest extends Request {
-  user?: AuthenticatedUser;
+  auth?: AuthInfo;
 }
 
 const { name, version } = pkg;
@@ -62,8 +64,9 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
 
     const server = new McpServer({ name, version });
 
-    // Get user permissions from authenticated user
-    const user = (req as AuthenticatedRequest).user;
+    // Get user permissions from MCP auth info
+    const authInfo = (req as AuthenticatedRequest).auth;
+    const user = authInfo ? getUserFromAuthInfo(authInfo) : null;
     const userPermissions = user?.permissions || [];
 
     // Log user access for audit purposes
@@ -106,45 +109,4 @@ export const handleSessionRequest = async (req: Request, res: Response, _next: N
 
   const transport = transports.streamable[sessionId];
   await transport.handleRequest(req, res);
-};
-
-// Legacy SSE initialization
-export const handleLegacySSE = async (req: Request, res: Response, _next: NextFunction) => {
-  const server = new McpServer({ name, version });
-
-  // Create SSE transport for legacy clients
-  const transport = new SSEServerTransport("execute/v1/messages", res);
-  transports.sse[transport.sessionId] = transport;
-
-  res.on("close", () => {
-    delete transports.sse[transport.sessionId];
-  });
-
-  // Get user permissions from authenticated user
-  const user = (req as AuthenticatedRequest).user;
-  const userPermissions = user?.permissions || [];
-
-  // Log user access for audit purposes
-  if (user) {
-    console.log(`User ${user.email} (${user.id}) accessing SSE MCP server with permissions:`, userPermissions);
-  }
-
-  // Register all authorized capabilities
-  registerToolsWithServer(server, userPermissions);
-  registerResourcesWithServer(server, userPermissions);
-  registerResourceTemplatesWithServer(server, userPermissions);
-  registerPromptsWithServer(server, userPermissions);
-
-  await server.connect(transport);
-};
-
-// Legacy message handling for SSE
-export const handleLegacyMessage = async (req: Request, res: Response, _next: NextFunction) => {
-  const sessionId = req.query.sessionId as string;
-  const transport = transports.sse[sessionId];
-  if (transport) {
-    await transport.handlePostMessage(req, res, req.body);
-  } else {
-    res.status(400).send("No transport found for sessionId");
-  }
 };
