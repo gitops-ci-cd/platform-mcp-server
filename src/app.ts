@@ -1,7 +1,7 @@
 import express, { Express } from "express";
 import cors from "cors";
 
-import { loggingMiddleware } from "./lib/logging/middleware.js";
+import { loggingMiddleware } from "./logging/middleware.js";
 import { notFoundHandler } from "./controllers/notFoundHandler.js";
 import { errorHandler } from "./controllers/errorHandler.js";
 import { loadAppConfig } from "./config.js";
