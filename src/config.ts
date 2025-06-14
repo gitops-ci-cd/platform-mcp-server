@@ -10,11 +10,12 @@ export interface AppConfig {
 }
 
 export function loadAppConfig(): AppConfig {
+  const port = parseInt(process.env.PORT || "8080");
   return {
-    port: parseInt(process.env.PORT || "8080"),
+    port,
     logLevel: LOG_LEVEL,
     cors: {
-      origin: process.env.CORS_ORIGINS?.split(",") || ["http://localhost:3000"],
+      origin: process.env.CORS_ORIGINS?.split(",") || [`http://localhost:${port}`],
       credentials: true,
     },
   };
