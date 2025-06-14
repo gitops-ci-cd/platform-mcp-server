@@ -5,14 +5,10 @@ export {
 
 // Initialize all available tools
 import { registerTool } from "./registry.js";
-import { helloWorldTool } from "./helloWorldTool.js";
-import { samplingTool } from "./samplingTool.js";
-import { restartServiceTool } from "./restartServiceTool.js";
-import { addClusterTool } from "./addClusterTool.js";
+import { mcpExplainerTool } from "./mcpExplainerTool.js";
+import { mcpHealthCheckTool } from "./mcpHealthCheckTool.js";
 
 export const initializeTools = (): void => {
-  registerTool(helloWorldTool);
-  registerTool(samplingTool);
-  registerTool(restartServiceTool);
-  registerTool(addClusterTool);
+  registerTool(mcpExplainerTool);
+  registerTool(mcpHealthCheckTool);
 };

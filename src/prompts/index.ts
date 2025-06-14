@@ -5,10 +5,10 @@ export {
 
 // Initialize all available prompts
 import { registerPrompt } from "./registry.js";
-import { bestPracticesPrompt } from "./bestPracticesPrompt.js";
-import { troubleshootingPrompt } from "./troubleshootingPrompt.js";
+import { mcpConceptsPrompt } from "./mcpConceptsPrompt.js";
+import { mcpGettingStartedPrompt } from "./mcpGettingStartedPrompt.js";
 
 export const initializePrompts = (): void => {
-  registerPrompt(bestPracticesPrompt);
-  registerPrompt(troubleshootingPrompt);
+  registerPrompt(mcpConceptsPrompt);
+  registerPrompt(mcpGettingStartedPrompt);
 };
