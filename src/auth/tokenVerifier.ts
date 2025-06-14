@@ -1,6 +1,5 @@
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
-import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import JwksClient, { SigningKey } from "jwks-client";
 import jwt from "jsonwebtoken";
 
@@ -10,46 +9,28 @@ import jwt from "jsonwebtoken";
 interface EntraConfig {
   tenantId: string;
   clientId: string;
-  permissionMapping: Record<string, string[]>;
 }
-
-/**
- * Default role-to-permission mappings
- */
-const DEFAULT_PERMISSIONS: Record<string, string[]> = {
-  admin: ["*"],
-  developer: ["k8s:view", "k8s:restart", "k8s:logs"],
-  viewer: ["k8s:view"],
-};
 
 /**
  * Load Entra ID configuration from environment
  */
 const loadEntraConfig = (): EntraConfig => {
-  const { MS_ENTRA_TENANT_ID: tenantId, MS_ENTRA_CLIENT_ID: clientId, AUTH_PERMISSION_MAPPING } = process.env;
+  const { MS_ENTRA_TENANT_ID: tenantId, MS_ENTRA_CLIENT_ID: clientId } = process.env;
 
   if (!tenantId || !clientId) {
     throw new Error("MS_ENTRA_TENANT_ID and MS_ENTRA_CLIENT_ID are required");
   }
 
-  // Merge custom permissions with defaults
-  let permissionMapping = DEFAULT_PERMISSIONS;
-  if (AUTH_PERMISSION_MAPPING) {
-    try {
-      const custom = JSON.parse(AUTH_PERMISSION_MAPPING);
-      permissionMapping = { ...DEFAULT_PERMISSIONS, ...custom };
-    } catch {
-      console.warn("Invalid AUTH_PERMISSION_MAPPING, using defaults");
-    }
-  }
-
-  return { tenantId, clientId, permissionMapping };
+  return {
+    tenantId,
+    clientId
+  };
 };
 
 /**
  * Simple and efficient MS Entra ID token verifier
  */
-class EntraTokenVerifier implements OAuthTokenVerifier {
+export class EntraTokenVerifier implements OAuthTokenVerifier {
   private config: EntraConfig;
   private jwksClient: JwksClient;
 
@@ -103,13 +84,9 @@ class EntraTokenVerifier implements OAuthTokenVerifier {
 
   private createAuthInfo(token: string, payload: any): AuthInfo {
     const roles = payload.roles || [];
-    const permissions = new Set<string>();
 
-    // Map roles to permissions
-    roles.forEach((role: string) => {
-      const rolePermissions = this.config.permissionMapping[role] || [];
-      rolePermissions.forEach((permission: string) => permissions.add(permission));
-    });
+    // Use roles directly as permissions for internal tooling
+    const permissions = roles.slice(); // Create a copy of roles array
 
     return {
       token,
@@ -121,34 +98,8 @@ class EntraTokenVerifier implements OAuthTokenVerifier {
         email: payload.email || payload.preferred_username || payload.upn,
         name: payload.name,
         roles,
-        permissions: Array.from(permissions),
+        permissions,
       },
     };
   }
 }
-
-/**
- * Create authentication middleware for MS Entra ID
- */
-export const createEntraAuthMiddleware = () => {
-  return requireBearerAuth({
-    verifier: new EntraTokenVerifier(),
-    requiredScopes: [],
-  });
-};
-
-/**
- * Extract user info from MCP AuthInfo
- */
-export const getUserFromAuthInfo = (authInfo: AuthInfo) => {
-  const extra = authInfo.extra || {};
-  return {
-    id: extra.userId as string,
-    email: extra.email as string,
-    name: extra.name as string,
-    roles: extra.roles as string[],
-    permissions: extra.permissions as string[],
-  };
-};
-
-export type McpAuthenticatedUser = ReturnType<typeof getUserFromAuthInfo>;

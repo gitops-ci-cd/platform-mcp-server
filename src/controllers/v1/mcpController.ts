@@ -2,20 +2,16 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 import { registerToolsWithServer } from "../../tools/registry.js";
-import {
-  registerResourcesWithServer,
-  registerResourceTemplatesWithServer,
-} from "../../resources/registry.js";
+import { registerResourcesWithServer, registerResourceTemplatesWithServer } from "../../resources/registry.js";
 import { registerPromptsWithServer } from "../../prompts/registry.js";
 import { initializeTools } from "../../tools/index.js";
 import { initializeResources } from "../../resources/index.js";
 import { initializePrompts } from "../../prompts/index.js";
-import { getUserFromAuthInfo } from "../../auth/entra.js";
+import { getUserInfo } from "../../auth/user.js";
 
 import pkg from "../../../package.json" with { type: "json" };
 
@@ -32,47 +28,42 @@ initializeResources();
 initializePrompts();
 
 // Map to store transports by session ID
-const transports = {
-  streamable: {} as Record<string, StreamableHTTPServerTransport>,
-  sse: {} as Record<string, SSEServerTransport>,
-};
+const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
 export const mcpController = async (req: Request, res: Response, _next: NextFunction) => {
   // Check for existing session ID
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
   let transport: StreamableHTTPServerTransport;
 
-  if (sessionId && transports.streamable[sessionId]) {
+  if (sessionId && transports[sessionId]) {
     // Reuse existing transport
-    transport = transports.streamable[sessionId];
+    transport = transports[sessionId];
   } else if (!sessionId && isInitializeRequest(req.body)) {
     // New initialization request
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sessionId) => {
         // Store the transport by session ID
-        transports.streamable[sessionId] = transport;
+        transports[sessionId] = transport;
       },
     });
 
     // Clean up transport when closed
     transport.onclose = () => {
       if (transport.sessionId) {
-        delete transports.streamable[transport.sessionId];
+        delete transports[transport.sessionId];
       }
     };
 
     const server = new McpServer({ name, version });
 
-    // Get user permissions from MCP auth info
+    // Get user info (with development mode support)
     const authInfo = (req as AuthenticatedRequest).auth;
-    const user = authInfo ? getUserFromAuthInfo(authInfo) : null;
-    const userPermissions = user?.permissions || [];
+    const user = getUserInfo(authInfo);
+    const userPermissions = user.permissions || [];
 
     // Log user access for audit purposes
-    if (user) {
-      console.log(`User ${user.email} (${user.id}) accessing MCP server with permissions:`, userPermissions);
-    }
+    console.log(`User ${user.email} (${user.id}) accessing MCP server with permissions:`, userPermissions);
 
     // Register all authorized capabilities
     registerToolsWithServer(server, userPermissions);
@@ -102,11 +93,11 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
 // Reusable handler for GET and DELETE requests
 export const handleSessionRequest = async (req: Request, res: Response, _next: NextFunction) => {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports.streamable[sessionId]) {
+  if (!sessionId || !transports[sessionId]) {
     res.status(400).send("Invalid or missing session ID");
     return;
   }
 
-  const transport = transports.streamable[sessionId];
+  const transport = transports[sessionId];
   await transport.handleRequest(req, res);
 };

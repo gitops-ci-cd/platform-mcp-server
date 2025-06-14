@@ -1,6 +1,6 @@
 import { PromptDefinition } from "./registry.js";
 
-const callback: PromptDefinition["callback"] = async (_extra) => {
+const callback: PromptDefinition["callback"] = async (args: any, extra: any) => {
   return {
     messages: [
       {

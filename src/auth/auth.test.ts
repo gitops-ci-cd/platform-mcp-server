@@ -1,4 +1,5 @@
-import { createEntraAuthMiddleware, getUserFromAuthInfo } from "./entra.js";
+import { EntraTokenVerifier } from "./tokenVerifier.js";
+import { getUserFromAuthInfo, getUserInfo } from "./user.js";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 // Mock environment variables
@@ -35,7 +36,7 @@ describe("Entra ID Authentication", () => {
     it("should handle missing environment variables", () => {
       delete process.env.MS_ENTRA_TENANT_ID;
 
-      expect(() => createEntraAuthMiddleware()).toThrow(
+      expect(() => new EntraTokenVerifier()).toThrow(
         "MS_ENTRA_TENANT_ID and MS_ENTRA_CLIENT_ID are required"
       );
     });
@@ -52,8 +53,8 @@ describe("Entra ID Authentication", () => {
           userId: "user-123",
           email: "test@example.com",
           name: "Test User",
-          roles: ["developer"],
-          permissions: ["k8s:view", "k8s:restart"],
+          roles: ["admin", "developer"],
+          permissions: ["admin", "developer"], // Now same as roles
         },
       };
 
@@ -63,8 +64,8 @@ describe("Entra ID Authentication", () => {
         id: "user-123",
         email: "test@example.com",
         name: "Test User",
-        roles: ["developer"],
-        permissions: ["k8s:view", "k8s:restart"],
+        roles: ["admin", "developer"],
+        permissions: ["admin", "developer"],
       });
     });
 
@@ -83,6 +84,55 @@ describe("Entra ID Authentication", () => {
         name: undefined,
         roles: undefined,
         permissions: undefined,
+      });
+    });
+  });
+
+  describe("getUserInfo", () => {
+    it("should return dev user in development mode", () => {
+      process.env.NODE_ENV = "development";
+
+      const user = getUserInfo(); // No authInfo needed in dev mode
+
+      expect(user).toEqual({
+        id: "dev-user",
+        email: "developer@localhost",
+        name: "Development User",
+        roles: ["admin"],
+        permissions: ["admin"],
+      });
+    });
+
+    it("should require authInfo in production mode", () => {
+      process.env.NODE_ENV = "production";
+
+      expect(() => getUserInfo()).toThrow("Authentication required");
+    });
+
+    it("should use provided authInfo in production mode", () => {
+      process.env.NODE_ENV = "production";
+
+      const authInfo: AuthInfo = {
+        token: "test-token",
+        clientId: "test-client",
+        scopes: ["openid"],
+        extra: {
+          userId: "test-user",
+          email: "test@example.com",
+          name: "Test User",
+          roles: ["viewer"],
+          permissions: ["viewer"],
+        },
+      };
+
+      const user = getUserInfo(authInfo);
+
+      expect(user).toEqual({
+        id: "test-user",
+        email: "test@example.com",
+        name: "Test User",
+        roles: ["viewer"],
+        permissions: ["viewer"],
       });
     });
   });

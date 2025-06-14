@@ -15,13 +15,13 @@ A [Model Context Protocol (MCP) server](https://modelcontextprotocol.io/introduc
 ## Installation
 
 1. Clone the repository
-2. Install dependencies:
+1. Install dependencies:
 
     ```sh
     npm install
     ```
 
-3. Build the project:
+1. Build the project:
 
     ```sh
     npm run build
@@ -29,16 +29,16 @@ A [Model Context Protocol (MCP) server](https://modelcontextprotocol.io/introduc
 
 ## Configuration
 
-To add this MCP server to your MCP settings, add the following configuration to your MCP settings file:
+To configure VS Code to use this MCP server, add the following to your `settings.json`:
 
 ```json
 {
-  "mcpServers": {
-    "platform-mcp-server": {
-      "url": "http://localhost:8080/execute/v1/sse/",
-      "transportType": "sse",
-      "disabled": false,
-      "autoApprove": []
+  "mcp": {
+    "servers": {
+      "platform-mcp-server": {
+        "url": "http://localhost:8080/execute/v1/mcp/",
+        "type": "http",
+      }
     }
   }
 }
@@ -51,30 +51,26 @@ This server implements **JWT-based authentication** using the **[MCP SDK's nativ
 ### Quick Setup
 
 1. **Register App in Azure AD**: Follow [Microsoft's app registration guide](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
-2. **Configure Environment**: Copy `.env.example` to `.env` and set:
+1. **Configure Environment**: Copy `.env.example` to `.env` and set:
 
    ```bash
    MS_ENTRA_TENANT_ID=your-tenant-id
    MS_ENTRA_CLIENT_ID=your-client-id
    ```
 
-3. **Set Up Roles**: Configure [app roles](https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-add-app-roles-in-azure-ad-apps) in Azure AD
-4. **Test Setup**: `npm run test-auth`
-5. **Start Server**: `npm start`
+1. **Test Setup**: `npm run test-auth`
+1. **Start Server**: `npm start`
 
 ### Permission System
 
-The server maps Azure AD roles to MCP permissions:
+Your Azure AD roles should match the tool permission requirements:
 
-```json
-{
-  "admin": ["*"],
-  "developer": ["k8s:view", "k8s:restart"],
-  "viewer": ["k8s:view"]
-}
-```
+- **`admin`** - Access to all tools (wildcard permission)
+- **`k8s:view`** - Read-only Kubernetes access
+- **`k8s:restart`** - Can restart services
+- **`k8s:admin`** - Full cluster management
 
-Configure custom mappings via `AUTH_PERMISSION_MAPPING` environment variable.
+Configure these roles in your Azure AD app registration and assign them to users.
 
 ## Usage
 
@@ -106,23 +102,24 @@ npm run start
 
 To debug the server, you can use [modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) which should be running at <http://127.0.0.1:6274/> if you're using the provided Docker setup.
 
-### API Endpoints
-
-- **`GET /health`**: Public health check (no authentication required)
-- **`GET /execute/v1/health`**: Authenticated health check (requires JWT token)
-- **`POST /execute/v1/sse/`**: Main MCP endpoint (requires JWT token)
-
-### Testing Authentication
-
-```sh
-# Test public endpoint
-curl http://localhost:8080/health
-
-# Test authenticated endpoint (requires valid JWT)
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     http://localhost:8080/execute/v1/health
-```
-
 ## Development
 
 Most of the development from here out will be done in the [./src/tools](./src/tools), [./src/resources](./src/resources), and [./src/prompts](./src/prompts) directories. You can add new functionality by creating new files and functions in these directories.
+
+### Local Development (No Auth)
+
+For local testing without authentication:
+
+```sh
+NODE_ENV=development npm run dev
+```
+
+This bypasses all authentication and uses a mock user with full permissions. Perfect for development and testing!
+
+### Production Deployment
+
+When deploying to production, ensure that:
+
+- You are using a valid JWT token from Microsoft Entra ID
+- The `NODE_ENV` is set to `production`
+- All environment variables are correctly configured

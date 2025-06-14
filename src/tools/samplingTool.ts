@@ -50,7 +50,7 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
       // Define the expected response schema
       z.object({
         model: z.string(),
-        stopReason: z.string(),
+        stopReason: z.string().optional(),
         role: z.string(),
         content: z.object({
           type: z.string(),
@@ -84,7 +84,7 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
 };
 
 export const samplingTool: ToolDefinition = {
-  name: "Generate Content",
+  name: "SampleExample",
   description: "Generate content using the LLM with different styles and parameters",
   inputSchema: z.object({
     prompt: z.string().optional().default("Tell me something interesting")

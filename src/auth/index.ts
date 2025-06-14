@@ -1,9 +1,12 @@
 // Export MCP SDK-based authentication with MS Entra ID
-export {
-  createEntraAuthMiddleware,
-  getUserFromAuthInfo,
-  type McpAuthenticatedUser,
-} from "./entra.js";
+export { EntraTokenVerifier } from "./tokenVerifier.js";
 
-// Re-export MCP SDK auth types for convenience
-export type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+// Export user info utilities
+export {
+  getUserFromAuthInfo,
+  getUserInfo,
+  type AuthenticatedUser,
+} from "./user.js";
+
+// Export authentication middleware
+export { authMiddleware } from "./middleware.js";

@@ -27,7 +27,7 @@ So when you say "Hello World," remember you're actually greeting a remarkable pl
 };
 
 export const helloWorldTool: ToolDefinition = {
-  name: "Hello World",
+  name: "HelloWorld",
   description: "A simple greeting tool that tells the story of Earth's origins",
   inputSchema: z.object({
     name: z.string().optional().describe("The name to greet").default("World"),

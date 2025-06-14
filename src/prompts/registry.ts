@@ -1,8 +1,9 @@
 import { McpServer, RegisteredPrompt, PromptCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
-export interface PromptDefinition extends Pick<RegisteredPrompt, "description" | "callback"> {
+export interface PromptDefinition extends Pick<RegisteredPrompt, "description" | "argsSchema"> {
   name: string;
-  callback: PromptCallback;
+  callback: any; // Will be typed based on whether argsSchema is provided
   requiredPermissions?: string[]; // For future authentication/authorization
 }
 
@@ -34,11 +35,20 @@ export const registerPromptsWithServer = (server: McpServer, userPermissions: st
 
   // Register prompts
   for (const prompt of authorizedPrompts) {
-    const { name, description, callback } = prompt;
-    server.prompt(
-      name,
-      description || "",
-      callback
-    );
+    const { name, description, callback, argsSchema } = prompt;
+    if (argsSchema) {
+      server.prompt(
+        name,
+        description || "",
+        argsSchema.shape,
+        callback
+      );
+    } else {
+      server.prompt(
+        name,
+        description || "",
+        callback
+      );
+    }
   }
 };
