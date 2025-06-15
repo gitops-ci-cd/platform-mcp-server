@@ -10,8 +10,7 @@ COPY package*.json ./
 # Copy the source code from the current directory to the working directory inside the container.
 COPY . .
 
-# Update npm to the latest version.
-RUN npm install -g npm@latest
+RUN npm run build
 
 ENTRYPOINT [ "npm" ]
 

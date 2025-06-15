@@ -26,38 +26,43 @@ services:
     command: --help
 
   # We can't use <<: *npm with develop.watch due to the volume overlap.
-  # app:
-  #   env_file:
-  #     - path: .env
-  #       required: false
-  #   tty: true
-  #   stdin_open: true
-  #   build:
-  #     context: .
-  #     target: builder
-  #   entrypoint: npm
-  #   command: run start
-  #   ports:
-  #     - ${PORT:-8080}:${PORT:-8080}
-  #   develop:
-  #     watch:
-  #       - action: sync+restart
-  #         path: ./src/
-  #         target: /usr/src/app/src/
-  #       - action: sync+restart
-  #         path: ./package.json
-  #         target: /usr/src/app/package.json
-  #       - action: sync+restart
-  #         path: ./package-lock.json
-  #         target: /usr/src/app/package-lock.json
-  #   volumes:
-  #     - node_modules:/node_modules:cached
+  app:
+    env_file:
+      - path: .env
+        required: false
+    tty: true
+    stdin_open: true
+    build:
+      context: .
+      target: builder
+    entrypoint: npm
+    command: run start
+    ports:
+      - ${PORT:-8080}:${PORT:-8080}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./src/
+          target: /usr/src/app/src/
+        - action: sync+restart
+          path: ./package.json
+          target: /usr/src/app/package.json
+        - action: sync+restart
+          path: ./package-lock.json
+          target: /usr/src/app/package-lock.json
+    volumes:
+      - node_modules:/node_modules:cached
 
   inspector:
     <<: *npx
-    command: '--yes @modelcontextprotocol/inspector node dist/src/index.js'
+    command: '--yes @modelcontextprotocol/inspector'
     ports:
       - 6274:6274
+      - 6277:6277
+    environment:
+      - DANGEROUSLY_OMIT_AUTH=true
+      - HOST=0.0.0.0
+      - MCP_SERVER_URL=http://app:${PORT:-8080}/execute
 
   install:
     <<: *npm

@@ -7,8 +7,12 @@ export {
 import { registerPrompt } from "./registry.js";
 import { mcpConceptsPrompt } from "./mcpConceptsPrompt.js";
 import { mcpGettingStartedPrompt } from "./mcpGettingStartedPrompt.js";
+import { mcpExampleBasedPrompt } from "./mcpExampleBasedPrompt.js";
+import { mcpAdvancedPrompt } from "./mcpAdvancedPrompt.js";
 
 export const initializePrompts = (): void => {
   registerPrompt(mcpConceptsPrompt);
   registerPrompt(mcpGettingStartedPrompt);
+  registerPrompt(mcpExampleBasedPrompt);
+  registerPrompt(mcpAdvancedPrompt);
 };

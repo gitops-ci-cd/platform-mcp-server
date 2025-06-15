@@ -100,7 +100,7 @@ npm run start
 
 ### Debugging
 
-To debug the server, you can use [modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) which should be running at <http://127.0.0.1:6274/> if you're using the provided Docker setup.
+To debug the server, you can use [modelcontextprotocol/inspector](https://github.com/modelcontextprotocol/inspector) which should be running at <http://localhost:6274/?serverUrl=http://app:8080/execute> if you're using the provided Docker setup.
 
 ## Development
 
