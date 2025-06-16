@@ -1,5 +1,6 @@
-import { PromptDefinition } from "./registry.js";
 import { z } from "zod";
+
+import { PromptDefinition } from "./registry.js";
 
 const callback: PromptDefinition["callback"] = async (args: any, _extra: any) => {
   const language = args?.language || "TypeScript";

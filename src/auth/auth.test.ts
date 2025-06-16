@@ -1,6 +1,7 @@
+import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+
 import { EntraTokenVerifier } from "./tokenVerifier.js";
 import { getUserFromAuthInfo, getUserInfo } from "./user.js";
-import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 // Mock environment variables
 const mockEnv = {

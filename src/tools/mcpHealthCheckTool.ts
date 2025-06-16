@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition } from "./registry.js";
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {

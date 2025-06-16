@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
+
 import { EntraTokenVerifier } from "./tokenVerifier.js";
 
 /**

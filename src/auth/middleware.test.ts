@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+
 import { authMiddleware } from "./middleware.js";
 
 // Mock JWKS client (needed because middleware imports EntraTokenVerifier)

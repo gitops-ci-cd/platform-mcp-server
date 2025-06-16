@@ -1,4 +1,5 @@
 import { ResourceTemplate, ListResourcesCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+
 import { ResourceTemplateDefinition } from "./registry.js";
 
 const patterns: Record<string, { title: string; content: string }> = {
