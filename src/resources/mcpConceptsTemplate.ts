@@ -1,4 +1,4 @@
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ResourceTemplate, ListResourcesCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplateDefinition } from "./registry.js";
 
 const conceptSummaries: Record<string, string> = {
@@ -38,7 +38,7 @@ ${summary}
   };
 };
 
-const listCallback = async () => {
+const list: ListResourcesCallback = async () => {
   return {
     resources: Object.keys(conceptSummaries).map(concept => ({
       uri: `https://modelcontextprotocol.io/docs/concepts/${concept}`,
@@ -54,7 +54,7 @@ export const mcpConceptsTemplate: ResourceTemplateDefinition = {
   resourceTemplate: new ResourceTemplate(
     "https://modelcontextprotocol.io/docs/concepts/{concept}",
     {
-      list: listCallback,
+      list,
       complete: {
         concept: async () => Object.keys(conceptSummaries),
       },

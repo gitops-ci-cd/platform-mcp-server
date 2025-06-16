@@ -1,4 +1,4 @@
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ResourceTemplate, ListResourcesCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplateDefinition } from "./registry.js";
 
 const patterns: Record<string, { title: string; content: string }> = {
@@ -164,7 +164,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   };
 };
 
-const listCallback = async () => {
+const list: ListResourcesCallback = async () => {
   return {
     resources: Object.keys(patterns).map((type: string) => ({
       uri: `mcp://prompt-patterns/${type}`,
@@ -180,7 +180,7 @@ export const promptPatternsTemplate: ResourceTemplateDefinition = {
   resourceTemplate: new ResourceTemplate(
     "mcp://prompt-patterns/{type}",
     {
-      list: listCallback,
+      list,
       complete: {
         type: async () => Object.keys(patterns),
       },
