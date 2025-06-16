@@ -5,13 +5,6 @@ const callback: PromptDefinition["callback"] = async (_args: any, _extra: any) =
   return {
     messages: [
       {
-        role: "system" as const,
-        content: {
-          type: "text" as const,
-          text: "You are a patient teacher. Build upon previous explanations and adapt your teaching style based on the student's responses."
-        }
-      },
-      {
         role: "user" as const,
         content: {
           type: "text" as const,
