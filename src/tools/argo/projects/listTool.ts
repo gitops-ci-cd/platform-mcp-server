@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will query projects via ArgoCD API and return summaries with direct links
   // Output: Project list with status, applications count, and action links
 
+  const errorData = {
+    error: "ArgoCD projects list tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: List ArgoCD projects - not implemented yet",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "ArgoCD projects list tool not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

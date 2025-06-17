@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will create Kubernetes manifests for Datadog agent database monitoring
   // Output: YAML manifests for database monitoring setup
 
+  const errorData = {
+    error: "Datadog database monitoring manifest generation tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: Generate Datadog database monitoring manifest - not implemented yet",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Datadog database monitoring manifest generation tool not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

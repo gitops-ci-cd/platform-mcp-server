@@ -66,7 +66,6 @@ spec:
       }
     ],
     structuredContent: {
-      success: true,
       message: `Generated ArgoCD Project manifest for ${projectName}`,
       data: {
         projectName,

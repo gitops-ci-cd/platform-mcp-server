@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will fetch groups via Microsoft Graph API with filtering
   // Output: Groups list with member counts, permissions, and direct links
 
+  const errorData = {
+    error: "Entra ID groups list tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: List Entra ID groups - not implemented yet",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Entra ID groups list tool not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

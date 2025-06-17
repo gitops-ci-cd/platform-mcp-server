@@ -190,7 +190,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       }
     ],
     structuredContent: {
-      success: true,
       message: `Found ${filteredApps.length} ArgoCD applications${projectName ? ` in project ${projectName}` : ""}`,
       data: {
         totalFound: filteredApps.length,

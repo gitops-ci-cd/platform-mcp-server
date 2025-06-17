@@ -142,25 +142,24 @@ Format your response in a structured way that's easy for both humans and AI agen
       analysisResult = `Analysis failed: ${error.message}`;
     }
 
+    const responseData = {
+      metadata: analysisData.metadata,
+      analysis: analysisResult,
+      rawData: {
+        resource,
+        events: includeEvents ? events : undefined
+      }
+    };
+
     return {
       content: [
         {
           type: "text" as const,
-          text: `Analysis of ${kind}/${name}${namespace ? ` in ${namespace}` : ""} (${analysisType}):
-
-${analysisResult}`,
-          mimeType: "text/plain"
+          text: JSON.stringify(responseData, null, 2),
+          mimeType: "application/json"
         }
       ],
-      structuredContent: {
-        success: true,
-        metadata: analysisData.metadata,
-        analysis: analysisResult,
-        rawData: {
-          resource,
-          events: includeEvents ? events : undefined
-        }
-      }
+      structuredContent: responseData
     };
 
   } catch (error) {
@@ -169,19 +168,21 @@ ${analysisResult}`,
       ? `Resource ${kind}/${name} not found${namespace ? ` in namespace ${namespace}` : ""}`
       : `Failed to analyze ${kind}/${name}: ${k8sError.message}`;
 
+    const errorData = {
+      error: errorMessage,
+      statusCode: k8sError.statusCode
+    };
+
     return {
       content: [
         {
           type: "text" as const,
-          text: `Failed to analyze ${kind}/${name}${namespace ? ` in ${namespace}` : ""}: ${errorMessage}`,
-          mimeType: "text/plain"
+          text: JSON.stringify(errorData, null, 2),
+          mimeType: "application/json"
         }
       ],
-      structuredContent: {
-        success: false,
-        error: errorMessage,
-        statusCode: k8sError.statusCode
-      }
+      structuredContent: errorData,
+      isError: true
     };
   }
 };
@@ -199,19 +200,18 @@ export const validateKubernetesResourceTool: ToolDefinition = {
     includeEvents: z.boolean().default(true).describe("Include related events in the analysis for additional context")
   }),
   outputSchema: z.object({
-    success: z.boolean().describe("Whether the analysis completed successfully"),
     metadata: z.object({
       kind: z.string().describe("Resource kind that was analyzed"),
       name: z.string().describe("Resource name that was analyzed"),
       namespace: z.string().describe("Namespace of the resource"),
       analysisType: z.enum(["security", "performance", "reliability", "cost", "comprehensive"]).describe("Type of analysis performed"),
       timestamp: z.string().describe("ISO timestamp when analysis was performed")
-    }).optional().describe("Analysis metadata (only present on success)"),
-    analysis: z.string().optional().describe("LLM-generated analysis with findings and recommendations (only present on success)"),
+    }).optional().describe("Analysis metadata"),
+    analysis: z.string().optional().describe("LLM-generated analysis with findings and recommendations"),
     rawData: z.object({
       resource: z.any().describe("Raw Kubernetes resource data"),
       events: z.array(z.any()).optional().describe("Related Kubernetes events if requested")
-    }).optional().describe("Raw resource and event data used for analysis (only present on success)"),
+    }).optional().describe("Raw resource and event data used for analysis"),
     error: z.string().optional().describe("Error message (only present on failure)"),
     statusCode: z.number().optional().describe("HTTP status code for the error (only present on failure)")
   }),

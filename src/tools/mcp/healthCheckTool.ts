@@ -47,7 +47,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       content: [
         {
           type: "text",
-          text: `OK ${response.ok} ${response.status}`,
+          text: JSON.stringify(healthData, null, 2),
           mimeType: "application/json"
         }
       ],
@@ -72,11 +72,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       content: [
         {
           type: "text",
-          text: error.message || error.toString(),
+          text: JSON.stringify(errorData, null, 2),
           mimeType: "application/json"
         }
       ],
-      structuredContent: errorData
+      structuredContent: errorData,
+      isError: true
     };
   }
 };

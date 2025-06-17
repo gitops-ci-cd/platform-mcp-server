@@ -12,49 +12,54 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   };
 
   try {
-    // List resources
     const resources = await listResources(kind, namespace, undefined, labelSelector, fieldSelector, limit);
+
+    const summary = resources.map(r => ({
+      kind: kind, // Use the kind parameter since it's not always on the resource object
+      name: r.metadata?.name || "",
+      namespace: r.metadata?.namespace,
+      apiVersion: r.apiVersion,
+      created: r.metadata?.creationTimestamp ? new Date(r.metadata.creationTimestamp).toISOString() : undefined,
+      labels: r.metadata?.labels || {},
+      status: r.status
+    }));
+
+    // Create structured data object for both text and structured content
+    const structuredData = {
+      count: resources.length,
+      resources: resources,
+      summary: summary
+    };
 
     return {
       content: [
         {
           type: "text" as const,
-          text: `${resources.length} ${kind} resources${namespace ? ` in ${namespace}` : ""}${labelSelector ? ` (filtered by labels: ${labelSelector})` : ""}${fieldSelector ? ` (filtered by fields: ${fieldSelector})` : ""}${limit ? ` (limited to ${limit})` : ""}`,
-          mimeType: "text/plain"
+          text: JSON.stringify(structuredData, null, 2),
+          mimeType: "application/json"
         }
       ],
-      structuredContent: {
-        success: true,
-        count: resources.length,
-        resources: resources,
-        summary: resources.map(r => ({
-          kind: kind, // Use the kind parameter since it's not always on the resource object
-          name: r.metadata?.name || "",
-          namespace: r.metadata?.namespace,
-          apiVersion: r.apiVersion,
-          created: r.metadata?.creationTimestamp ? new Date(r.metadata.creationTimestamp).toISOString() : undefined,
-          labels: r.metadata?.labels || {},
-          status: r.status
-        }))
-      }
+      structuredContent: structuredData,
     };
   } catch (error) {
     const k8sError = error as KubernetesError;
     const errorMessage = `Failed to list ${kind}: ${k8sError.message}`;
 
+    const errorData = {
+      error: errorMessage,
+      statusCode: k8sError.statusCode
+    };
+
     return {
       content: [
         {
           type: "text" as const,
-          text: `Failed to list ${kind}${namespace ? ` in ${namespace}` : ""}: ${errorMessage}`,
-          mimeType: "text/plain"
+          text: JSON.stringify(errorData, null, 2),
+          mimeType: "application/json"
         }
       ],
-      structuredContent: {
-        success: false,
-        error: errorMessage,
-        statusCode: k8sError.statusCode
-      }
+      structuredContent: errorData,
+      isError: true
     };
   }
 };
@@ -70,9 +75,8 @@ export const getKubernetesResourcesTool: ToolDefinition = {
     limit: z.number().optional().describe("Maximum number of resources to return")
   }),
   outputSchema: z.object({
-    success: z.boolean().describe("Whether the operation completed successfully"),
-    count: z.number().optional().describe("Number of resources found (only present on success)"),
-    resources: z.array(z.any()).optional().describe("Array of Kubernetes resources (only present on success)"),
+    count: z.number().optional().describe("Number of resources found"),
+    resources: z.array(z.any()).optional().describe("Array of Kubernetes resources"),
     summary: z.array(z.object({
       kind: z.string().describe("Resource kind"),
       name: z.string().describe("Resource name"),
@@ -81,7 +85,7 @@ export const getKubernetesResourcesTool: ToolDefinition = {
       created: z.string().optional().describe("Creation timestamp"),
       labels: z.record(z.string()).optional().describe("Resource labels"),
       status: z.any().optional().describe("Resource status")
-    })).optional().describe("Summary information about the resources (only present on success)"),
+    })).optional().describe("Summary information about the resources"),
     error: z.string().optional().describe("Error message (only present on failure)"),
     statusCode: z.number().optional().describe("HTTP status code for the error (only present on failure)")
   }),

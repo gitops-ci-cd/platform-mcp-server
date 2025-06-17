@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will initiate sync operation and return status
   // Output: Sync operation result
 
+  const errorData = {
+    error: "ArgoCD application sync tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: Sync ArgoCD application",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

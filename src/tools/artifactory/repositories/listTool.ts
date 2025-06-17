@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will fetch repositories via Artifactory API with filtering
   // Output: Repository list with type, size, usage stats, and direct links
 
+  const errorData = {
+    error: "Artifactory repositories list tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: List Artifactory repositories - not implemented yet",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Artifactory repositories list tool not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

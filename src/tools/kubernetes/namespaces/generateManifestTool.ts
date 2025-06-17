@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will generate namespace with labels, annotations, resource quotas
   // Output: YAML content for GitOps commit
 
+  const errorData = {
+    error: "Kubernetes namespace manifest generation tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: Generate namespace manifest",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

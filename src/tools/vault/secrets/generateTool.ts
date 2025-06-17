@@ -6,18 +6,21 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will write secret data to specified path
   // Output: Secret creation result
 
+  const errorData = {
+    error: "Vault secret generation tool not implemented yet",
+    status: "not_implemented"
+  };
+
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: Create Vault secret",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 

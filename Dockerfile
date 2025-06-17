@@ -18,6 +18,8 @@ RUN apt-get update && \
 # This is done before installing dependencies or copying code to leverage Docker cache layers.
 COPY package*.json ./
 
+RUN npm ci --silent
+
 # Copy the source code from the current directory to the working directory inside the container.
 COPY . .
 

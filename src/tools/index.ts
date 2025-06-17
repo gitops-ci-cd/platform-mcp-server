@@ -13,6 +13,9 @@ import { describeKubernetesResourceTool } from "./kubernetes/resources/describeT
 import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
 import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
 
+import { generateManifestTool } from "./manifests/generateTool.js";
+import { generateTerraformTool } from "./terraform/generateTool.js";
+
 export const initializeTools = (): void => {
   registerTool(mcpExplainerTool);
   registerTool(mcpHealthCheckTool);
@@ -21,4 +24,7 @@ export const initializeTools = (): void => {
   registerTool(describeKubernetesResourceTool);
   registerTool(validateKubernetesResourceTool);
   registerTool(deleteKubernetesResourceTool);
+
+  registerTool(generateManifestTool);
+  registerTool(generateTerraformTool);
 };

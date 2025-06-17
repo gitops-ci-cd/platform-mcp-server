@@ -3,21 +3,24 @@ import { ToolDefinition } from "../../registry.js";
 
 const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // TODO: Generate Terraform configuration for Artifactory repository
-  // Will create artifactory_local_repository and related resources
+  // Will create artifactory_local_repository, artifactory_remote_repository, etc.
   // Output: Terraform .tf file content
+
+  const errorData = {
+    error: "Artifactory repositories Terraform generation tool not implemented yet",
+    status: "not_implemented"
+  };
 
   return {
     content: [
       {
         type: "text" as const,
-        text: "TODO: Generate Artifactory repository Terraform",
-        mimeType: "text/plain"
+        text: JSON.stringify(errorData, null, 2),
+        mimeType: "application/json"
       }
     ],
-    structuredContent: {
-      success: false,
-      message: "Not implemented yet"
-    }
+    structuredContent: errorData,
+    isError: true
   };
 };
 
