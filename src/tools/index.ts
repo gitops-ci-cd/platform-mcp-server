@@ -3,12 +3,22 @@ export {
   registerToolsWithServer,
 } from "./registry.js";
 
-// Initialize all available tools
 import { registerTool } from "./registry.js";
-import { mcpExplainerTool } from "./mcpExplainerTool.js";
-import { mcpHealthCheckTool } from "./mcpHealthCheckTool.js";
+
+import { mcpExplainerTool } from "./mcp/explainerTool.js";
+import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
+
+import { getKubernetesResourcesTool } from "./kubernetes/resources/getTool.js";
+import { describeKubernetesResourceTool } from "./kubernetes/resources/describeTool.js";
+import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
+import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
 
 export const initializeTools = (): void => {
   registerTool(mcpExplainerTool);
   registerTool(mcpHealthCheckTool);
+
+  registerTool(getKubernetesResourcesTool);
+  registerTool(describeKubernetesResourceTool);
+  registerTool(validateKubernetesResourceTool);
+  registerTool(deleteKubernetesResourceTool);
 };

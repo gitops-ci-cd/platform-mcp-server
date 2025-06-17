@@ -41,7 +41,7 @@ services:
       - ${PORT:-8080}:${PORT:-8080}
     develop:
       watch:
-        - action: rebuild
+        - action: sync+restart
           path: ./src/
           target: /usr/src/app/src/
         - action: sync+restart

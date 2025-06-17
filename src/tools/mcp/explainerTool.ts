@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "./registry.js";
+import { ToolDefinition } from "../registry.js";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
@@ -84,18 +84,24 @@ Structure your response with clear sections and make it engaging and informative
         type: "text",
         text: `# MCP ${concept.charAt(0).toUpperCase() + concept.slice(1)} Explanation
 
-**Generated for:** ${audience} audience
-**Includes examples:** ${includeExample ? "Yes" : "No"}
-
----
-
 ${explanation}
 
 ---
 
 *This explanation was generated using MCP sampling - a meta example of MCP tools using MCP capabilities!*`
       }
-    ]
+    ],
+    structuredContent: {
+      concept,
+      audience,
+      includeExample,
+      explanation,
+      metadata: {
+        generated: new Date().toISOString(),
+        usedSampling: explanation !== "Sampling capability is not available in this environment.",
+        wordCount: explanation.split(/\s+/).length
+      }
+    }
   };
 };
 
@@ -109,6 +115,19 @@ export const mcpExplainerTool: ToolDefinition = {
       .describe("Target audience for the explanation"),
     includeExample: z.boolean().optional().default(true)
       .describe("Whether to include practical examples in the explanation")
+  }),
+  outputSchema: z.object({
+    concept: z.enum(["resources", "tools", "prompts", "sampling", "architecture", "transports", "all"])
+      .describe("The MCP concept that was explained"),
+    audience: z.enum(["beginner", "developer", "architect"])
+      .describe("The target audience for the explanation"),
+    includeExample: z.boolean().describe("Whether examples were included"),
+    explanation: z.string().describe("The generated explanation text"),
+    metadata: z.object({
+      generated: z.string().describe("ISO timestamp when explanation was generated"),
+      usedSampling: z.boolean().describe("Whether MCP sampling was used successfully"),
+      wordCount: z.number().describe("Approximate word count of the explanation")
+    }).describe("Additional metadata about the explanation generation")
   }),
   callback
 };

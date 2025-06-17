@@ -7,12 +7,7 @@ export {
 // Initialize all available resources and templates
 import { registerResource, registerResourceTemplate } from "./registry.js";
 import { mcpConceptsTemplate } from "./mcpConceptsTemplate.js";
-import { mcpQuickstartResource } from "./mcpQuickstartResource.js";
-import { promptPatternsTemplate } from "./promptPatternsTemplate.js";
 
 export const initializeResources = (): void => {
-  registerResource(mcpQuickstartResource);
-
   registerResourceTemplate(mcpConceptsTemplate);
-  registerResourceTemplate(promptPatternsTemplate);
 };
