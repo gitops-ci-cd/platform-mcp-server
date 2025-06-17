@@ -182,18 +182,28 @@ export function getKubernetesClient(config?: KubernetesConfig): {
 } {
   const kubeConfig = new k8s.KubeConfig();
 
-  if (config?.kubeconfig) {
-    kubeConfig.loadFromFile(config.kubeconfig);
-  } else if (process.env.KUBECONFIG) {
-    kubeConfig.loadFromFile(process.env.KUBECONFIG);
-  } else if (process.env.KUBERNETES_SERVICE_HOST) {
-    kubeConfig.loadFromCluster();
-  } else {
-    kubeConfig.loadFromDefault();
-  }
+  try {
+    if (config?.kubeconfig) {
+      // Use explicitly provided kubeconfig path
+      kubeConfig.loadFromFile(config.kubeconfig);
+    } else if (process.env.KUBECONFIG) {
+      // Use KUBECONFIG environment variable (first file if multiple)
+      const delimiter = process.platform === "win32" ? ";" : ":";
+      const kubeconfigFiles = process.env.KUBECONFIG.split(delimiter).map(file => file.trim()).filter(Boolean);
+      kubeConfig.loadFromFile(kubeconfigFiles[0]);
+    } else if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
+      // We're running in a Kubernetes pod - use in-cluster configuration
+      kubeConfig.loadFromCluster();
+    } else {
+      // Try to load from default kubeconfig location (~/.kube/config)
+      kubeConfig.loadFromDefault();
+    }
 
-  if (config?.context) {
-    kubeConfig.setCurrentContext(config.context);
+    if (config?.context) {
+      kubeConfig.setCurrentContext(config.context);
+    }
+  } catch (error) {
+    throw new Error(`Failed to load Kubernetes configuration: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   const coreV1Api = kubeConfig.makeApiClient(k8s.CoreV1Api);

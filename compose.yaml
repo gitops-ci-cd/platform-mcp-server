@@ -52,6 +52,8 @@ services:
           target: /usr/src/app/package-lock.json
     volumes:
       - node_modules:/node_modules:cached
+      - ~/.kube:/root/.kube:ro
+      - ~/.vault-token:/root/.vault-token:ro
 
   inspector:
     <<: *npx

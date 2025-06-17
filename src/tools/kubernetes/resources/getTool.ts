@@ -28,12 +28,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         count: resources.length,
         resources: resources,
         summary: resources.map(r => ({
-          kind: r.kind,
-          name: r.metadata.name,
-          namespace: r.metadata.namespace,
+          kind: kind, // Use the kind parameter since it's not always on the resource object
+          name: r.metadata?.name || "",
+          namespace: r.metadata?.namespace,
           apiVersion: r.apiVersion,
-          created: r.metadata.creationTimestamp,
-          labels: r.metadata.labels || {},
+          created: r.metadata?.creationTimestamp ? new Date(r.metadata.creationTimestamp).toISOString() : undefined,
+          labels: r.metadata?.labels || {},
           status: r.status
         }))
       }
