@@ -15,6 +15,7 @@ import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.
 
 import { generateManifestTool } from "./manifests/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
+import { generateAwsCdkTool } from "./awscdk/generateTool.js";
 
 // New API tools for platform integrations
 import { createVaultEngineTool } from "./vault/engines/createTool.js";
@@ -36,6 +37,7 @@ export const initializeTools = (): void => {
 
   registerTool(generateManifestTool);
   registerTool(generateTerraformTool);
+  registerTool(generateAwsCdkTool);
 
   registerTool(createVaultEngineTool);
   registerTool(createVaultPolicyTool);
