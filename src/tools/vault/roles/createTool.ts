@@ -23,11 +23,11 @@ const VAULT_AUTH_METHODS = [
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
-    const { 
-      authMethod, 
-      roleName, 
-      policies, 
-      roleConfig 
+    const {
+      authMethod,
+      roleName,
+      policies,
+      roleConfig
     } = args as {
       authMethod: string;
       roleName: string;
