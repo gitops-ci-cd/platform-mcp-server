@@ -16,6 +16,13 @@ import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.
 import { generateManifestTool } from "./manifests/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
 
+// New API tools for platform integrations
+import { createVaultEngineTool } from "./vault/engines/createTool.js";
+import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
+import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
+import { createArgoCDProjectTool } from "./argo/projects/createTool.js";
+import { createEntraGroupTool } from "./entra/groups/createTool.js";
+
 export const initializeTools = (): void => {
   registerTool(mcpExplainerTool);
   registerTool(mcpHealthCheckTool);
@@ -27,4 +34,11 @@ export const initializeTools = (): void => {
 
   registerTool(generateManifestTool);
   registerTool(generateTerraformTool);
+
+  // Platform integration tools
+  registerTool(createVaultEngineTool);
+  registerTool(createArtifactoryRepositoryTool);
+  registerTool(createArgoCDApplicationTool);
+  registerTool(createArgoCDProjectTool);
+  registerTool(createEntraGroupTool);
 };
