@@ -18,6 +18,8 @@ import { generateTerraformTool } from "./terraform/generateTool.js";
 
 // New API tools for platform integrations
 import { createVaultEngineTool } from "./vault/engines/createTool.js";
+import { createVaultPolicyTool } from "./vault/policies/createTool.js";
+import { createVaultRoleTool } from "./vault/roles/createTool.js";
 import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
 import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
 import { createArgoCDProjectTool } from "./argo/projects/createTool.js";
@@ -35,8 +37,9 @@ export const initializeTools = (): void => {
   registerTool(generateManifestTool);
   registerTool(generateTerraformTool);
 
-  // Platform integration tools
   registerTool(createVaultEngineTool);
+  registerTool(createVaultPolicyTool);
+  registerTool(createVaultRoleTool);
   registerTool(createArtifactoryRepositoryTool);
   registerTool(createArgoCDApplicationTool);
   registerTool(createArgoCDProjectTool);
