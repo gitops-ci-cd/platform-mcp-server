@@ -77,6 +77,7 @@ Configure these roles in your Azure AD app registration and assign them to users
 ### Starting the Server
 
 ```sh
+cp .env.example .env
 docker compose watch
 ```
 

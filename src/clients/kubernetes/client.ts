@@ -1,43 +1,6 @@
+// Kubernetes client utilities
 import * as k8s from "@kubernetes/client-node";
-
-export interface KubernetesConfig {
-  kubeconfig?: string;
-  context?: string;
-  namespace?: string;
-}
-
-export interface KubernetesResource {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    [key: string]: any;
-  };
-  spec?: any;
-  status?: any;
-}
-
-export interface KubernetesError extends Error {
-  statusCode?: number;
-  response?: any;
-}
-
-export const SUPPORTED_RESOURCE_KINDS = [
-  "Pod",
-  "Service",
-  "Deployment",
-  "ReplicaSet",
-  "DaemonSet",
-  "StatefulSet",
-  "ConfigMap",
-  "Secret",
-  "Ingress",
-  "Namespace",
-  "Node"
-] as const;
-
-export type SupportedResourceKind = typeof SUPPORTED_RESOURCE_KINDS[number];
+import type { KubernetesResource, KubernetesError, SupportedResourceKind, KubernetesConfig } from "./types.js";
 
 // Resource kind mappings for API calls
 const RESOURCE_KIND_MAP: Record<SupportedResourceKind, {
@@ -162,13 +125,6 @@ const RESOURCE_KIND_MAP: Record<SupportedResourceKind, {
   }
 };
 
-export function getResourceConfig(kind: SupportedResourceKind) {
-  return RESOURCE_KIND_MAP[kind];
-}
-
-/**
- * Get configured Kubernetes client
- */
 /**
  * Get Kubernetes client with automatic configuration detection
  * First tries provided config, then default kubeconfig locations, then in-cluster config
@@ -179,6 +135,7 @@ export function getKubernetesClient(config?: KubernetesConfig): {
   appsV1Api: k8s.AppsV1Api;
   customObjectsApi: k8s.CustomObjectsApi;
   networkingV1Api: k8s.NetworkingV1Api;
+  apiextensionsV1Api: k8s.ApiextensionsV1Api;
 } {
   const kubeConfig = new k8s.KubeConfig();
 
@@ -210,14 +167,20 @@ export function getKubernetesClient(config?: KubernetesConfig): {
   const appsV1Api = kubeConfig.makeApiClient(k8s.AppsV1Api);
   const customObjectsApi = kubeConfig.makeApiClient(k8s.CustomObjectsApi);
   const networkingV1Api = kubeConfig.makeApiClient(k8s.NetworkingV1Api);
+  const apiextensionsV1Api = kubeConfig.makeApiClient(k8s.ApiextensionsV1Api);
 
   return {
     kubeConfig,
     coreV1Api,
     appsV1Api,
     customObjectsApi,
-    networkingV1Api
+    networkingV1Api,
+    apiextensionsV1Api
   };
+}
+
+export function getResourceConfig(kind: SupportedResourceKind) {
+  return RESOURCE_KIND_MAP[kind];
 }
 
 /**
@@ -242,6 +205,36 @@ export async function getResource(
     return resource as KubernetesResource;
   } catch (error: any) {
     const k8sError = new Error(`Failed to get ${kind}/${name}: ${error.message}`) as KubernetesError;
+    k8sError.statusCode = error.statusCode;
+    k8sError.response = error.response;
+    throw k8sError;
+  }
+}
+
+/**
+ * List resources using the Kubernetes API
+ */
+export async function listResources(
+  kind: SupportedResourceKind,
+  namespace?: string,
+  config?: KubernetesConfig,
+  labelSelector?: string,
+  fieldSelector?: string,
+  limit?: number
+): Promise<KubernetesResource[]> {
+  const client = getKubernetesClient(config);
+  const resourceConfig = getResourceConfig(kind);
+  const ns = namespace || config?.namespace || "default";
+
+  try {
+    const options = resourceConfig.isNamespaced
+      ? { namespace: ns, labelSelector, fieldSelector, limit }
+      : { labelSelector, fieldSelector, limit };
+
+    const resources = await resourceConfig.operations.list(client, options);
+    return (resources.items || []) as KubernetesResource[];
+  } catch (error: any) {
+    const k8sError = new Error(`Failed to list ${kind}: ${error.message}`) as KubernetesError;
     k8sError.statusCode = error.statusCode;
     k8sError.response = error.response;
     throw k8sError;
@@ -297,36 +290,6 @@ export async function getResourceEvents(
     return eventList.items || [];
   } catch (error: any) {
     const k8sError = new Error(`Failed to get events for ${kind}/${name}: ${error.message}`) as KubernetesError;
-    k8sError.statusCode = error.statusCode;
-    k8sError.response = error.response;
-    throw k8sError;
-  }
-}
-
-/**
- * List resources using the Kubernetes API
- */
-export async function listResources(
-  kind: SupportedResourceKind,
-  namespace?: string,
-  config?: KubernetesConfig,
-  labelSelector?: string,
-  fieldSelector?: string,
-  limit?: number
-): Promise<KubernetesResource[]> {
-  const client = getKubernetesClient(config);
-  const resourceConfig = getResourceConfig(kind);
-  const ns = namespace || config?.namespace || "default";
-
-  try {
-    const options = resourceConfig.isNamespaced
-      ? { namespace: ns, labelSelector, fieldSelector, limit }
-      : { labelSelector, fieldSelector, limit };
-
-    const resources = await resourceConfig.operations.list(client, options);
-    return (resources.items || []) as KubernetesResource[];
-  } catch (error: any) {
-    const k8sError = new Error(`Failed to list ${kind}: ${error.message}`) as KubernetesError;
     k8sError.statusCode = error.statusCode;
     k8sError.response = error.response;
     throw k8sError;

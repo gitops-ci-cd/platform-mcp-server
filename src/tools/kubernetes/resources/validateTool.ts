@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ToolDefinition } from "../../registry.js";
-import { getResource, getResourceEvents, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../utils.js";
+import { getResource, getResourceEvents, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { kind, name, namespace, analysisType, includeEvents } = args as {

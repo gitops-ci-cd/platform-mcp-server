@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ToolDefinition } from "../../registry.js";
-import { getUserInfo } from "../../../auth/index.js";
+import { getCurrentUser } from "../../../auth/index.js";
 import {
   getGraphConfig,
   graphApiRequest,
@@ -8,7 +8,7 @@ import {
   ENTRA_GROUP_TYPES,
   ENTRA_GROUP_VISIBILITY,
   type EntraGroupConfig
-} from "../utils.js";
+} from "../../../clients/entra/index.js";
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
@@ -25,8 +25,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     } = args as EntraGroupConfig;
 
     // Get authenticated user for audit logging
-    const user = getUserInfo();
-    console.log(`User ${user.email} (${user.id}) creating Entra group: ${displayName}`);
+    const user = getCurrentUser(`creating Entra group: ${displayName}`);
 
     // Load Graph API configuration
     const graphConfig = getGraphConfig();

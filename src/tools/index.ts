@@ -8,8 +8,6 @@ import { registerTool } from "./registry.js";
 import { mcpExplainerTool } from "./mcp/explainerTool.js";
 import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
 
-import { getKubernetesResourcesTool } from "./kubernetes/resources/getTool.js";
-import { describeKubernetesResourceTool } from "./kubernetes/resources/describeTool.js";
 import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
 import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
 
@@ -21,6 +19,7 @@ import { generateAwsCdkTool } from "./awscdk/generateTool.js";
 import { createVaultEngineTool } from "./vault/engines/createTool.js";
 import { createVaultPolicyTool } from "./vault/policies/createTool.js";
 import { createVaultRoleTool } from "./vault/roles/createTool.js";
+import { generateVaultSecretTool } from "./vault/secrets/generateTool.js";
 import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
 import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
 import { createArgoCDProjectTool } from "./argo/projects/createTool.js";
@@ -30,20 +29,23 @@ export const initializeTools = (): void => {
   registerTool(mcpExplainerTool);
   registerTool(mcpHealthCheckTool);
 
-  registerTool(getKubernetesResourcesTool);
-  registerTool(describeKubernetesResourceTool);
+  registerTool(generateManifestTool);
+  registerTool(generateTerraformTool);
+
   registerTool(validateKubernetesResourceTool);
   registerTool(deleteKubernetesResourceTool);
 
-  registerTool(generateManifestTool);
-  registerTool(generateTerraformTool);
   registerTool(generateAwsCdkTool);
 
   registerTool(createVaultEngineTool);
   registerTool(createVaultPolicyTool);
   registerTool(createVaultRoleTool);
+  registerTool(generateVaultSecretTool);
+
   registerTool(createArtifactoryRepositoryTool);
+
   registerTool(createArgoCDApplicationTool);
   registerTool(createArgoCDProjectTool);
+
   registerTool(createEntraGroupTool);
 };

@@ -1,25 +1,5 @@
-// Common utilities for ArgoCD API interactions
-
-export interface ArgoCDConfig {
-  endpoint: string;
-  token: string;
-}
-
-/**
- * Load ArgoCD configuration from environment variables
- * @returns ArgoCD configuration object
- * @throws Error if required environment variables are missing
- */
-export const getArgoCDConfig = (): ArgoCDConfig => {
-  const endpoint = process.env.ARGOCD_SERVER || "https://argocd.legalzoom.com";
-  const token = process.env.ARGOCD_TOKEN;
-
-  if (!token) {
-    throw new Error("ARGOCD_TOKEN environment variable is required");
-  }
-
-  return { endpoint, token };
-};
+// ArgoCD API client utilities
+import type { ArgoCDConfig } from "./config.js";
 
 /**
  * Make HTTP request to ArgoCD API with proper authentication
@@ -109,50 +89,3 @@ export const createDefaultSyncPolicy = (
     ],
   };
 };
-
-/**
- * Common ArgoCD application source types
- */
-export interface ArgoCDSource {
-  repoURL: string;
-  targetRevision?: string;
-  path?: string;
-  helm?: {
-    releaseName?: string;
-    values?: string;
-    valueFiles?: string[];
-    parameters?: Array<{ name: string; value: string }>;
-  };
-  kustomize?: {
-    images?: string[];
-    namePrefix?: string;
-    nameSuffix?: string;
-  };
-}
-
-/**
- * Common ArgoCD application destination
- */
-export interface ArgoCDDestination {
-  server?: string;
-  namespace: string;
-  name?: string;
-}
-
-/**
- * Common ArgoCD project resource restriction
- */
-export interface ArgoCDResourceRestriction {
-  group: string;
-  kind: string;
-}
-
-/**
- * Common ArgoCD project role
- */
-export interface ArgoCDProjectRole {
-  name: string;
-  description?: string;
-  policies: string[];
-  groups?: string[];
-}

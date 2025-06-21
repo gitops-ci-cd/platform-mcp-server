@@ -39,7 +39,7 @@ export const getUserInfo = (authInfo?: AuthInfo) => {
 /**
  * Extract user info from MCP AuthInfo
  */
-export const getUserFromAuthInfo = (authInfo: AuthInfo) => {
+const getUserFromAuthInfo = (authInfo: AuthInfo) => {
   const extra = authInfo.extra || {};
   return {
     id: extra.userId as string,

@@ -1,7 +1,7 @@
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 import { EntraTokenVerifier } from "./tokenVerifier.js";
-import { getUserFromAuthInfo, getUserInfo } from "./user.js";
+import { getUserInfo } from "./user.js";
 
 // Mock environment variables
 const mockEnv = {
@@ -40,52 +40,6 @@ describe("Entra ID Authentication", () => {
       expect(() => new EntraTokenVerifier()).toThrow(
         "MS_ENTRA_TENANT_ID and MS_ENTRA_CLIENT_ID are required"
       );
-    });
-  });
-
-  describe("getUserFromAuthInfo", () => {
-    it("should extract user information from AuthInfo", () => {
-      const authInfo: AuthInfo = {
-        token: "test-token",
-        clientId: "test-client-id",
-        scopes: ["openid", "profile"],
-        expiresAt: Date.now() / 1000 + 3600,
-        extra: {
-          userId: "user-123",
-          email: "test@example.com",
-          name: "Test User",
-          roles: ["admin", "developer"],
-          permissions: ["admin", "developer"], // Now same as roles
-        },
-      };
-
-      const user = getUserFromAuthInfo(authInfo);
-
-      expect(user).toEqual({
-        id: "user-123",
-        email: "test@example.com",
-        name: "Test User",
-        roles: ["admin", "developer"],
-        permissions: ["admin", "developer"],
-      });
-    });
-
-    it("should handle missing extra data", () => {
-      const authInfo: AuthInfo = {
-        token: "test-token",
-        clientId: "test-client-id",
-        scopes: [],
-      };
-
-      const user = getUserFromAuthInfo(authInfo);
-
-      expect(user).toEqual({
-        id: undefined,
-        email: undefined,
-        name: undefined,
-        roles: undefined,
-        permissions: undefined,
-      });
     });
   });
 

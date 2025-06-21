@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { ToolDefinition } from "../../registry.js";
-import { getUserInfo } from "../../../auth/index.js";
+import { getCurrentUser } from "../../../auth/index.js";
 import {
   getArtifactoryConfig,
   artifactoryApiRequest,
   applyPackageTypeDefaults,
   ARTIFACTORY_PACKAGE_TYPES,
   ARTIFACTORY_REPOSITORY_TYPES,
-} from "../utils.js";
+} from "../../../clients/artifactory/index.js";
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
@@ -20,8 +20,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getUserInfo();
-    console.log(`User ${user.email} (${user.id}) creating Artifactory repository: ${repositoryKey}`);
+    const user = getCurrentUser(`creating Artifactory repository: ${repositoryKey}`);
 
     // Load Artifactory configuration
     const artifactoryConfig = getArtifactoryConfig();

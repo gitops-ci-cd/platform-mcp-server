@@ -8,7 +8,7 @@ import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { registerToolsWithServer, initializeTools } from "../tools/index.js";
 import { registerResourcesWithServer, registerResourceTemplatesWithServer, initializeResources } from "../resources/index.js";
 import { registerPromptsWithServer, initializePrompts } from "../prompts/index.js";
-import { getUserInfo } from "../auth/index.js";
+import { getUserInfo, getCurrentUser, setUserContext } from "../auth/index.js";
 
 import pkg from "../../package.json" with { type: "json" };
 
@@ -54,13 +54,13 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
 
     const server = new McpServer({ name, version });
 
-    // Get user info (with development mode support)
     const authInfo = (req as AuthenticatedRequest).auth;
     const user = getUserInfo(authInfo);
     const userPermissions = user.permissions || [];
 
-    // Log user access for audit purposes
-    console.log(`User ${user.email} (${user.id}) accessing MCP server with permissions:`, userPermissions);
+    // Set user context for async operations
+    setUserContext(user);
+    getCurrentUser(`accessing MCP server with permissions: ${userPermissions}`);
 
     // Register all authorized capabilities
     registerToolsWithServer(server, userPermissions);

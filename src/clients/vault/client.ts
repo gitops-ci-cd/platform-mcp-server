@@ -1,27 +1,5 @@
-// Common utilities for HashiCorp Vault API interactions
-
-export interface VaultConfig {
-  endpoint: string;
-  token: string;
-  namespace?: string;
-}
-
-/**
- * Load Vault configuration from environment variables
- * @returns Vault configuration object
- * @throws Error if required environment variables are missing
- */
-export const getVaultConfig = (): VaultConfig => {
-  const endpoint = process.env.VAULT_ADDR || "https://vault.legalzoom.com";
-  const token = process.env.VAULT_TOKEN;
-  const namespace = process.env.VAULT_NAMESPACE;
-
-  if (!token) {
-    throw new Error("VAULT_TOKEN environment variable is required");
-  }
-
-  return { endpoint, token, namespace };
-};
+// Vault API client utilities
+import type { VaultConfig } from "./config.js";
 
 /**
  * Make HTTP request to Vault API with proper authentication
@@ -67,31 +45,3 @@ export const vaultApiRequest = async (
 
   return await response.json();
 };
-
-/**
- * Common Vault engine types supported by the API
- */
-export const VAULT_ENGINE_TYPES = [
-  "kv",
-  "kv-v2",
-  "database",
-  "pki",
-  "transit",
-  "aws",
-  "azure",
-  "gcp",
-  "kubernetes",
-  "ldap",
-  "approle",
-  "userpass",
-  "cert",
-  "ssh",
-  "totp",
-  "nomad",
-  "consul",
-  "rabbitmq",
-  "ad",
-  "alicloud",
-] as const;
-
-export type VaultEngineType = typeof VAULT_ENGINE_TYPES[number];

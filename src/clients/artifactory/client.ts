@@ -1,27 +1,5 @@
-// Common utilities for JFrog Artifactory API interactions
-
-export interface ArtifactoryConfig {
-  endpoint: string;
-  username: string;
-  password: string; // Or API key
-}
-
-/**
- * Load Artifactory configuration from environment variables
- * @returns Artifactory configuration object
- * @throws Error if required environment variables are missing
- */
-export const getArtifactoryConfig = (): ArtifactoryConfig => {
-  const endpoint = process.env.ARTIFACTORY_URL || "https://artifactory.legalzoom.com";
-  const username = process.env.ARTIFACTORY_USERNAME;
-  const password = process.env.ARTIFACTORY_PASSWORD || process.env.ARTIFACTORY_API_KEY;
-
-  if (!username || !password) {
-    throw new Error("ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD (or ARTIFACTORY_API_KEY) environment variables are required");
-  }
-
-  return { endpoint, username, password };
-};
+// JFrog Artifactory API client utilities
+import type { ArtifactoryConfig } from "./types.js";
 
 /**
  * Make HTTP request to Artifactory API with proper authentication
@@ -63,46 +41,6 @@ export const artifactoryApiRequest = async (
 
   return await response.json();
 };
-
-/**
- * Common Artifactory package types supported by the API
- */
-export const ARTIFACTORY_PACKAGE_TYPES = [
-  "maven",
-  "docker",
-  "npm",
-  "gradle",
-  "nuget",
-  "pypi",
-  "debian",
-  "rpm",
-  "helm",
-  "generic",
-  "go",
-  "composer",
-  "conan",
-  "chef",
-  "puppet",
-  "bower",
-  "gitlfs",
-  "opkg",
-  "cargo",
-  "cocoapods",
-] as const;
-
-export type ArtifactoryPackageType = typeof ARTIFACTORY_PACKAGE_TYPES[number];
-
-/**
- * Common Artifactory repository types
- */
-export const ARTIFACTORY_REPOSITORY_TYPES = [
-  "local",
-  "remote",
-  "virtual",
-  "federated"
-] as const;
-
-export type ArtifactoryRepositoryType = typeof ARTIFACTORY_REPOSITORY_TYPES[number];
 
 /**
  * Apply default properties based on package type

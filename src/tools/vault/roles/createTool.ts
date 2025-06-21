@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { ToolDefinition } from "../../registry.js";
-import { getUserInfo } from "../../../auth/index.js";
+import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
   vaultApiRequest,
-} from "../utils.js";
+} from "../../../clients/vault/index.js";
 
 // Common Vault auth method types that support roles
 const VAULT_AUTH_METHODS = [
@@ -36,8 +36,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getUserInfo();
-    console.log(`User ${user.email} (${user.id}) creating Vault role: ${roleName} for auth method: ${authMethod}`);
+    const user = getCurrentUser(`creating Vault role: ${roleName} for auth method: ${authMethod}`);
 
     // Load Vault configuration
     const vaultConfig = getVaultConfig();

@@ -1,29 +1,5 @@
-// Common utilities for Microsoft Entra ID (Azure AD) / Graph API interactions
-
-export interface GraphConfig {
-  endpoint: string;
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
-}
-
-/**
- * Load Microsoft Graph configuration from environment variables
- * @returns Graph API configuration object
- * @throws Error if required environment variables are missing
- */
-export const getGraphConfig = (): GraphConfig => {
-  const endpoint = "https://graph.microsoft.com/v1.0";
-  const tenantId = process.env.MS_ENTRA_TENANT_ID;
-  const clientId = process.env.MS_ENTRA_CLIENT_ID;
-  const clientSecret = process.env.MS_ENTRA_CLIENT_SECRET;
-
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("MS_ENTRA_TENANT_ID, MS_ENTRA_CLIENT_ID, and MS_ENTRA_CLIENT_SECRET environment variables are required");
-  }
-
-  return { endpoint, tenantId, clientId, clientSecret };
-};
+// Microsoft Graph API client utilities
+import type { GraphConfig } from "./config.js";
 
 /**
  * Get access token for Microsoft Graph API using client credentials flow
@@ -96,18 +72,6 @@ export const graphApiRequest = async (
 };
 
 /**
- * Common Entra ID group types
- */
-export const ENTRA_GROUP_TYPES = ["Unified", "DynamicMembership"] as const;
-export type EntraGroupType = typeof ENTRA_GROUP_TYPES[number];
-
-/**
- * Common Entra ID group visibility options
- */
-export const ENTRA_GROUP_VISIBILITY = ["Private", "Public", "HiddenMembership"] as const;
-export type EntraGroupVisibility = typeof ENTRA_GROUP_VISIBILITY[number];
-
-/**
  * Generate a safe mail nickname from display name
  * @param displayName The group display name
  * @returns A safe mail nickname (lowercase, alphanumeric, max 64 chars)
@@ -131,26 +95,11 @@ export const createUserReferences = (userIds: string[]): string[] => {
 };
 
 /**
- * Common Entra ID group configuration interface
- */
-export interface EntraGroupConfig {
-  displayName: string;
-  description?: string;
-  mailNickname?: string;
-  groupTypes?: EntraGroupType[];
-  securityEnabled?: boolean;
-  mailEnabled?: boolean;
-  visibility?: EntraGroupVisibility;
-  owners?: string[];
-  members?: string[];
-}
-
-/**
  * Build a complete group configuration object with defaults
  * @param config Partial group configuration
  * @returns Complete group configuration with defaults applied
  */
-export const buildGroupConfig = (config: EntraGroupConfig): any => {
+export const buildGroupConfig = (config: import("./types.js").EntraGroupConfig): any => {
   const groupConfig: any = {
     displayName: config.displayName,
     mailEnabled: config.mailEnabled !== false, // Default to true

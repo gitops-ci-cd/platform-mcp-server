@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { ToolDefinition } from "../../registry.js";
-import { getUserInfo } from "../../../auth/index.js";
+import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
   vaultApiRequest,
-} from "../utils.js";
+} from "../../../clients/vault/index.js";
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
@@ -14,8 +14,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getUserInfo();
-    console.log(`User ${user.email} (${user.id}) creating Vault policy: ${name}`);
+    const user = getCurrentUser(`creating Vault policy: ${name}`);
 
     // Load Vault configuration
     const vaultConfig = getVaultConfig();

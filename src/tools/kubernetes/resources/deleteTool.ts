@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ToolDefinition } from "../../registry.js";
-import { deleteResource, getResource, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../utils.js";
+import { deleteResource, getResource, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   const { kind, name, namespace, gracePeriodSeconds, dryRun } = args as {
