@@ -4,7 +4,6 @@ export {
   registerResourceTemplatesWithServer,
 } from "./registry.js";
 
-// Initialize all available resources and templates
 import { registerResource, registerResourceTemplate } from "./registry.js";
 import { mcpConceptsTemplate } from "./mcp/conceptsTemplate.js";
 import { vaultEnginesResource } from "./vault/engines.js";

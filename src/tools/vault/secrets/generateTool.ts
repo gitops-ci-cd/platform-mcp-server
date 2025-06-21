@@ -6,6 +6,13 @@ import {
   vaultApiRequest,
 } from "../../../clients/vault/index.js";
 
+const inputSchema = z.object({
+  secretPath: z.string().describe("Path where secret will be stored (e.g., 'myapp/database')"),
+  secretKeys: z.array(z.string()).describe("Array of secret key names to create (e.g., ['username', 'password', 'host'])"),
+  enginePath: z.string().describe("Secrets engine path (e.g., 'secret', 'kv-v2')"),
+  description: z.string().optional().describe("Human-readable description of the secret"),
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const { secretPath, secretKeys, enginePath, description } = args as {
@@ -146,12 +153,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const generateVaultSecretTool: ToolDefinition = {
   name: "generateVaultSecret",
   description: "Create a secret structure in Vault with placeholder values. Creates the path and keys but requires manual entry of actual secret values via Vault UI for security.",
-  inputSchema: z.object({
-    secretPath: z.string().describe("Path where secret will be stored (e.g., 'myapp/database')"),
-    secretKeys: z.array(z.string()).describe("Array of secret key names to create (e.g., ['username', 'password', 'host'])"),
-    enginePath: z.string().describe("Secrets engine path (e.g., 'secret', 'kv-v2')"),
-    description: z.string().optional().describe("Human-readable description of the secret"),
-  }),
+  inputSchema,
   requiredPermissions: ["vault:admin", "vault:secrets:create", "admin"],
   callback
 };

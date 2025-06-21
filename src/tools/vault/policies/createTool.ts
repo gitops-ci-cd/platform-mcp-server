@@ -6,6 +6,11 @@ import {
   vaultApiRequest,
 } from "../../../clients/vault/index.js";
 
+const inputSchema = z.object({
+  name: z.string().describe("Policy name (must be unique and alphanumeric with dashes/underscores)"),
+  policy: z.string().describe("Policy document in HCL format defining permissions (e.g., 'path \"secret/*\" { capabilities = [\"read\", \"list\"] }')"),
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const { name, policy } = args as {
@@ -86,10 +91,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const createVaultPolicyTool: ToolDefinition = {
   name: "createVaultPolicy",
   description: "Create a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
-  inputSchema: z.object({
-    name: z.string().describe("Policy name (must be unique and alphanumeric with dashes/underscores)"),
-    policy: z.string().describe("Policy document in HCL format defining permissions (e.g., 'path \"secret/*\" { capabilities = [\"read\", \"list\"] }')"),
-  }),
+  inputSchema,
   requiredPermissions: ["vault:admin", "vault:policies:create", "admin"],
   callback
 };

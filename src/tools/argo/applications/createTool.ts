@@ -8,6 +8,37 @@ import {
   createDefaultSyncPolicy
 } from "../../../clients/argocd/index.js";
 
+const inputSchema = z.object({
+  name: z.string().describe("Application name (must be unique within the namespace)"),
+  project: z.string().default("default").describe("ArgoCD project (defaults to 'default')"),
+  namespace: z.string().optional().default("argocd").describe("Namespace where the application will be created"),
+  repoURL: z.string().describe("Git repository URL containing the application manifests"),
+  path: z.string().optional().describe("Path within the repository (required for directories, optional for Helm charts)"),
+  targetRevision: z.string().optional().default("HEAD").describe("Git revision to deploy (branch, tag, or commit SHA)"),
+  destinationServer: z.string().optional().default("https://kubernetes.default.svc").describe("Target Kubernetes cluster server"),
+  destinationNamespace: z.string().describe("Target namespace for application deployment"),
+  syncPolicy: z.object({
+    automated: z.object({
+      prune: z.boolean().optional(),
+      selfHeal: z.boolean().optional(),
+    }).optional(),
+    syncOptions: z.array(z.string()).optional(),
+  }).optional().describe("Sync policy configuration"),
+  parameters: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+  })).optional().describe("Helm parameters or Kustomize settings"),
+  helm: z.object({
+    releaseName: z.string().optional(),
+    values: z.string().optional(),
+    valueFiles: z.array(z.string()).optional(),
+    parameters: z.array(z.object({
+      name: z.string(),
+      value: z.string(),
+    })).optional(),
+  }).optional().describe("Helm-specific configuration"),
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const {
@@ -147,36 +178,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const createArgoCDApplicationTool: ToolDefinition = {
   name: "createArgoCDApplication",
   description: "Create a new application in ArgoCD via direct API call. Supports GitOps deployments with Helm charts, Kustomize, and plain YAML.",
-  inputSchema: z.object({
-    name: z.string().describe("Application name (must be unique within the namespace)"),
-    project: z.string().default("default").describe("ArgoCD project (defaults to 'default')"),
-    namespace: z.string().optional().default("argocd").describe("Namespace where the application will be created"),
-    repoURL: z.string().describe("Git repository URL containing the application manifests"),
-    path: z.string().optional().describe("Path within the repository (required for directories, optional for Helm charts)"),
-    targetRevision: z.string().optional().default("HEAD").describe("Git revision to deploy (branch, tag, or commit SHA)"),
-    destinationServer: z.string().optional().default("https://kubernetes.default.svc").describe("Target Kubernetes cluster server"),
-    destinationNamespace: z.string().describe("Target namespace for application deployment"),
-    syncPolicy: z.object({
-      automated: z.object({
-        prune: z.boolean().optional(),
-        selfHeal: z.boolean().optional(),
-      }).optional(),
-      syncOptions: z.array(z.string()).optional(),
-    }).optional().describe("Sync policy configuration"),
-    parameters: z.array(z.object({
-      name: z.string(),
-      value: z.string(),
-    })).optional().describe("Helm parameters or Kustomize settings"),
-    helm: z.object({
-      releaseName: z.string().optional(),
-      values: z.string().optional(),
-      valueFiles: z.array(z.string()).optional(),
-      parameters: z.array(z.object({
-        name: z.string(),
-        value: z.string(),
-      })).optional(),
-    }).optional().describe("Helm-specific configuration"),
-  }),
+  inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:applications:create", "admin"],
   callback
 };

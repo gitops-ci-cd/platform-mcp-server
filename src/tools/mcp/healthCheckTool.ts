@@ -2,6 +2,27 @@ import { z } from "zod";
 
 import { ToolDefinition } from "../registry.js";
 
+const inputSchema = z.object({
+  endpoint: z.string().url().optional().default(`http://localhost:${process.env.PORT || "8080"}/health`)
+    .describe("The health endpoint URL to check")
+});
+
+const outputSchema = z.object({
+  endpoint: z.string().describe("The endpoint that was checked"),
+  timestamp: z.string().describe("ISO timestamp when the check was performed"),
+  status: z.object({
+    code: z.number().describe("HTTP status code"),
+    text: z.string().describe("HTTP status text"),
+    healthy: z.boolean().describe("Whether the service is considered healthy")
+  }).optional().describe("HTTP response status (only present on successful request)"),
+  headers: z.record(z.string()).optional().describe("HTTP response headers (only present on successful request)"),
+  body: z.any().optional().describe("Response body content (only present on successful request)"),
+  error: z.object({
+    type: z.string().describe("Error type"),
+    message: z.string().describe("Error message")
+  }).optional().describe("Error details (only present on failure)")
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   const { endpoint } = args;
 
@@ -85,24 +106,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const mcpHealthCheckTool: ToolDefinition = {
   name: "CheckMCPServerHealth",
   description: "Check the health status of the MCP server by calling its health endpoint. Returns raw JSON data for the AI to parse.",
-  inputSchema: z.object({
-    endpoint: z.string().url().optional().default(`http://localhost:${process.env.PORT || "8080"}/health`)
-      .describe("The health endpoint URL to check")
-  }),
-  outputSchema: z.object({
-    endpoint: z.string().describe("The endpoint that was checked"),
-    timestamp: z.string().describe("ISO timestamp when the check was performed"),
-    status: z.object({
-      code: z.number().describe("HTTP status code"),
-      text: z.string().describe("HTTP status text"),
-      healthy: z.boolean().describe("Whether the service is considered healthy")
-    }).optional().describe("HTTP response status (only present on successful request)"),
-    headers: z.record(z.string()).optional().describe("HTTP response headers (only present on successful request)"),
-    body: z.any().optional().describe("Response body content (only present on successful request)"),
-    error: z.object({
-      type: z.string().describe("Error type"),
-      message: z.string().describe("Error message")
-    }).optional().describe("Error details (only present on failure)")
-  }),
+  inputSchema,
+  outputSchema,
   callback
 };

@@ -7,6 +7,13 @@ import {
   VAULT_ENGINE_TYPES,
 } from "../../../clients/vault/index.js";
 
+const inputSchema = z.object({
+  enginePath: z.string().describe("Mount path for the secrets engine (e.g., 'secret', 'kv-v2', 'database')"),
+  engineType: z.enum(VAULT_ENGINE_TYPES).describe("Type of secrets engine to create"),
+  description: z.string().optional().describe("Human-readable description of the engine"),
+  options: z.record(z.any()).optional().describe("Engine-specific configuration options (e.g., version for KV, default_lease_ttl)")
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const { enginePath, engineType, description, options } = args as {
@@ -178,12 +185,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const createVaultEngineTool: ToolDefinition = {
   name: "createVaultEngine",
   description: "Create or verify a Vault secrets engine. Idempotent operation that checks if the engine exists first and provides helpful next actions. Returns management links and guidance for both new and existing engines.",
-  inputSchema: z.object({
-    enginePath: z.string().describe("Mount path for the secrets engine (e.g., 'secret', 'kv-v2', 'database')"),
-    engineType: z.enum(VAULT_ENGINE_TYPES).describe("Type of secrets engine to create"),
-    description: z.string().optional().describe("Human-readable description of the engine"),
-    options: z.record(z.any()).optional().describe("Engine-specific configuration options (e.g., version for KV, default_lease_ttl)")
-  }),
+  inputSchema,
   requiredPermissions: ["vault:admin", "vault:engines:create", "admin"],
   callback
 };

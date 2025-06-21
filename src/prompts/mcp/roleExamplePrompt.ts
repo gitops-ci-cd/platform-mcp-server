@@ -1,4 +1,4 @@
-import { PromptDefinition } from "./registry.js";
+import { PromptDefinition } from "../registry.js";
 
 const callback: PromptDefinition["callback"] = async (_args: any, _extra: any) => {
   return {

@@ -4,19 +4,15 @@ export {
 } from "./registry.js";
 
 import { registerTool } from "./registry.js";
-
 import { mcpExplainerTool } from "./mcp/explainerTool.js";
 import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
-
 import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
 import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
-
 import { generateManifestTool } from "./manifests/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
 import { generateAwsCdkTool } from "./awscdk/generateTool.js";
-
-// New API tools for platform integrations
 import { createVaultEngineTool } from "./vault/engines/createTool.js";
+import { requestAccessTool } from "./vault/engines/requestAccessTool.js";
 import { createVaultPolicyTool } from "./vault/policies/createTool.js";
 import { createVaultRoleTool } from "./vault/roles/createTool.js";
 import { generateVaultSecretTool } from "./vault/secrets/generateTool.js";
@@ -38,6 +34,7 @@ export const initializeTools = (): void => {
   registerTool(generateAwsCdkTool);
 
   registerTool(createVaultEngineTool);
+  registerTool(requestAccessTool);
   registerTool(createVaultPolicyTool);
   registerTool(createVaultRoleTool);
   registerTool(generateVaultSecretTool);

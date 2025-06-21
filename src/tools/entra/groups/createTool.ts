@@ -10,6 +10,18 @@ import {
   type EntraGroupConfig
 } from "../../../clients/entra/index.js";
 
+const inputSchema = z.object({
+  displayName: z.string().describe("Group display name (required)"),
+  description: z.string().optional().describe("Group description"),
+  mailNickname: z.string().optional().describe("Mail nickname (auto-generated from display name if not provided)"),
+  groupTypes: z.array(z.enum(ENTRA_GROUP_TYPES)).optional().describe("Group types (Unified for Microsoft 365 groups, DynamicMembership for dynamic groups)"),
+  securityEnabled: z.boolean().optional().default(true).describe("Whether this is a security group"),
+  mailEnabled: z.boolean().optional().default(false).describe("Whether this group is mail-enabled"),
+  visibility: z.enum(ENTRA_GROUP_VISIBILITY).optional().describe("Group visibility"),
+  owners: z.array(z.string()).optional().describe("Array of user object IDs to set as group owners"),
+  members: z.array(z.string()).optional().describe("Array of user object IDs to add as initial members"),
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const {
@@ -107,17 +119,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const createEntraGroupTool: ToolDefinition = {
   name: "createEntraGroup",
   description: "Create a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
-  inputSchema: z.object({
-    displayName: z.string().describe("Group display name (required)"),
-    description: z.string().optional().describe("Group description"),
-    mailNickname: z.string().optional().describe("Mail nickname (auto-generated from display name if not provided)"),
-    groupTypes: z.array(z.enum(ENTRA_GROUP_TYPES)).optional().describe("Group types (Unified for Microsoft 365 groups, DynamicMembership for dynamic groups)"),
-    securityEnabled: z.boolean().optional().default(true).describe("Whether this is a security group"),
-    mailEnabled: z.boolean().optional().default(false).describe("Whether this group is mail-enabled"),
-    visibility: z.enum(ENTRA_GROUP_VISIBILITY).optional().describe("Group visibility"),
-    owners: z.array(z.string()).optional().describe("Array of user object IDs to set as group owners"),
-    members: z.array(z.string()).optional().describe("Array of user object IDs to add as initial members"),
-  }),
+  inputSchema,
   requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],
   callback
 };

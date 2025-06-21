@@ -99,6 +99,13 @@ const MANIFEST_EXAMPLES = {
   other: {}
 };
 
+const inputSchema = z.object({
+  type: z.enum(Object.keys(MANIFEST_EXAMPLES) as [string, ...string[]]).describe("Type of manifest to generate"),
+  subtype: z.string().describe("Subtype of manifest (e.g., deployment, service, configmap, application, monitor, compose)"),
+  name: z.string().describe("Name of the resource/component"),
+  parameters: z.record(z.any()).describe("Specific parameters for the manifest (e.g., image, replicas, env vars, ports, etc.)")
+});
+
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { type, subtype, name, parameters } = args as {
     type: string;
@@ -176,11 +183,6 @@ Generate complete YAML manifest:`;
 export const generateManifestTool: ToolDefinition = {
   name: "generateManifest",
   description: "Generate YAML manifests (Kubernetes, ArgoCD, Datadog, etc.) using AI sampling with reference templates and best practices.",
-  inputSchema: z.object({
-    type: z.enum(Object.keys(MANIFEST_EXAMPLES) as [string, ...string[]]).describe("Type of manifest to generate"),
-    subtype: z.string().describe("Subtype of manifest (e.g., deployment, service, configmap, application, monitor, compose)"),
-    name: z.string().describe("Name of the resource/component"),
-    parameters: z.record(z.any()).describe("Specific parameters for the manifest (e.g., image, replicas, env vars, ports, etc.)")
-  }),
+  inputSchema,
   callback
 };

@@ -146,6 +146,13 @@ const CDK_EXAMPLES = {
   }
 };
 
+const inputSchema = z.object({
+  category: z.enum(Object.keys(CDK_EXAMPLES) as [string, ...string[]]).describe("CDK construct category (core, compute, storage, networking, security, monitoring, pipeline)"),
+  constructType: z.string().describe("Type of construct (e.g. lambda, s3, vpc, iam, cloudwatch, codepipeline)"),
+  name: z.string().describe("Name of the construct/resource"),
+  parameters: z.record(z.any()).describe("Construct-specific parameters (e.g. runtime, memory, vpc config, policies, etc.)")
+});
+
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { category, constructType, name, parameters } = args as {
     category: string;
@@ -226,11 +233,6 @@ Generate complete CDK TypeScript code:`;
 export const generateAwsCdkTool: ToolDefinition = {
   name: "generateAwsCdk",
   description: "Generate AWS CDK TypeScript constructs with best practices, security configurations, and proper resource management.",
-  inputSchema: z.object({
-    category: z.enum(Object.keys(CDK_EXAMPLES) as [string, ...string[]]).describe("CDK construct category (core, compute, storage, networking, security, monitoring, pipeline)"),
-    constructType: z.string().describe("Type of construct (e.g. lambda, s3, vpc, iam, cloudwatch, codepipeline)"),
-    name: z.string().describe("Name of the construct/resource"),
-    parameters: z.record(z.any()).describe("Construct-specific parameters (e.g. runtime, memory, vpc config, policies, etc.)")
-  }),
+  inputSchema,
   callback
 };

@@ -9,6 +9,47 @@ import {
   type ArgoCDProjectRole
 } from "../../../clients/argocd/index.js";
 
+const inputSchema = z.object({
+  name: z.string().describe("Project name (must be unique and DNS-compliant)"),
+  description: z.string().optional().describe("Human-readable description of the project"),
+  sourceRepos: z.array(z.string()).describe("List of Git repositories this project can access (* for all)"),
+  destinations: z.array(z.object({
+    server: z.string().describe("Kubernetes cluster server URL"),
+    namespace: z.string().optional().describe("Target namespace (* for all namespaces)"),
+    name: z.string().optional().describe("Cluster name (optional)"),
+  })).describe("List of allowed deployment destinations"),
+  clusterResourceWhitelist: z.array(z.object({
+    group: z.string().describe("Kubernetes API group"),
+    kind: z.string().describe("Resource kind"),
+  })).optional().describe("Cluster-scoped resources this project can manage"),
+  clusterResourceBlacklist: z.array(z.object({
+    group: z.string().describe("Kubernetes API group"),
+    kind: z.string().describe("Resource kind"),
+  })).optional().describe("Cluster-scoped resources this project cannot manage"),
+  namespaceResourceWhitelist: z.array(z.object({
+    group: z.string().describe("Kubernetes API group"),
+    kind: z.string().describe("Resource kind"),
+  })).optional().describe("Namespace-scoped resources this project can manage"),
+  namespaceResourceBlacklist: z.array(z.object({
+    group: z.string().describe("Kubernetes API group"),
+    kind: z.string().describe("Resource kind"),
+  })).optional().describe("Namespace-scoped resources this project cannot manage"),
+  roles: z.array(z.object({
+    name: z.string().describe("Role name"),
+    description: z.string().optional().describe("Role description"),
+    policies: z.array(z.string()).describe("RBAC policies for this role"),
+    groups: z.array(z.string()).optional().describe("Groups assigned to this role"),
+  })).optional().describe("Project-specific roles and permissions"),
+  orphanedResources: z.object({
+    warn: z.boolean().optional().describe("Warn about orphaned resources"),
+    ignore: z.array(z.object({
+      group: z.string().describe("Kubernetes API group"),
+      kind: z.string().describe("Resource kind"),
+      name: z.string().optional().describe("Resource name pattern"),
+    })).optional().describe("Resources to ignore when detecting orphans"),
+  }).optional().describe("Orphaned resources detection policy"),
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const {
@@ -149,46 +190,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const createArgoCDProjectTool: ToolDefinition = {
   name: "createArgoCDProject",
   description: "Create a new project in ArgoCD via direct API call. Projects provide multi-tenancy with RBAC, resource restrictions, and repository access control.",
-  inputSchema: z.object({
-    name: z.string().describe("Project name (must be unique and DNS-compliant)"),
-    description: z.string().optional().describe("Human-readable description of the project"),
-    sourceRepos: z.array(z.string()).describe("List of Git repositories this project can access (* for all)"),
-    destinations: z.array(z.object({
-      server: z.string().describe("Kubernetes cluster server URL"),
-      namespace: z.string().optional().describe("Target namespace (* for all namespaces)"),
-      name: z.string().optional().describe("Cluster name (optional)"),
-    })).describe("List of allowed deployment destinations"),
-    clusterResourceWhitelist: z.array(z.object({
-      group: z.string().describe("Kubernetes API group"),
-      kind: z.string().describe("Resource kind"),
-    })).optional().describe("Cluster-scoped resources this project can manage"),
-    clusterResourceBlacklist: z.array(z.object({
-      group: z.string().describe("Kubernetes API group"),
-      kind: z.string().describe("Resource kind"),
-    })).optional().describe("Cluster-scoped resources this project cannot manage"),
-    namespaceResourceWhitelist: z.array(z.object({
-      group: z.string().describe("Kubernetes API group"),
-      kind: z.string().describe("Resource kind"),
-    })).optional().describe("Namespace-scoped resources this project can manage"),
-    namespaceResourceBlacklist: z.array(z.object({
-      group: z.string().describe("Kubernetes API group"),
-      kind: z.string().describe("Resource kind"),
-    })).optional().describe("Namespace-scoped resources this project cannot manage"),
-    roles: z.array(z.object({
-      name: z.string().describe("Role name"),
-      description: z.string().optional().describe("Role description"),
-      policies: z.array(z.string()).describe("RBAC policies for this role"),
-      groups: z.array(z.string()).optional().describe("Groups assigned to this role"),
-    })).optional().describe("Project-specific roles and permissions"),
-    orphanedResources: z.object({
-      warn: z.boolean().optional().describe("Warn about orphaned resources"),
-      ignore: z.array(z.object({
-        group: z.string().describe("Kubernetes API group"),
-        kind: z.string().describe("Resource kind"),
-        name: z.string().optional().describe("Resource name pattern"),
-      })).optional().describe("Resources to ignore when detecting orphans"),
-    }).optional().describe("Orphaned resources detection policy"),
-  }),
+  inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:projects:create", "admin"],
   callback
 };

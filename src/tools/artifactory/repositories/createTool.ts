@@ -9,6 +9,14 @@ import {
   ARTIFACTORY_REPOSITORY_TYPES,
 } from "../../../clients/artifactory/index.js";
 
+const inputSchema = z.object({
+  repositoryKey: z.string().describe("Unique repository key/name (e.g., 'docker-local', 'maven-central')"),
+  packageType: z.enum(ARTIFACTORY_PACKAGE_TYPES).describe("Package type for the repository"),
+  repositoryType: z.enum(ARTIFACTORY_REPOSITORY_TYPES).describe("Repository type (local, remote, virtual, or federated)"),
+  description: z.string().optional().describe("Human-readable description of the repository"),
+  properties: z.record(z.any()).optional().describe("Repository-specific configuration properties (e.g., dockerApiVersion, handleReleases)")
+});
+
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     const { repositoryKey, packageType, repositoryType, description, properties } = args as {
@@ -108,13 +116,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 export const createArtifactoryRepositoryTool: ToolDefinition = {
   name: "createArtifactoryRepository",
   description: "Create a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
-  inputSchema: z.object({
-    repositoryKey: z.string().describe("Unique repository key/name (e.g., 'docker-local', 'maven-central')"),
-    packageType: z.enum(ARTIFACTORY_PACKAGE_TYPES).describe("Package type for the repository"),
-    repositoryType: z.enum(ARTIFACTORY_REPOSITORY_TYPES).describe("Repository type (local, remote, virtual, or federated)"),
-    description: z.string().optional().describe("Human-readable description of the repository"),
-    properties: z.record(z.any()).optional().describe("Repository-specific configuration properties (e.g., dockerApiVersion, handleReleases)")
-  }),
+  inputSchema,
   requiredPermissions: ["artifactory:admin", "artifactory:repos:create", "admin"],
   callback
 };

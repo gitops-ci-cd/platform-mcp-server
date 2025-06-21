@@ -30,6 +30,14 @@ const getTerraformDocLinks = (provider: string, resourceType: string, resourceCa
   };
 };
 
+const inputSchema = z.object({
+  provider: z.enum(Object.keys(PROVIDER_MAP) as [string, ...string[]]).describe("The terraform provider to use (e.g., 'aws', 'vault', 'datadog')."),
+  resourceType: z.string().describe("The type of resource to generate (e.g., 'instance', 'bucket')."),
+  name: z.string().describe("The name of the resource to generate (e.g., 'my_instance', 'my_bucket')."),
+  parameters: z.record(z.any()).optional().describe("Parameters for the resource, including configuration options and settings."),
+  resourceCategory: z.enum(["resources", "data-sources"]).optional().describe("The category of the resource, building infrastructure or querying existing.").default("resources"),
+});
+
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { provider, resourceType, name, parameters, resourceCategory = "resources" } = args as {
     provider: string;
@@ -108,12 +116,6 @@ Generate complete Terraform configuration:`;
 export const generateTerraformTool: ToolDefinition = {
   name: "generateTerraform",
   description: "Generate Terraform configurations for various cloud resources and services using AI sampling with best practices and examples.",
-  inputSchema: z.object({
-    provider: z.enum(Object.keys(PROVIDER_MAP) as [string, ...string[]]).describe("The terraform provider to use (e.g., 'aws', 'vault', 'datadog')."),
-    resourceType: z.string().describe("The type of resource to generate (e.g., 'instance', 'bucket')."),
-    name: z.string().describe("The name of the resource to generate (e.g., 'my_instance', 'my_bucket')."),
-    parameters: z.record(z.any()).optional().describe("Parameters for the resource, including configuration options and settings."),
-    resourceCategory: z.enum(["resources", "data-sources"]).optional().describe("The category of the resource, building infrastructure or querying existing.").default("resources"),
-  }),
+  inputSchema,
   callback
 };
