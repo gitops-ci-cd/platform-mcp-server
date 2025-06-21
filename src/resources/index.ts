@@ -6,7 +6,7 @@ export {
 
 // Initialize all available resources and templates
 import { registerResource, registerResourceTemplate } from "./registry.js";
-import { mcpConceptsTemplate } from "./mcpConceptsTemplate.js";
+import { mcpConceptsTemplate } from "./mcp/conceptsTemplate.js";
 import { vaultEnginesResource } from "./vault/engines.js";
 import { vaultPoliciesResource } from "./vault/policies.js";
 import { vaultRolesResource } from "./vault/roles.js";
@@ -16,7 +16,7 @@ import { argoCDApplicationsResource } from "./argocd/applications.js";
 import { argoCDProjectsResource } from "./argocd/projects.js";
 import { entraGroupsResource } from "./entra/groups.js";
 import { artifactoryRepositoriesResource } from "./artifactory/repositories.js";
-import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unified_resources.js";
+import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unifiedResources.js";
 
 export const initializeResources = (): void => {
   // Register templates

@@ -1,40 +1,6 @@
 import { ResourceTemplateDefinition } from "../registry.js";
-import { ResourceTemplate, ListResourcesCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
-
-const list: ListResourcesCallback = async () => {
-  try {
-    // Get available engines to populate the template examples
-    const vaultConfig = getVaultConfig();
-    const mountsResponse = await vaultApiRequest("GET", "sys/mounts", vaultConfig);
-
-    if (mountsResponse?.data) {
-      const engines = Object.keys(mountsResponse.data).map(path => path.replace(/\/$/, ""));
-      return {
-        resources: engines.map(engine => ({
-          uri: `vault://secrets/${engine}`,
-          name: `Vault Secrets in ${engine}`,
-          description: `List secrets in the ${engine} secret engine`,
-          mimeType: "application/json",
-        })),
-      };
-    }
-  } catch {
-    // Fallback to common engines if can't fetch
-    console.warn("Could not list vault engines, using fallback");
-  }
-
-  return {
-    resources: [
-      {
-        uri: "vault://secrets/{engine}",
-        name: "Vault Secrets by Engine",
-        description: "Template for listing secrets in any Vault engine",
-        mimeType: "application/json",
-      }
-    ],
-  };
-};
 
 // Read callback function for vault secrets template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => {
@@ -131,7 +97,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => 
             error: `Failed to read Vault secrets: ${error.message}`,
             troubleshooting: {
               check_engine_path: "Verify the engine path exists and is mounted",
-              check_vault_token: "Ensure VAULT_TOKEN environment variable is set",
+              check_vault_token: "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
               check_permissions: "Verify your Vault token has read permissions for this engine",
               example_usage: "vault://secrets/kv-v2 or vault://secrets/secret",
             }
@@ -148,7 +114,7 @@ export const vaultSecretsTemplate: ResourceTemplateDefinition = {
   resourceTemplate: new ResourceTemplate(
     "vault://secrets/{engine}",
     {
-      list,
+      list: undefined,
       complete: {
         engine: async () => {
           try {

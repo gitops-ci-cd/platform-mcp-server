@@ -86,7 +86,7 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
           text: JSON.stringify({
             error: `Failed to read Vault engines: ${error.message}`,
             troubleshooting: {
-              check_vault_token: "Ensure VAULT_TOKEN environment variable is set",
+              check_vault_token: "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
               check_permissions: "Verify your Vault token has 'sys/mounts' read permissions",
               vault_docs: "https://www.vaultproject.io/api/system/mounts",
             }
