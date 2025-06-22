@@ -162,7 +162,7 @@ Return the complete ArgoCD project configuration as a standard Kubernetes resour
 };
 
 export const createArgoCDProjectTool: ToolDefinition = {
-  name: "createArgoCDProject",
+  title: "Create ArgoCD Project",
   description: "Create a new project in ArgoCD via direct API call. Projects provide multi-tenancy with RBAC, resource restrictions, and repository access control.",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:projects:create", "admin"],

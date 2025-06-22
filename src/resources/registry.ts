@@ -5,16 +5,13 @@ import {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 // Resource definition interface
-export interface ResourceDefinition extends Pick<RegisteredResource, "name" | "metadata" | "readCallback"> {
+export interface ResourceDefinition extends Pick<RegisteredResource, "title" | "metadata" | "readCallback"> {
   uri: string;
-  // For future authentication/authorization
   requiredPermissions?: string[];
 }
 
 // Template definition interface
-export interface ResourceTemplateDefinition extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "metadata" | "readCallback"> {
-  name: string;
-  // For future authentication/authorization
+export interface ResourceTemplateDefinition extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "title" | "metadata" | "readCallback"> {
   requiredPermissions?: string[];
 }
 
@@ -29,10 +26,10 @@ export const registerResource = (resourceDef: ResourceDefinition): void => {
 
 // Register a resource template in the registry
 export const registerResourceTemplate = (templateDef: ResourceTemplateDefinition): void => {
-  templateRegistry.set(templateDef.name, templateDef);
+  templateRegistry.set(titleToName(templateDef.title), templateDef);
 };
 
-// Get resources filtered by permissions (for future auth integration)
+// Get resources filtered by permissions
 export const getAuthorizedResources = (userPermissions: string[] = []): ResourceDefinition[] => {
   return Array.from(resourceRegistry.values()).filter((resource) => {
     // If no permissions required, resource is available to everyone
@@ -45,7 +42,7 @@ export const getAuthorizedResources = (userPermissions: string[] = []): Resource
   });
 };
 
-// Get templates filtered by permissions (for future auth integration)
+// Get templates filtered by permissions
 export const getAuthorizedTemplates = (userPermissions: string[] = []): ResourceTemplateDefinition[] => {
   return Array.from(templateRegistry.values()).filter((template) => {
     // If no permissions required, template is available to everyone
@@ -68,9 +65,9 @@ export const registerResourcesWithServer = (
 
   // Register direct resources
   for (const resource of authorizedResources) {
-    const { name, uri, metadata, readCallback } = resource;
+    const { title, uri, metadata, readCallback } = resource;
     server.resource(
-      name,
+      titleToName(title),
       uri,
       metadata || {},
       readCallback
@@ -88,12 +85,22 @@ export const registerResourceTemplatesWithServer = (
 
   // Register resource templates
   for (const template of authorizedTemplates) {
-    const { name, resourceTemplate, metadata, readCallback } = template;
+    const { title, resourceTemplate, metadata, readCallback } = template;
     server.resource(
-      name,
+      titleToName(title),
       resourceTemplate,
       metadata || {},
       readCallback,
     );
   }
+};
+
+// Helper function to convert title to a valid tool name
+const titleToName = (title: string = "Unknown"): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };

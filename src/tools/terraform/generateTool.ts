@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
-import { ToolDefinition } from "../registry.js";
+import { ToolDefinition, toolResponse } from "../registry.js";
 
 // Map common provider names to their registry paths
 const PROVIDER_MAP: Record<string, string> = {
@@ -93,29 +93,39 @@ Generate complete Terraform configuration:`;
       })
     );
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: response.content.text
-        }
-      ]
-    };
+    return toolResponse({
+      data: response.content.text,
+      message: `Generated Terraform configuration for ${fullResourceType} resource named "${name}"`,
+      metadata: {
+        provider: provider,
+        resource_type: fullResourceType,
+        category: resourceCategory,
+        documentation: docLinks
+      },
+      links: {
+        resource_docs: docLinks.resource,
+        provider_docs: docLinks.provider
+      }
+    });
   } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `# Error generating Terraform configuration: ${error.message}`
-        }
-      ],
-      isError: true,
-    };
+    return toolResponse({
+      data: { error: error.message },
+      message: `Error generating Terraform configuration: ${error.message}`,
+      metadata: {
+        provider: provider,
+        resource_type: fullResourceType,
+        troubleshooting: [
+          "Check that the provider and resource type are valid",
+          "Verify the parameters match the expected schema",
+          "Review Terraform documentation for correct syntax"
+        ]
+      }
+    }, true);
   }
 };
 
 export const generateTerraformTool: ToolDefinition = {
-  name: "generateTerraform",
+  title: "Generate Terraform",
   description: "Generate Terraform configurations for various cloud resources and services using AI sampling with best practices and examples.",
   inputSchema,
   callback

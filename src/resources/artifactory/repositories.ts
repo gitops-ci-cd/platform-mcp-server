@@ -190,9 +190,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
 // Resource definition for Artifactory repositories
 export const artifactoryRepositoriesResource: ResourceDefinition = {
   uri: "artifactory://repositories",
-  name: "artifactoryRepositories",
+  title: "Artifactory Repositories",
   metadata: {
-    name: "Artifactory Repositories",
     description: "List of all Artifactory repositories with management links and storage details",
   },
   requiredPermissions: ["artifactory:read", "artifactory:repositories:list", "admin"],

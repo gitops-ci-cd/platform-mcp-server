@@ -113,7 +113,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 };
 
 export const createVaultEngineTool: ToolDefinition = {
-  name: "createVaultEngine",
+  title: "Create Vault Engine",
   description: "Create or verify a Vault secrets engine. Idempotent operation that checks if the engine exists first and provides helpful next actions. Returns management links and guidance for both new and existing engines.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:engines:create", "admin"],

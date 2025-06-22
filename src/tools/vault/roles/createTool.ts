@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
@@ -29,18 +29,19 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
+  const {
+    authMethod,
+    roleName,
+    policies,
+    roleConfig
+  } = args as {
+    authMethod: string;
+    roleName: string;
+    policies?: string[];
+    roleConfig?: Record<string, any>;
+  };
+
   try {
-    const {
-      authMethod,
-      roleName,
-      policies,
-      roleConfig
-    } = args as {
-      authMethod: string;
-      roleName: string;
-      policies?: string[];
-      roleConfig?: Record<string, any>;
-    };
 
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault role: ${roleName} for auth method: ${authMethod}`);
@@ -117,50 +118,40 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       roleInfo = { data: roleConfigData };
     }
 
-    const successData = {
-      role: {
-        name: roleName,
+    return toolResponse({
+      data: roleInfo?.data || roleConfigData,
+      message: `Vault role "${roleName}" created successfully for ${authMethod} auth method`,
+      metadata: {
+        role_name: roleName,
         auth_method: authMethod,
         policies: policies || [],
-        config: roleInfo?.data || roleConfigData,
-        path: rolePath,
+        role_path: rolePath
       },
-      vault_endpoint: vaultConfig.endpoint,
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+      links: {
+        vault: vaultConfig.endpoint
+      }
+    });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create Vault role: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      data: { error: error.message },
+      message: `Failed to create Vault role: ${error.message}`,
+      metadata: {
+        role_name: roleName,
+        auth_method: authMethod,
+        troubleshooting: [
+          "Check that the auth method is enabled in Vault",
+          "Verify you have admin permissions",
+          "Ensure the role name is unique within the auth method",
+          "Review the role configuration for the specific auth method"
+        ]
+      }
+    }, true);
   }
 };
 
 export const createVaultRoleTool: ToolDefinition = {
-  name: "createVaultRole",
+  title: "Create Vault Role",
   description: "Create a new role for a specific authentication method in HashiCorp Vault via direct API call. Roles define authentication constraints and associated policies.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:roles:create", "admin"],

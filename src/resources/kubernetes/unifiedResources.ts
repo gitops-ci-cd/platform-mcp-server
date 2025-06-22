@@ -344,7 +344,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => 
 
 // Resource template definition for unified kubernetes resources
 export const kubernetesUnifiedResourcesTemplate: ResourceTemplateDefinition = {
-  name: "kubernetesResources",
+  title: "Kubernetes Resources",
   resourceTemplate: new ResourceTemplate(
     "kubernetes://resources/{resourceType}/{namespace?}",
     {
@@ -390,7 +390,6 @@ export const kubernetesUnifiedResourcesTemplate: ResourceTemplateDefinition = {
     }
   ),
   metadata: {
-    name: "Kubernetes Resources",
     description: "List Kubernetes native and custom resources by type and optional namespace. Supports both native resources (pods, services, etc.) and custom resources (plural format). Omit namespace for cluster-scoped resources",
   },
   requiredPermissions: ["kubernetes:read", "kubernetes:list", "admin"],

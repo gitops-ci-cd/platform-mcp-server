@@ -40,7 +40,7 @@ ${summary}
 };
 
 export const mcpConceptsTemplate: ResourceTemplateDefinition = {
-  name: "MCP Concepts",
+  title: "MCP Concepts",
   resourceTemplate: new ResourceTemplate(
     "https://modelcontextprotocol.io/docs/concepts/{concept}",
     {

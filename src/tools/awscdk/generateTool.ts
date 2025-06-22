@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
-import { ToolDefinition } from "../registry.js";
+import { ToolDefinition, toolResponse } from "../registry.js";
 
 // AWS CDK construct examples with reference links
 const CDK_EXAMPLES = {
@@ -210,29 +210,39 @@ Generate complete CDK TypeScript code:`;
       })
     );
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: response.content.text
-        }
-      ]
-    };
+    return toolResponse({
+      data: response.content.text,
+      message: `Generated AWS CDK construct for ${constructType} in ${category} category`,
+      metadata: {
+        category: category,
+        construct_type: constructType,
+        construct_name: name,
+        documentation: exampleData
+      },
+      links: {
+        documentation: exampleData?.examples?.[0] || "https://docs.aws.amazon.com/cdk/",
+        examples: exampleData?.examples?.[1] || "https://github.com/aws-samples/aws-cdk-examples"
+      }
+    });
   } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `// Error generating CDK construct: ${error.message}`
-        }
-      ],
-      isError: true,
-    };
+    return toolResponse({
+      data: { error: error.message },
+      message: `Error generating CDK construct: ${error.message}`,
+      metadata: {
+        category: category,
+        construct_type: constructType,
+        troubleshooting: [
+          "Check that the category and construct type are valid",
+          "Verify the parameters match the expected format",
+          "Review AWS CDK documentation for correct syntax"
+        ]
+      }
+    }, true);
   }
 };
 
 export const generateAwsCdkTool: ToolDefinition = {
-  name: "generateAwsCdk",
+  title: "Generate AWS CDK",
   description: "Generate AWS CDK TypeScript constructs with best practices, security configurations, and proper resource management.",
   inputSchema,
   callback

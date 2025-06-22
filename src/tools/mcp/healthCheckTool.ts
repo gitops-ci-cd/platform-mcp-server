@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ToolDefinition } from "../registry.js";
+import { ToolDefinition, toolResponse } from "../registry.js";
 
 const inputSchema = z.object({
   endpoint: z.string().url().optional().default(`http://localhost:${process.env.PORT || "8080"}/health`)
@@ -64,16 +64,15 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       body: responseBody
     };
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(healthData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: healthData
-    };
+    return toolResponse({
+      data: healthData,
+      message: response.ok ? "Health check successful" : `Health check failed with status ${response.status}`,
+      metadata: {
+        endpoint: endpoint,
+        timestamp: healthData.timestamp,
+        healthy: response.ok
+      }
+    });
 
   } catch (error: any) {
     // Return error data in structured format
@@ -89,22 +88,21 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       }
     };
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      data: errorData,
+      message: `Health check failed: ${error.message}`,
+      metadata: {
+        endpoint: endpoint,
+        timestamp: errorData.timestamp,
+        healthy: false,
+        error_type: error.name || "UnknownError"
+      }
+    }, true);
   }
 };
 
 export const mcpHealthCheckTool: ToolDefinition = {
-  name: "CheckMCPServerHealth",
+  title: "Check MCP Server Health",
   description: "Check the health status of the MCP server by calling its health endpoint. Returns raw JSON data for the AI to parse.",
   inputSchema,
   outputSchema,

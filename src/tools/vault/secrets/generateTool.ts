@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
@@ -95,57 +95,44 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
     const secretWebUrl = `${vaultWebUrl}/ui/vault/secrets/${enginePath}/show/${secretPath}`;
 
-    const successData = {
-      secret: {
-        path: secretPath,
-        engine: enginePath,
-        full_path: `${enginePath}/${secretPath}`,
-        keys: secretKeys,
-        version: secretInfo?.data?.metadata?.version || 1,
-        description: description || "",
+    return toolResponse({
+      message: "Secret structure created with placeholder values. Please update with real values using the Vault UI.",
+      data: secretInfo, // Raw secret data from Vault API
+      links: {
+        manage: secretWebUrl,
+        vault: vaultWebUrl
       },
-      vault_endpoint: vaultConfig.endpoint,
-      vault_web_url: secretWebUrl,
-      next_steps: {
-        message: "Secret structure created with placeholder values. Please update with real values using the Vault UI.",
-        vault_ui_link: secretWebUrl,
+      metadata: {
+        secret: {
+          path: secretPath,
+          engine: enginePath,
+          full_path: `${enginePath}/${secretPath}`,
+          keys: secretKeys,
+          version: secretInfo?.data?.metadata?.version || 1,
+          description: description || ""
+        },
         note: "For security, actual secret values should be set manually through the Vault web interface."
       }
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+    });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create Vault secret structure: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      message: `Failed to create Vault secret structure: ${error.message}`,
+      data: error, // Raw error object
+      metadata: {
+        troubleshooting: [
+          "Check that the secrets engine exists and is accessible",
+          "Verify you have write permissions to the specified path",
+          "Ensure the secret keys are valid identifiers",
+          "Check Vault server connectivity"
+        ]
+      }
+    }, true);
   }
 };
 
 export const generateVaultSecretTool: ToolDefinition = {
-  name: "generateVaultSecret",
+  title: "Generate Vault Secret",
   description: "Create a secret structure in Vault with placeholder values. Creates the path and keys but requires manual entry of actual secret values via Vault UI for security.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:secrets:create", "admin"],

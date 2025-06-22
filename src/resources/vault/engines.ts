@@ -99,9 +99,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
 // Resource definition for vault engines
 export const vaultEnginesResource: ResourceDefinition = {
   uri: "vault://engines",
-  name: "vaultEngines",
+  title: "Vault Secret Engines",
   metadata: {
-    name: "Vault Secret Engines",
     description: "List of all mounted Vault secret engines with management links",
   },
   requiredPermissions: ["vault:read", "vault:engines:list", "admin"],

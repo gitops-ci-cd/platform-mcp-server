@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getArtifactoryConfig,
@@ -18,14 +18,15 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
+  const { repositoryKey, packageType, repositoryType, description, properties } = args as {
+    repositoryKey: string;
+    packageType: string;
+    repositoryType: string;
+    description?: string;
+    properties?: Record<string, any>;
+  };
+
   try {
-    const { repositoryKey, packageType, repositoryType, description, properties } = args as {
-      repositoryKey: string;
-      packageType: string;
-      repositoryType: string;
-      description?: string;
-      properties?: Record<string, any>;
-    };
 
     // Get authenticated user for audit logging
     getCurrentUser(`creating Artifactory repository: ${repositoryKey}`);
@@ -66,51 +67,40 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       artifactoryConfig
     );
 
-    const successData = {
-      repository: {
-        key: repositoryKey,
-        type: repositoryType,
-        packageType,
-        description: description || "",
-        url: `${artifactoryConfig.endpoint}/ui/repos/tree/General/${repositoryKey}`,
-        config: repoInfo,
+    return toolResponse({
+      data: repoInfo,
+      message: `Artifactory repository "${repositoryKey}" created successfully`,
+      metadata: {
+        repository_key: repositoryKey,
+        package_type: packageType,
+        repository_type: repositoryType,
+        description: description || ""
       },
-      artifactory_endpoint: artifactoryConfig.endpoint,
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+      links: {
+        manage: `${artifactoryConfig.endpoint}/ui/repos/tree/General/${repositoryKey}`,
+        endpoint: artifactoryConfig.endpoint
+      }
+    });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create Artifactory repository: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      data: { error: error.message },
+      message: `Failed to create Artifactory repository: ${error.message}`,
+      metadata: {
+        repository_key: repositoryKey,
+        troubleshooting: [
+          "Check that the repository key is unique",
+          "Verify Artifactory server connectivity",
+          "Ensure you have admin permissions",
+          "Review package type and repository type compatibility"
+        ]
+      }
+    }, true);
   }
 };
 
 export const createArtifactoryRepositoryTool: ToolDefinition = {
-  name: "createArtifactoryRepository",
+  title: "Create Artifactory Repository",
   description: "Create a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
   inputSchema,
   requiredPermissions: ["artifactory:admin", "artifactory:repos:create", "admin"],

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
-import { ToolDefinition } from "../registry.js";
+import { ToolDefinition, toolResponse } from "../registry.js";
 
 // Example mappings with reference links
 const MANIFEST_EXAMPLES = {
@@ -160,29 +160,31 @@ Generate complete YAML manifest:`;
       })
     );
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: response.content.text
-        }
-      ]
-    };
+    return toolResponse({
+      message: `Generated ${type} ${subtype} manifest for ${name}`,
+      data: response.content.text,
+      metadata: {
+        manifestType: type,
+        subtype,
+        resourceName: name
+      }
+    });
   } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `# Error generating manifest: ${error.message}`
-        }
-      ],
-      isError: true,
-    };
+    return toolResponse({
+      message: `Error generating manifest: ${error.message}`,
+      metadata: {
+        troubleshooting: [
+          "Check that the manifest type and subtype are supported",
+          "Verify the parameters are valid for the manifest type",
+          "Ensure the LLM sampling service is available"
+        ]
+      }
+    }, true);
   }
 };
 
 export const generateManifestTool: ToolDefinition = {
-  name: "generateManifest",
+  title: "Generate Manifest",
   description: "Generate YAML manifests (Kubernetes, ArgoCD, Datadog, etc.) using AI sampling with reference templates and best practices.",
   inputSchema,
   callback

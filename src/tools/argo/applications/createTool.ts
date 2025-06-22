@@ -79,8 +79,9 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
       // Application doesn't exist, create it
       if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
         throw checkError; // Re-throw if it's not a "not found" error
-      }      // Use sampling to generate the ArgoCD application configuration
-      const response = await extra.sendRequest(
+      }
+      // Use sampling to generate the ArgoCD application configuration
+      const rawResponse = await extra.sendRequest(
         {
           method: "sampling/createMessage",
           params: {
@@ -89,13 +90,15 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
                 role: "user",
                 content: {
                   type: "text",
-                  text: `Generate an ArgoCD application configuration for:
+                  text: `You must return a valid JSON object representing an ArgoCD Application resource.
+
+Generate an ArgoCD application configuration for:
 - Name: ${name}
 - Repository URL: ${repoURL}
 - Destination namespace: ${destinationNamespace}
 - Parameters: ${JSON.stringify(parameters || {}, null, 2)}
 
-Please generate a complete ArgoCD application spec following these guidelines:
+Guidelines:
 1. Detect if this is a Helm chart, Kustomize, or plain YAML based on the repo URL and parameters
 2. Set appropriate sync policy (automated with prune and self-heal for most cases)
 3. Use "default" project unless parameters specify otherwise
@@ -104,26 +107,37 @@ Please generate a complete ArgoCD application spec following these guidelines:
 6. Configure Helm values, parameters, or Kustomize settings as needed based on the parameters provided
 7. Follow ArgoCD best practices for the application type
 
-Return the complete ArgoCD application configuration as a standard Kubernetes resource with:
-- apiVersion: current ArgoCD version (e.g., argoproj.io/v1alpha1)
+Return ONLY a valid JSON object with:
+- apiVersion: argoproj.io/v1alpha1
 - kind: Application
-- metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.email})
-- spec: complete ArgoCD application specification`
+- metadata: name (${name}), namespace (argocd), labels, annotations (user: ${user.email})
+- spec: complete ArgoCD application specification
+
+Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`
                 }
               }
             ],
             maxTokens: 2048
           }
         },
-        resultSchema
+        z.object({
+          content: z.object({
+            type: z.literal("text"),
+            text: z.string()
+          })
+        })
       );
+
+      // Parse and validate the JSON response
+      const response = JSON.parse(rawResponse.content.text);
+      const validatedResponse = resultSchema.parse(response);
 
       // Create the application
       data = await argoCDApiRequest(
         "POST",
         "applications",
         argoCDConfig,
-        response
+        validatedResponse
       );
       message = `ArgoCD application '${name}' created successfully`;
     }
@@ -170,7 +184,7 @@ Return the complete ArgoCD application configuration as a standard Kubernetes re
 };
 
 export const createArgoCDApplicationTool: ToolDefinition = {
-  name: "createArgoCDApplication",
+  title: "Create ArgoCD Application",
   description: "Create or verify an ArgoCD application using AI to generate optimal configuration. Idempotent operation that checks if the application exists first.",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:applications:create", "admin"],

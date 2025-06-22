@@ -110,7 +110,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => 
 
 // Resource template definition for vault secrets
 export const vaultSecretsTemplate: ResourceTemplateDefinition = {
-  name: "vaultSecrets",
+  title: "Vault Secrets by Engine",
   resourceTemplate: new ResourceTemplate(
     "vault://secrets/{engine}",
     {
@@ -132,7 +132,6 @@ export const vaultSecretsTemplate: ResourceTemplateDefinition = {
     }
   ),
   metadata: {
-    name: "Vault Secrets by Engine",
     description: "List secrets in a specific Vault secret engine with management links",
   },
   requiredPermissions: ["vault:read", "vault:secrets:list", "admin"],

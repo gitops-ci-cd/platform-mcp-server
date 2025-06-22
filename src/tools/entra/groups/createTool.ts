@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getGraphConfig,
@@ -23,18 +23,19 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
+  const {
+    displayName,
+    description,
+    mailNickname,
+    groupTypes,
+    securityEnabled,
+    mailEnabled,
+    visibility,
+    owners,
+    members
+  } = args as EntraGroupConfig;
+
   try {
-    const {
-      displayName,
-      description,
-      mailNickname,
-      groupTypes,
-      securityEnabled,
-      mailEnabled,
-      visibility,
-      owners,
-      members
-    } = args as EntraGroupConfig;
 
     // Get authenticated user for audit logging
     getCurrentUser(`creating Entra group: ${displayName}`);
@@ -56,64 +57,46 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     });
 
     // Create the group
-    const result = await graphApiRequest(
+    const data = await graphApiRequest(
       "POST",
       "groups",
       graphConfig,
       groupConfig
     );
 
-    const successData = {
-      group: {
-        id: result.id,
-        displayName: result.displayName,
-        description: result.description || "",
-        mailNickname: result.mailNickname,
-        mailEnabled: result.mailEnabled,
-        securityEnabled: result.securityEnabled,
-        groupTypes: result.groupTypes || [],
-        createdDateTime: result.createdDateTime,
-        visibility: result.visibility,
-        url: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${result.id}`,
-        mail: result.mail,
-        proxyAddresses: result.proxyAddresses || [],
+    return toolResponse({
+      data,
+      message: `Entra group "${displayName}" created successfully`,
+      metadata: {
+        group_id: data.id,
+        display_name: displayName,
+        security_enabled: securityEnabled,
+        mail_enabled: mailEnabled,
+        tenant_id: graphConfig.tenantId
       },
-      tenant_id: graphConfig.tenantId,
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+      links: {
+        portal: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`
+      }
+    });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create Entra group: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      message: `Failed to create Entra group: ${error.message}`,
+      metadata: {
+        display_name: displayName,
+        troubleshooting: [
+          "Check that you have Group.ReadWrite.All permissions",
+          "Verify the display name is unique",
+          "Ensure the mail nickname is valid and unique",
+          "Review Microsoft Graph API documentation"
+        ]
+      }
+    }, true);
   }
 };
 
 export const createEntraGroupTool: ToolDefinition = {
-  name: "createEntraGroup",
+  title: "Create Entra Group",
   description: "Create a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
   inputSchema,
   requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],

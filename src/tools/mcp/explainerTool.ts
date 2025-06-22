@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../registry.js";
+import { ToolDefinition, toolResponse } from "../registry.js";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 
 const inputSchema = z.object({
@@ -103,36 +103,22 @@ Structure your response with clear sections and make it engaging and informative
     explanation = `Error generating explanation: ${error.message}`;
   }
 
-  return {
-    content: [
-      {
-        type: "text",
-        text: `# MCP ${concept.charAt(0).toUpperCase() + concept.slice(1)} Explanation
-
-${explanation}
-
----
-
-*This explanation was generated using MCP sampling - a meta example of MCP tools using MCP capabilities!*`
-      }
-    ],
-    structuredContent: {
+  return toolResponse({
+    data: explanation,
+    message: `Generated explanation for MCP ${concept} concept`,
+    metadata: {
       concept,
       audience,
-      includeExample,
-      explanation,
-      metadata: {
-        generated: new Date().toISOString(),
-        usedSampling: explanation !== "Sampling capability is not available in this environment.",
-        wordCount: explanation.split(/\s+/).length
-      }
-    },
-    isError,
-  };
+      include_example: includeExample,
+      generated: new Date().toISOString(),
+      used_sampling: explanation !== "Sampling capability is not available in this environment.",
+      word_count: explanation.split(/\s+/).length
+    }
+  }, isError);
 };
 
 export const mcpExplainerTool: ToolDefinition = {
-  name: "ExplainMCPConcept",
+  title: "Explain MCP Concept",
   description: "Generate detailed explanations of MCP concepts using sampling. This tool demonstrates both MCP tools and sampling capabilities by explaining MCP itself!",
   inputSchema,
   outputSchema,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
@@ -44,25 +44,20 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       vaultConfig
     );
 
-    const successData = {
-      policy: {
-        name,
-        policy: policyInfo?.data?.policy || policy,
-        rules: policyInfo?.data?.rules || policy,
-      },
-      vault_endpoint: vaultConfig.endpoint,
-    };
+    const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+    return toolResponse({
+      message: `Vault policy '${name}' created successfully`,
+      data: policyInfo, // Raw policy data from Vault API
+      links: {
+        manage: `${vaultWebUrl}/ui/vault/policies/acl/${name}`,
+        vault: vaultWebUrl
+      },
+      metadata: {
+        policyName: name,
+        hasRules: !!policy
+      }
+    });
 
   } catch (error: any) {
     const errorData = {
@@ -85,7 +80,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 };
 
 export const createVaultPolicyTool: ToolDefinition = {
-  name: "createVaultPolicy",
+  title: "Create Vault Policy",
   description: "Create a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:policies:create", "admin"],

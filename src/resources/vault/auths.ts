@@ -104,9 +104,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
 // Resource definition for Vault auth methods
 export const vaultAuthMethodsResource: ResourceDefinition = {
   uri: "vault://auth",
-  name: "vaultAuthMethods",
+  title: "Vault Authentication Methods",
   metadata: {
-    name: "Vault Authentication Methods",
     description: "List of all enabled Vault authentication methods with configuration details",
   },
   requiredPermissions: ["vault:read", "vault:auth:list", "admin"],

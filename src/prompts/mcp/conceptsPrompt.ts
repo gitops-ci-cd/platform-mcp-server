@@ -23,7 +23,7 @@ Make it beginner-friendly with clear examples, and help me understand when I sho
 };
 
 export const mcpConceptsPrompt: PromptDefinition = {
-  name: "mcp_concepts",
+  title: "MCP Concepts",
   description: "Ask your AI assistant to explain MCP tools, prompts, and resources",
   callback,
 };

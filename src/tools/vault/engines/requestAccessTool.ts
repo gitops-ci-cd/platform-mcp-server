@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 
 const inputSchema = z.object({
@@ -68,61 +68,47 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       ],
     };
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            message: "✅ Vault access request created successfully",
-            request: accessRequest,
-            tracking: {
-              request_id: requestId,
-              status_url: `https://vault.legalzoom.com/ui/vault/access-requests/${requestId}`,
-              estimated_approval_time: "24 hours",
-            },
-            next_actions: {
-              track_request: "Check request status at the provided URL",
-              escalate: "Contact security team if urgent",
-              prepare: "Ensure you have the necessary Vault CLI/UI access ready",
-            },
-            policy_preview: {
-              suggested_policy: `path "${targetPath}/*" {\n  capabilities = ["${requestType}"]\n}`,
-              note: "Actual policy may vary based on security review",
-            },
-          }, null, 2),
-          mimeType: "application/json",
-        },
-      ],
-    };
+    return toolResponse({
+      message: "✅ Vault access request created successfully",
+      data: accessRequest, // Raw access request object
+      links: {
+        status: `https://vault.legalzoom.com/ui/vault/access-requests/${requestId}`,
+        vault: "https://vault.legalzoom.com/ui/"
+      },
+      metadata: {
+        requestId,
+        estimatedApprovalTime: "24 hours",
+        potentialActions: [
+          "Check request status at the provided URL",
+          "Contact security team if urgent",
+          "Prepare necessary Vault CLI/UI access"
+        ],
+        policyPreview: `path "${targetPath}/*" {\n  capabilities = ["${requestType}"]\n}`
+      }
+    });
   } catch (error: any) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: `Failed to create Vault access request: ${error.message}`,
-            troubleshooting: {
-              check_parameters: "Ensure all required parameters are provided",
-              check_engine: "Verify the secrets engine path exists",
-              check_permissions: "Ensure you have permission to request access",
-              contact_support: "Contact security team if issues persist",
-            },
-            examples: {
-              basic_request: "Request read access to 'secret' engine for troubleshooting",
-              specific_path: "Request access to 'database/prod-mysql' for application deployment",
-              admin_access: "Request admin access to 'pki' engine for certificate management",
-            },
-          }, null, 2),
-          mimeType: "application/json",
-        },
-      ],
-      isError: true,
-    };
+    return toolResponse({
+      message: `Failed to create Vault access request: ${error.message}`,
+      data: error, // Raw error object
+      metadata: {
+        troubleshooting: [
+          "Ensure all required parameters are provided",
+          "Verify the secrets engine path exists",
+          "Ensure you have permission to request access",
+          "Contact security team if issues persist"
+        ],
+        examples: [
+          "Request read access to 'secret' engine for troubleshooting",
+          "Request access to 'database/prod-mysql' for application deployment",
+          "Request admin access to 'pki' engine for certificate management"
+        ]
+      }
+    }, true);
   }
 };
 
 export const requestAccessTool: ToolDefinition = {
-  name: "requestVaultAccess",
+  title: "Request Vault Access",
   description: "Request access to a Vault secrets engine or specific secret path",
   inputSchema,
   callback,

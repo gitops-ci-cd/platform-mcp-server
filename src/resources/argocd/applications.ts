@@ -120,9 +120,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
 // Resource definition for ArgoCD applications
 export const argoCDApplicationsResource: ResourceDefinition = {
   uri: "argocd://applications",
-  name: "argoCDApplications",
+  title: "ArgoCD Applications",
   metadata: {
-    name: "ArgoCD Applications",
     description: "List of all ArgoCD applications with management links and sync status",
   },
   requiredPermissions: ["argocd:read", "argocd:applications:list", "admin"],

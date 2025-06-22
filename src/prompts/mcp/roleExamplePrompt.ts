@@ -43,7 +43,7 @@ const callback: PromptDefinition["callback"] = async (_args: any, _extra: any) =
 };
 
 export const mcpRoleExamplePrompt: PromptDefinition = {
-  name: "mcp_role_example",
+  title: "MCP Role Example",
   description: "Demonstrates advanced prompt message roles for multi-turn, contextual AI interactions",
   callback
 };

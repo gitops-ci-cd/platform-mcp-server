@@ -113,9 +113,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
 // Resource definition for Entra groups
 export const entraGroupsResource: ResourceDefinition = {
   uri: "entra://groups",
-  name: "entraGroups",
+  title: "Entra ID Groups",
   metadata: {
-    name: "Entra ID Groups",
     description: "List of all Entra ID (Azure AD) groups with management links and member details",
   },
   requiredPermissions: ["entra:read", "entra:groups:list", "admin"],

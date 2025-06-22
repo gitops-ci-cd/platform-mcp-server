@@ -93,9 +93,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
 // Resource definition for vault policies
 export const vaultPoliciesResource: ResourceDefinition = {
   uri: "vault://policies",
-  name: "vaultPolicies",
+  title: "Vault Policies",
   metadata: {
-    name: "Vault Policies",
     description: "List of all Vault ACL policies with management links",
   },
   requiredPermissions: ["vault:read", "vault:policies:list", "admin"],

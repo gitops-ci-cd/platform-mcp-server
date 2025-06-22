@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getResource, getResourceEvents, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
 
 const inputSchema = z.object({
@@ -94,19 +94,6 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
 
     const basePrompt = analysisPrompts[analysisType];
 
-    // Prepare the data for analysis
-    const analysisData = {
-      resource,
-      events: includeEvents ? events : undefined,
-      metadata: {
-        kind,
-        name,
-        namespace: namespace || "default",
-        analysisType,
-        timestamp: new Date().toISOString()
-      }
-    };
-
     const fullPrompt = `${basePrompt}
 
 **Resource Data:**
@@ -169,25 +156,22 @@ Format your response in a structured way that's easy for both humans and AI agen
       analysisResult = `Analysis failed: ${error.message}`;
     }
 
-    const responseData = {
-      metadata: analysisData.metadata,
-      analysis: analysisResult,
-      rawData: {
+    return toolResponse({
+      data: {
         resource,
-        events: includeEvents ? events : undefined
+        events: includeEvents ? events : undefined,
+        analysis: analysisResult
+      },
+      message: `Analysis complete for ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ""}`,
+      metadata: {
+        kind,
+        name,
+        namespace: namespace || "default",
+        analysis_type: analysisType,
+        timestamp: new Date().toISOString(),
+        events_included: includeEvents && events.length > 0
       }
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(responseData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: responseData
-    };
+    });
 
   } catch (error) {
     const k8sError = error as KubernetesError;
@@ -195,27 +179,27 @@ Format your response in a structured way that's easy for both humans and AI agen
       ? `Resource ${kind}/${name} not found${namespace ? ` in namespace ${namespace}` : ""}`
       : `Failed to analyze ${kind}/${name}: ${k8sError.message}`;
 
-    const errorData = {
-      error: errorMessage,
-      statusCode: k8sError.statusCode
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      data: { error: errorMessage, statusCode: k8sError.statusCode },
+      message: errorMessage,
+      metadata: {
+        kind,
+        name,
+        namespace: namespace || "default",
+        status_code: k8sError.statusCode,
+        troubleshooting: [
+          "Check that the resource exists and is accessible",
+          "Verify you have proper RBAC permissions",
+          "Ensure the resource kind is supported",
+          "Confirm the namespace is correct (if applicable)"
+        ]
+      }
+    }, true);
   }
 };
 
 export const validateKubernetesResourceTool: ToolDefinition = {
-  name: "validateKubernetesResource",
+  title: "Validate Kubernetes Resource",
   description: "Analyze a Kubernetes resource using AI to identify security, performance, reliability, and cost optimization opportunities. Provides detailed recommendations and best practices.",
   inputSchema,
   outputSchema,

@@ -1,9 +1,8 @@
 import { McpServer, RegisteredPrompt } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-export interface PromptDefinition extends Pick<RegisteredPrompt, "description" | "argsSchema"> {
-  name: string;
-  callback: any; // Will be typed based on whether argsSchema is provided
-  requiredPermissions?: string[]; // For future authentication/authorization
+export interface PromptDefinition extends Pick<RegisteredPrompt, "title" | "description" | "argsSchema"> {
+  callback: any;
+  requiredPermissions?: string[];
 }
 
 // Registry to store all available prompts
@@ -11,10 +10,10 @@ const promptRegistry = new Map<string, PromptDefinition>();
 
 // Register a prompt in the registry
 export const registerPrompt = (promptDef: PromptDefinition): void => {
-  promptRegistry.set(promptDef.name, promptDef);
+  promptRegistry.set(titleToName(promptDef.title), promptDef);
 };
 
-// Get prompts filtered by permissions (for future auth integration)
+// Get prompts filtered by permissions
 export const getAuthorizedPrompts = (userPermissions: string[] = []): PromptDefinition[] => {
   return Array.from(promptRegistry.values()).filter((prompt) => {
     // If no permissions required, prompt is available to everyone
@@ -34,20 +33,30 @@ export const registerPromptsWithServer = (server: McpServer, userPermissions: st
 
   // Register prompts
   for (const prompt of authorizedPrompts) {
-    const { name, description, callback, argsSchema } = prompt;
+    const { title, description, callback, argsSchema } = prompt;
     if (argsSchema) {
       server.prompt(
-        name,
+        titleToName(title),
         description || "",
         argsSchema.shape,
         callback
       );
     } else {
       server.prompt(
-        name,
+        titleToName(title),
         description || "",
         callback
       );
     }
   }
+};
+
+// Helper function to convert title to a valid tool name
+const titleToName = (title: string = "Unknown"): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };

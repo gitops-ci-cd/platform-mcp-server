@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { deleteResource, getResource, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
 
 const inputSchema = z.object({
@@ -37,94 +37,48 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
   try {
     // First, check if the resource exists
-    const resource = await getResource(kind, name, namespace);
+    const data = await getResource(kind, name, namespace);
 
     if (dryRun) {
-      const dryRunData = {
-        dryRun: true,
-        resource: {
-          kind: resource.kind,
-          name: resource.metadata.name,
-          namespace: resource.metadata.namespace,
-          apiVersion: resource.apiVersion,
-          creationTimestamp: resource.metadata.creationTimestamp
+      return toolResponse({
+        message: `Dry run: Would delete ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ""}`,
+        data,
+        metadata: {
+          operation: "delete"
         }
-      };
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(dryRunData, null, 2),
-            mimeType: "application/json"
-          }
-        ],
-        structuredContent: dryRunData
-      };
+      });
     }
 
     // Perform the actual deletion
     await deleteResource(kind, name, namespace, undefined, gracePeriodSeconds);
 
-    const successData = {
-      action: "deleted" as const,
-      resource: {
-        kind: resource.kind,
-        name: resource.metadata.name,
-        namespace: resource.metadata.namespace,
-        apiVersion: resource.apiVersion
-      },
-      gracePeriodSeconds: gracePeriodSeconds || undefined
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData
-    };
+    return toolResponse({
+      message: `Successfully deleted ${kind}/${name}${namespace ? ` from namespace ${namespace}` : ""}`,
+      data,
+      metadata: {
+        gracePeriodSeconds: gracePeriodSeconds || undefined
+      }
+    });
   } catch (error) {
     const k8sError = error as KubernetesError;
-    let errorMessage: string;
 
-    if (k8sError.statusCode === 404) {
-      errorMessage = `Resource ${kind}/${name} not found${namespace ? ` in namespace ${namespace}` : ""}`;
-    } else if (k8sError.statusCode === 403) {
-      errorMessage = `Permission denied: Cannot delete ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ""}`;
-    } else {
-      errorMessage = `Failed to delete ${kind}/${name}: ${k8sError.message}`;
-    }
-
-    const errorData = {
-      error: errorMessage,
-      statusCode: k8sError.statusCode,
-      resource: {
-        kind,
-        name,
-        namespace
+    return toolResponse({
+      message: k8sError.message,
+      data: { kind, name, namespace },
+      metadata: {
+        statusCode: k8sError.statusCode,
+        troubleshooting: [
+          "Check if the resource exists",
+          "Verify you have the necessary permissions",
+          "Ensure the namespace is correct"
+        ]
       }
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    }, true);
   }
 };
 
 export const deleteKubernetesResourceTool: ToolDefinition = {
-  name: "deleteKubernetesResource",
+  title: "Delete Kubernetes Resource",
   description: "Delete a Kubernetes resource by kind and name. Supports dry-run mode and graceful deletion.",
   inputSchema,
   outputSchema,
