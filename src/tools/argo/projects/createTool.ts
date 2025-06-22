@@ -1,90 +1,51 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getArgoCDConfig,
-  argoCDApiRequest,
-  createArgoCDMetadata,
-  type ArgoCDResourceRestriction,
-  type ArgoCDProjectRole
+  argoCDApiRequest
 } from "../../../clients/argocd/index.js";
 
 const inputSchema = z.object({
-  name: z.string().describe("Project name (must be unique and DNS-compliant)"),
+  name: z.string().describe("Project name"),
   description: z.string().optional().describe("Human-readable description of the project"),
   sourceRepos: z.array(z.string()).describe("List of Git repositories this project can access (* for all)"),
   destinations: z.array(z.object({
     server: z.string().describe("Kubernetes cluster server URL"),
-    namespace: z.string().optional().describe("Target namespace (* for all namespaces)"),
-    name: z.string().optional().describe("Cluster name (optional)"),
+    namespace: z.string().optional().describe("Target namespace (* for all namespaces)")
   })).describe("List of allowed deployment destinations"),
-  clusterResourceWhitelist: z.array(z.object({
-    group: z.string().describe("Kubernetes API group"),
-    kind: z.string().describe("Resource kind"),
-  })).optional().describe("Cluster-scoped resources this project can manage"),
-  clusterResourceBlacklist: z.array(z.object({
-    group: z.string().describe("Kubernetes API group"),
-    kind: z.string().describe("Resource kind"),
-  })).optional().describe("Cluster-scoped resources this project cannot manage"),
-  namespaceResourceWhitelist: z.array(z.object({
-    group: z.string().describe("Kubernetes API group"),
-    kind: z.string().describe("Resource kind"),
-  })).optional().describe("Namespace-scoped resources this project can manage"),
-  namespaceResourceBlacklist: z.array(z.object({
-    group: z.string().describe("Kubernetes API group"),
-    kind: z.string().describe("Resource kind"),
-  })).optional().describe("Namespace-scoped resources this project cannot manage"),
-  roles: z.array(z.object({
-    name: z.string().describe("Role name"),
-    description: z.string().optional().describe("Role description"),
-    policies: z.array(z.string()).describe("RBAC policies for this role"),
-    groups: z.array(z.string()).optional().describe("Groups assigned to this role"),
-  })).optional().describe("Project-specific roles and permissions"),
-  orphanedResources: z.object({
-    warn: z.boolean().optional().describe("Warn about orphaned resources"),
-    ignore: z.array(z.object({
-      group: z.string().describe("Kubernetes API group"),
-      kind: z.string().describe("Resource kind"),
-      name: z.string().optional().describe("Resource name pattern"),
-    })).optional().describe("Resources to ignore when detecting orphans"),
-  }).optional().describe("Orphaned resources detection policy"),
+  parameters: z.record(z.any()).optional().describe("Additional project parameters (resource restrictions, roles, RBAC policies, etc.)")
 });
 
-const callback: ToolDefinition["callback"] = async (args, _extra) => {
+const resultSchema = z.object({
+  apiVersion: z.string(),
+  kind: z.literal("AppProject"),
+  metadata: z.object({
+    name: z.string(),
+    namespace: z.string()
+  }).passthrough(),
+  spec: z.object({
+    description: z.string().optional(),
+    sourceRepos: z.array(z.string()),
+    destinations: z.array(z.object({
+      server: z.string(),
+      namespace: z.string().optional()
+    }).passthrough())
+  }).passthrough()
+});
+
+const callback: ToolDefinition["callback"] = async (args, extra) => {
   try {
-    const {
-      name,
-      description,
-      sourceRepos,
-      destinations,
-      clusterResourceWhitelist,
-      clusterResourceBlacklist,
-      namespaceResourceWhitelist,
-      namespaceResourceBlacklist,
-      roles,
-      orphanedResources
-    } = args as {
+    const { name, description, sourceRepos, destinations, parameters } = args as {
       name: string;
       description?: string;
       sourceRepos: string[];
       destinations: Array<{
         server: string;
         namespace?: string;
-        name?: string;
       }>;
-      clusterResourceWhitelist?: ArgoCDResourceRestriction[];
-      clusterResourceBlacklist?: ArgoCDResourceRestriction[];
-      namespaceResourceWhitelist?: ArgoCDResourceRestriction[];
-      namespaceResourceBlacklist?: ArgoCDResourceRestriction[];
-      roles?: ArgoCDProjectRole[];
-      orphanedResources?: {
-        warn?: boolean;
-        ignore?: Array<{
-          group: string;
-          kind: string;
-          name?: string;
-        }>;
-      };
+      parameters?: Record<string, any>;
     };
 
     // Get authenticated user for audit logging
@@ -93,93 +54,110 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Load ArgoCD configuration
     const argoCDConfig = getArgoCDConfig();
 
-    // Prepare project configuration
-    const projectConfig: any = {
-      metadata: createArgoCDMetadata(name, "argocd", user.email),
-      spec: {
-        description: description || `ArgoCD project ${name}`,
-        sourceRepos,
-        destinations,
-      },
-    };
+    let data = null;
+    let message = "";
 
-    // Add resource whitelists and blacklists
-    if (clusterResourceWhitelist) {
-      projectConfig.spec.clusterResourceWhitelist = clusterResourceWhitelist;
-    }
+    try {
+      const existingProject = await argoCDApiRequest(
+        "GET",
+        `projects/${name}`,
+        argoCDConfig
+      );
+      data = existingProject;
+      message = `ArgoCD project '${name}' already exists and is ready to use`;
+    } catch (checkError: any) {
+      // Project doesn't exist, create it
+      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
+        throw checkError; // Re-throw if it's not a "not found" error
+      }
 
-    if (clusterResourceBlacklist) {
-      projectConfig.spec.clusterResourceBlacklist = clusterResourceBlacklist;
-    }
-
-    if (namespaceResourceWhitelist) {
-      projectConfig.spec.namespaceResourceWhitelist = namespaceResourceWhitelist;
-    }
-
-    if (namespaceResourceBlacklist) {
-      projectConfig.spec.namespaceResourceBlacklist = namespaceResourceBlacklist;
-    }
-
-    // Add roles if provided
-    if (roles && roles.length > 0) {
-      projectConfig.spec.roles = roles;
-    }
-
-    // Add orphaned resources policy
-    if (orphanedResources) {
-      projectConfig.spec.orphanedResources = orphanedResources;
-    }
-
-    // Create the project
-    const result = await argoCDApiRequest(
-      "POST",
-      "projects",
-      argoCDConfig,
-      projectConfig
-    );
-
-    const successData = {
-      project: {
-        name,
-        description: description || `ArgoCD project ${name}`,
-        sourceRepos,
-        destinations,
-        status: result.status,
-        url: `${argoCDConfig.endpoint}/settings/projects/${name}`,
-        metadata: result.metadata,
-        spec: result.spec,
-      },
-      argocd_endpoint: argoCDConfig.endpoint,
-    };
-
-    return {
-      content: [
+      // Use sampling to generate the ArgoCD project configuration
+      const response = await extra.sendRequest(
         {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+          method: "sampling/createMessage",
+          params: {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `Generate an ArgoCD project configuration for:
+- Name: ${name}
+- Description: ${description || `ArgoCD project ${name}`}
+- Source repositories: ${JSON.stringify(sourceRepos, null, 2)}
+- Deployment destinations: ${JSON.stringify(destinations, null, 2)}
+- Additional parameters: ${JSON.stringify(parameters || {}, null, 2)}
+
+Please generate a complete ArgoCD project spec following these guidelines:
+1. Configure appropriate resource restrictions based on the parameters (if any)
+2. Set up RBAC roles and policies if specified in parameters
+3. Configure orphaned resource detection if needed
+4. Follow ArgoCD best practices for project security and multi-tenancy
+5. Apply sensible defaults for any unspecified security policies
+
+Return the complete ArgoCD project configuration as a standard Kubernetes resource with:
+- apiVersion: current ArgoCD API version (e.g., argoproj.io/v1alpha1)
+- kind: AppProject
+- metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.email})
+- spec: complete ArgoCD project specification`
+                }
+              }
+            ],
+            maxTokens: 3072
+          }
+        },
+        resultSchema
+      );
+
+      // Create the project
+      data = await argoCDApiRequest(
+        "POST",
+        "projects",
+        argoCDConfig,
+        response
+      );
+
+      message = `ArgoCD project '${name}' created successfully`;
+    }
+
+    const argoWebUrl = argoCDConfig.endpoint.replace("/api/v1", "");
+    const projectWebUrl = `${argoWebUrl}/settings/projects/${name}`;
+
+    return toolResponse({
+      message,
+      data,
+      links: {
+        manage: projectWebUrl,
+        applications: `${argoWebUrl}/applications?proj=${name}`,
+        settings: `${projectWebUrl}/summary`,
+        roles: `${projectWebUrl}/roles`,
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/"
+      },
+      metadata: {
+        potentialActions: [
+          "Use createArgoCDApplication tool to create applications in this project",
+          "Configure additional RBAC roles and policies via ArgoCD UI",
+          "Set up resource restrictions and security policies"
+        ]
+      }
+    });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create ArgoCD project: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      message: `Failed to create ArgoCD project: ${error.message}`,
+      links: {
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
+        troubleshooting: "https://argo-cd.readthedocs.io/en/stable/operator-manual/troubleshooting/"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure ARGOCD_TOKEN environment variable is set with appropriate permissions",
+          "Verify your token has projects create/read permissions",
+          "Check that the project name is DNS-compliant and unique",
+          "Verify source repositories and destination clusters are accessible"
+        ]
+      }
+    }, true);
   }
 };
 

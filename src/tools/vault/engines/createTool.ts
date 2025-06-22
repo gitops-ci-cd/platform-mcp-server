@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
@@ -30,146 +31,84 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     const vaultConfig = getVaultConfig();
 
     // Prepare engine configuration
-    const engineConfig: any = {
+    const engineConfig = {
       type: engineType,
+      ...(description && { description }),
+      ...(options && { options })
     };
 
-    if (description) {
-      engineConfig.description = description;
-    }
-
-    if (options) {
-      engineConfig.options = options;
-    }
-
-    // Check if engine already exists
-    let engineExists = false;
-    let existingEngine = null;
+    let data = null;
+    let message = "";
 
     try {
-      existingEngine = await vaultApiRequest(
+      const existingEngine = await vaultApiRequest(
         "GET",
         `sys/mounts/${enginePath}`,
         vaultConfig
       );
-      engineExists = true;
+      data = existingEngine?.data;
+      message = `Vault engine '${enginePath}' already exists and is ready to use`;
     } catch (checkError: any) {
-      // Engine doesn't exist, continue with creation
+      // Engine doesn't exist, create it
       if (!checkError.message.includes("404")) {
         throw checkError; // Re-throw if it's not a "not found" error
       }
+
+      // Create the secrets engine
+      await vaultApiRequest(
+        "POST",
+        `sys/mounts/${enginePath}`,
+        vaultConfig,
+        engineConfig
+      );
+
+      // Get the engine details to return comprehensive info
+      const engineInfo = await vaultApiRequest(
+        "GET",
+        `sys/mounts/${enginePath}`,
+        vaultConfig
+      );
+
+      data = engineInfo?.data;
+      message = `Vault engine '${enginePath}' created successfully`;
     }
 
     const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
     const engineWebUrl = `${vaultWebUrl}/ui/vault/secrets/${enginePath}`;
 
-    if (engineExists) {
-      // Engine already exists - return helpful information
-      const successData = {
-        created: false,
-        message: `Vault engine '${enginePath}' already exists and is ready to use`,
-        engine: {
-          path: enginePath,
-          type: existingEngine?.data?.type || engineType,
-          description: existingEngine?.data?.description || "",
-          uuid: existingEngine?.data?.uuid,
-          config: existingEngine?.data?.config,
-          options: existingEngine?.data?.options,
-          accessor: existingEngine?.data?.accessor,
-        },
-        vault_info: {
-          endpoint: vaultConfig.endpoint,
-          web_ui: vaultWebUrl,
-          engine_url: engineWebUrl,
-        },
-        next_actions: {
-          manage: `Visit ${engineWebUrl} to manage this engine`,
-          browse_secrets: `Navigate to ${engineWebUrl}/list to browse secrets`,
-          create_secret: `Go to ${engineWebUrl}/create to create a new secret`,
-          view_config: `Check ${engineWebUrl}/configuration for engine settings`,
-        }
-      };
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(successData, null, 2),
-            mimeType: "application/json"
-          }
-        ],
-        structuredContent: successData,
-      };
-    }
-
-    // Create the secrets engine
-    await vaultApiRequest(
-      "POST",
-      `sys/mounts/${enginePath}`,
-      vaultConfig,
-      engineConfig
-    );
-
-    // Get the engine details to return comprehensive info
-    const engineInfo = await vaultApiRequest(
-      "GET",
-      `sys/mounts/${enginePath}`,
-      vaultConfig
-    );
-
-    const successData = {
-      created: true,
-      message: `Vault engine '${enginePath}' created successfully`,
-      engine: {
-        path: enginePath,
-        type: engineType,
-        description: description || "",
-        uuid: engineInfo?.data?.uuid,
-        config: engineInfo?.data?.config,
-        options: engineInfo?.data?.options,
-        accessor: engineInfo?.data?.accessor,
+    return toolResponse({
+      message,
+      data,
+      links: {
+        manage: engineWebUrl,
+        browse_secrets: `${engineWebUrl}/list`,
+        create_secret: `${engineWebUrl}/create`,
+        configure: `${engineWebUrl}/configuration`,
+        docs: `https://developer.hashicorp.com/vault/docs/secrets/${engineType}`
       },
-      vault_info: {
-        endpoint: vaultConfig.endpoint,
-        web_ui: vaultWebUrl,
-        engine_url: engineWebUrl,
-      },
-      next_actions: {
-        manage: `Visit ${engineWebUrl} to start managing this engine`,
-        create_first_secret: `Go to ${engineWebUrl}/create to create your first secret`,
-        configure_engine: `Navigate to ${engineWebUrl}/configuration to adjust settings`,
-        learn_more: `Check the Vault documentation for ${engineType} engine best practices`,
+      metadata: {
+        potentialActions: [
+          "Use generateVaultSecret tool to create secrets in this engine",
+          "Use createVaultPolicy tool to control access to this engine",
+          "Use requestVaultAccess tool if you need additional permissions"
+        ]
       }
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
-
+    });
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create Vault engine: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      message: `Failed to create Vault engine: ${error.message}`,
+      links: {
+        docs: "https://developer.hashicorp.com/vault/docs/secrets",
+        support: "https://developer.hashicorp.com/vault/community"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure VAULT_TOKEN environment variable is set with admin permissions",
+          "Verify your token has sys/mounts/* write capabilities",
+          "Ensure the engine path doesn't conflict with existing mounts"
+        ]
+      }
+    }, true);
   }
 };
 

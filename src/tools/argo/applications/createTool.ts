@@ -1,70 +1,61 @@
 import { z } from "zod";
-import { ToolDefinition } from "../../registry.js";
+
+import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
   getArgoCDConfig,
-  argoCDApiRequest,
-  createArgoCDMetadata,
-  createDefaultSyncPolicy
+  argoCDApiRequest
 } from "../../../clients/argocd/index.js";
 
 const inputSchema = z.object({
-  name: z.string().describe("Application name (must be unique within the namespace)"),
-  project: z.string().default("default").describe("ArgoCD project (defaults to 'default')"),
-  namespace: z.string().optional().default("argocd").describe("Namespace where the application will be created"),
+  name: z.string().describe("Application name"),
   repoURL: z.string().describe("Git repository URL containing the application manifests"),
-  path: z.string().optional().describe("Path within the repository (required for directories, optional for Helm charts)"),
-  targetRevision: z.string().optional().default("HEAD").describe("Git revision to deploy (branch, tag, or commit SHA)"),
-  destinationServer: z.string().optional().default("https://kubernetes.default.svc").describe("Target Kubernetes cluster server"),
   destinationNamespace: z.string().describe("Target namespace for application deployment"),
-  syncPolicy: z.object({
-    automated: z.object({
-      prune: z.boolean().optional(),
-      selfHeal: z.boolean().optional(),
-    }).optional(),
-    syncOptions: z.array(z.string()).optional(),
-  }).optional().describe("Sync policy configuration"),
-  parameters: z.array(z.object({
-    name: z.string(),
-    value: z.string(),
-  })).optional().describe("Helm parameters or Kustomize settings"),
-  helm: z.object({
-    releaseName: z.string().optional(),
-    values: z.string().optional(),
-    valueFiles: z.array(z.string()).optional(),
-    parameters: z.array(z.object({
-      name: z.string(),
-      value: z.string(),
-    })).optional(),
-  }).optional().describe("Helm-specific configuration"),
+  parameters: z.record(z.any()).optional().describe("Specific parameters for the application (e.g., image, replicas, env vars, ports, etc.)"),
 });
 
-const callback: ToolDefinition["callback"] = async (args, _extra) => {
+const resultSchema = z.object({
+  apiVersion: z.string(),
+  kind: z.literal("Application"),
+  metadata: z.object({
+    name: z.string(),
+    namespace: z.string()
+  }).passthrough(),
+  spec: z.union([
+    // Single source
+    z.object({
+      project: z.string(),
+      source: z.object({
+        repoURL: z.string(),
+        targetRevision: z.string()
+      }).passthrough(),
+      destination: z.object({
+        server: z.string(),
+        namespace: z.string()
+      }).passthrough()
+    }).passthrough(),
+    // Multiple sources
+    z.object({
+      project: z.string(),
+      sources: z.array(z.object({
+        repoURL: z.string(),
+        targetRevision: z.string()
+      }).passthrough()),
+      destination: z.object({
+        server: z.string(),
+        namespace: z.string()
+      }).passthrough()
+    }).passthrough()
+  ])
+});
+
+const callback: ToolDefinition["callback"] = async (args, extra) => {
   try {
-    const {
-      name,
-      project,
-      namespace,
-      repoURL,
-      path,
-      targetRevision,
-      destinationServer,
-      destinationNamespace,
-      syncPolicy,
-      parameters,
-      helm
-    } = args as {
+    const { name, repoURL, destinationNamespace, parameters } = args as {
       name: string;
-      project: string;
-      namespace?: string;
       repoURL: string;
-      path?: string;
-      targetRevision?: string;
-      destinationServer?: string;
       destinationNamespace: string;
-      syncPolicy?: Record<string, any>;
-      parameters?: Array<{ name: string; value: string }>;
-      helm?: Record<string, any>;
+      parameters?: Record<string, any>;
     };
 
     // Get authenticated user for audit logging
@@ -73,107 +64,114 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Load ArgoCD configuration
     const argoCDConfig = getArgoCDConfig();
 
-    // Prepare application configuration
-    const appConfig: any = {
-      metadata: createArgoCDMetadata(name, namespace || "argocd", user.email),
-      spec: {
-        project: project || "default",
-        source: {
-          repoURL,
-          targetRevision: targetRevision || "HEAD",
-        },
-        destination: {
-          server: destinationServer || "https://kubernetes.default.svc",
-          namespace: destinationNamespace,
-        },
-      },
-    };
+    let data = null;
+    let message = "";
 
-    // Add source path if provided
-    if (path) {
-      appConfig.spec.source.path = path;
-    }
-
-    // Add Helm-specific configuration
-    if (helm) {
-      appConfig.spec.source.helm = helm;
-    }
-
-    // Add parameters for parameterized applications
-    if (parameters && parameters.length > 0) {
-      if (!appConfig.spec.source.helm) {
-        appConfig.spec.source.helm = {};
-      }
-      appConfig.spec.source.helm.parameters = parameters;
-    }
-
-    // Add sync policy
-    if (syncPolicy) {
-      appConfig.spec.syncPolicy = syncPolicy;
-    } else {
-      // Default sync policy
-      appConfig.spec.syncPolicy = createDefaultSyncPolicy();
-    }
-
-    // Create the application
-    const result = await argoCDApiRequest(
-      "POST",
-      "applications",
-      argoCDConfig,
-      appConfig
-    );
-
-    const successData = {
-      application: {
-        name,
-        project: project || "default",
-        namespace: namespace || "argocd",
-        repoURL,
-        path: path || "",
-        targetRevision: targetRevision || "HEAD",
-        destinationNamespace,
-        status: result.status,
-        url: `${argoCDConfig.endpoint}/applications/${name}`,
-        metadata: result.metadata,
-        spec: result.spec,
-      },
-      argocd_endpoint: argoCDConfig.endpoint,
-    };
-
-    return {
-      content: [
+    try {
+      const existingApp = await argoCDApiRequest(
+        "GET",
+        `applications/${name}`,
+        argoCDConfig
+      );
+      data = existingApp;
+      message = `ArgoCD application '${name}' already exists and is ready to use`;
+    } catch (checkError: any) {
+      // Application doesn't exist, create it
+      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
+        throw checkError; // Re-throw if it's not a "not found" error
+      }      // Use sampling to generate the ArgoCD application configuration
+      const response = await extra.sendRequest(
         {
-          type: "text" as const,
-          text: JSON.stringify(successData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: successData,
-    };
+          method: "sampling/createMessage",
+          params: {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `Generate an ArgoCD application configuration for:
+- Name: ${name}
+- Repository URL: ${repoURL}
+- Destination namespace: ${destinationNamespace}
+- Parameters: ${JSON.stringify(parameters || {}, null, 2)}
+
+Please generate a complete ArgoCD application spec following these guidelines:
+1. Detect if this is a Helm chart, Kustomize, or plain YAML based on the repo URL and parameters
+2. Set appropriate sync policy (automated with prune and self-heal for most cases)
+3. Use "default" project unless parameters specify otherwise
+4. Set targetRevision to "HEAD" unless parameters specify a specific version
+5. Use https://kubernetes.default.svc as destination server
+6. Configure Helm values, parameters, or Kustomize settings as needed based on the parameters provided
+7. Follow ArgoCD best practices for the application type
+
+Return the complete ArgoCD application configuration as a standard Kubernetes resource with:
+- apiVersion: current ArgoCD version (e.g., argoproj.io/v1alpha1)
+- kind: Application
+- metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.email})
+- spec: complete ArgoCD application specification`
+                }
+              }
+            ],
+            maxTokens: 2048
+          }
+        },
+        resultSchema
+      );
+
+      // Create the application
+      data = await argoCDApiRequest(
+        "POST",
+        "applications",
+        argoCDConfig,
+        response
+      );
+      message = `ArgoCD application '${name}' created successfully`;
+    }
+
+    const argoWebUrl = argoCDConfig.endpoint.replace("/api/v1", "");
+    const appWebUrl = `${argoWebUrl}/applications/${name}`;
+
+    return toolResponse({
+      message,
+      data,
+      links: {
+        manage: appWebUrl,
+        sync: `${appWebUrl}?operation=sync`,
+        logs: `${appWebUrl}?view=tree&logs=true`,
+        events: `${appWebUrl}?view=events`,
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/applications/"
+      },
+      metadata: {
+        potentialActions: [
+          "Use ArgoCD UI to manually sync the application",
+          "Use createArgoCDProject tool to organize applications",
+          "Check application health and sync status in ArgoCD UI"
+        ]
+      }
+    });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create ArgoCD application: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      message: `Failed to create ArgoCD application: ${error.message}`,
+      links: {
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/applications/",
+        troubleshooting: "https://argo-cd.readthedocs.io/en/stable/operator-manual/troubleshooting/"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure ARGOCD_TOKEN environment variable is set with appropriate permissions",
+          "Verify your token has applications create/read permissions",
+          "Ensure the specified ArgoCD project exists",
+          "Verify ArgoCD can access the specified Git repository"
+        ]
+      }
+    }, true);
   }
 };
 
 export const createArgoCDApplicationTool: ToolDefinition = {
   name: "createArgoCDApplication",
-  description: "Create a new application in ArgoCD via direct API call. Supports GitOps deployments with Helm charts, Kustomize, and plain YAML.",
+  description: "Create or verify an ArgoCD application using AI to generate optimal configuration. Idempotent operation that checks if the application exists first.",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:applications:create", "admin"],
   callback

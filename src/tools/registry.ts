@@ -10,10 +10,11 @@ interface ToolResponseData {
   data?: any;
   links?: Record<string, string>;
   metadata?: {
-    potentialActions?: Record<string, any>;
-    troubleshooting?: Record<string, any>;
+    potentialActions?: string[];
+    troubleshooting?: string[];
     [key: string]: any;
   };
+  [key: string]: any; // Index signature for MCP compatibility
 }
 
 // Helper function to standardize tool responses
