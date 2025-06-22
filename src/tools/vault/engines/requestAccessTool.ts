@@ -91,6 +91,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
               note: "Actual policy may vary based on security review",
             },
           }, null, 2),
+          mimeType: "application/json",
         },
       ],
     };
@@ -113,8 +114,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
               admin_access: "Request admin access to 'pki' engine for certificate management",
             },
           }, null, 2),
+          mimeType: "application/json",
         },
       ],
+      isError: true,
     };
   }
 };

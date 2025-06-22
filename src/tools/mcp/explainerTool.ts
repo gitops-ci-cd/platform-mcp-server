@@ -27,6 +27,7 @@ const outputSchema = z.object({
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { concept, audience, includeExample } = args;
+  let isError = false;
 
   // Build the explanation prompt based on the concept
   const conceptPrompts = {
@@ -97,6 +98,7 @@ Structure your response with clear sections and make it engaging and informative
 
     explanation = response.content.text;
   } catch (error: any) {
+    isError = true;
     console.error("Error in MCP explainer tool:", error.message);
     explanation = `Error generating explanation: ${error.message}`;
   }
@@ -124,7 +126,8 @@ ${explanation}
         usedSampling: explanation !== "Sampling capability is not available in this environment.",
         wordCount: explanation.split(/\s+/).length
       }
-    }
+    },
+    isError,
   };
 };
 

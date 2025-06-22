@@ -175,7 +175,8 @@ Generate complete YAML manifest:`;
           type: "text" as const,
           text: `# Error generating manifest: ${error.message}`
         }
-      ]
+      ],
+      isError: true,
     };
   }
 };

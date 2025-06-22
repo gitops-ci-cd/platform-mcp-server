@@ -225,7 +225,8 @@ Generate complete CDK TypeScript code:`;
           type: "text" as const,
           text: `// Error generating CDK construct: ${error.message}`
         }
-      ]
+      ],
+      isError: true,
     };
   }
 };

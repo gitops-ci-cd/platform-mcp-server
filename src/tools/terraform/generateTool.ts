@@ -108,7 +108,8 @@ Generate complete Terraform configuration:`;
           type: "text" as const,
           text: `# Error generating Terraform configuration: ${error.message}`
         }
-      ]
+      ],
+      isError: true,
     };
   }
 };
