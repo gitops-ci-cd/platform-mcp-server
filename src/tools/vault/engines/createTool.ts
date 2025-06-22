@@ -24,7 +24,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getCurrentUser(`creating Vault engine: ${enginePath}`);
+    getCurrentUser(`creating Vault engine: ${enginePath}`);
 
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
@@ -66,7 +66,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     if (engineExists) {
       // Engine already exists - return helpful information
       const successData = {
-        success: true,
         created: false,
         message: `Vault engine '${enginePath}' already exists and is ready to use`,
         engine: {
@@ -77,15 +76,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
           config: existingEngine?.data?.config,
           options: existingEngine?.data?.options,
           accessor: existingEngine?.data?.accessor,
-          status: "existing",
         },
         vault_info: {
           endpoint: vaultConfig.endpoint,
           web_ui: vaultWebUrl,
           engine_url: engineWebUrl,
         },
-        accessed_by: user.email,
-        accessed_at: new Date().toISOString(),
         next_actions: {
           manage: `Visit ${engineWebUrl} to manage this engine`,
           browse_secrets: `Navigate to ${engineWebUrl}/list to browse secrets`,
@@ -122,7 +118,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     );
 
     const successData = {
-      success: true,
       created: true,
       message: `Vault engine '${enginePath}' created successfully`,
       engine: {
@@ -133,15 +128,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         config: engineInfo?.data?.config,
         options: engineInfo?.data?.options,
         accessor: engineInfo?.data?.accessor,
-        status: "newly_created",
       },
       vault_info: {
         endpoint: vaultConfig.endpoint,
         web_ui: vaultWebUrl,
         engine_url: engineWebUrl,
       },
-      created_by: user.email,
-      created_at: new Date().toISOString(),
       next_actions: {
         manage: `Visit ${engineWebUrl} to start managing this engine`,
         create_first_secret: `Go to ${engineWebUrl}/create to create your first secret`,
@@ -164,7 +156,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create Vault engine: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

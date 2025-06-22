@@ -5,6 +5,32 @@ export interface ToolDefinition extends Pick<RegisteredTool, "description" | "in
   requiredPermissions?: string[]; // For future authentication/authorization
 }
 
+interface ToolResponseData {
+  message?: string;
+  data?: any;
+  links?: Record<string, string>;
+  metadata?: {
+    potentialActions?: Record<string, any>;
+    troubleshooting?: Record<string, any>;
+    [key: string]: any;
+  };
+}
+
+// Helper function to standardize tool responses
+export const toolResponse = (data: ToolResponseData, isError: boolean = false) => {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(data, null, 2),
+        mimeType: "application/json"
+      }
+    ],
+    structuredContent: data,
+    isError
+  };
+};
+
 // Registry to store all available tools
 const toolRegistry = new Map<string, ToolDefinition>();
 

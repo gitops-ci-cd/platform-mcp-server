@@ -40,7 +40,7 @@ export const vaultApiRequest = async (
 
   // Some Vault operations return no content
   if (response.status === 204) {
-    return { success: true };
+    return {};
   }
 
   return await response.json();

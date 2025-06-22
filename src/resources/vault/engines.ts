@@ -31,7 +31,6 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
         description: engineData.description || "",
         uuid: engineData.uuid,
         accessor: engineData.accessor,
-        status: "active",
         actions: {
           manage: `${engineWebUrl}`,
           browse_secrets: `${engineWebUrl}/list`,

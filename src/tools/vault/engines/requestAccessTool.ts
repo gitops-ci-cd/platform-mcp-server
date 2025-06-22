@@ -61,7 +61,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         timestamp: new Date().toISOString(),
       },
       justification: justification,
-      status: "pending",
       next_steps: [
         "Access request has been created and is pending approval",
         "Security team will review the request within 24 hours",

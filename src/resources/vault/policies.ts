@@ -27,7 +27,6 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
       return {
         name: policyName,
         type: "acl",
-        status: "active",
         actions: {
           view: policyWebUrl,
           edit: policyWebUrl,

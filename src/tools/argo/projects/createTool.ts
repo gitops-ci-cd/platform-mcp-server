@@ -139,20 +139,17 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     );
 
     const successData = {
-      success: true,
       project: {
         name,
         description: description || `ArgoCD project ${name}`,
         sourceRepos,
         destinations,
-        status: result.status || "Active",
+        status: result.status,
         url: `${argoCDConfig.endpoint}/settings/projects/${name}`,
         metadata: result.metadata,
         spec: result.spec,
       },
       argocd_endpoint: argoCDConfig.endpoint,
-      created_by: user.email,
-      created_at: new Date().toISOString(),
     };
 
     return {
@@ -169,7 +166,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create ArgoCD project: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

@@ -19,7 +19,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getCurrentUser(`creating Vault policy: ${name}`);
+    getCurrentUser(`creating Vault policy: ${name}`);
 
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
@@ -45,15 +45,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     );
 
     const successData = {
-      success: true,
       policy: {
         name,
         policy: policyInfo?.data?.policy || policy,
         rules: policyInfo?.data?.rules || policy,
       },
       vault_endpoint: vaultConfig.endpoint,
-      created_by: user.email,
-      created_at: new Date().toISOString(),
     };
 
     return {
@@ -70,7 +67,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create Vault policy: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

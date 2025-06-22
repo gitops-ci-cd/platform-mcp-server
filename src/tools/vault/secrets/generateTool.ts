@@ -23,7 +23,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getCurrentUser(`creating Vault secret structure: ${enginePath}/${secretPath}`);
+    getCurrentUser(`creating Vault secret structure: ${enginePath}/${secretPath}`);
 
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
@@ -69,8 +69,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     if (description && apiPath.includes("/data/")) {
       secretPayload.metadata = {
         description,
-        created_by: user.email,
-        created_at: new Date().toISOString(),
       };
     }
 
@@ -98,7 +96,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     const secretWebUrl = `${vaultWebUrl}/ui/vault/secrets/${enginePath}/show/${secretPath}`;
 
     const successData = {
-      success: true,
       secret: {
         path: secretPath,
         engine: enginePath,
@@ -109,8 +106,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       },
       vault_endpoint: vaultConfig.endpoint,
       vault_web_url: secretWebUrl,
-      created_by: user.email,
-      created_at: new Date().toISOString(),
       next_steps: {
         message: "Secret structure created with placeholder values. Please update with real values using the Vault UI.",
         vault_ui_link: secretWebUrl,
@@ -132,7 +127,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create Vault secret structure: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

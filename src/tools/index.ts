@@ -1,7 +1,5 @@
 // Re-export only what's needed externally
-export {
-  registerToolsWithServer,
-} from "./registry.js";
+export { registerToolsWithServer, toolResponse } from "./registry.js";
 
 import { registerTool } from "./registry.js";
 import { mcpExplainerTool } from "./mcp/explainerTool.js";

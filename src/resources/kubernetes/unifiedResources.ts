@@ -249,7 +249,7 @@ const handleCustomResource = async (uri: any, resourceType: string, namespace: s
     resources,
     summary: {
       total_count: resources.length,
-      created_today: resources.filter((r: any) => {
+      total_created_today: resources.filter((r: any) => {
         const created = new Date(r.created);
         const today = new Date();
         return created.toDateString() === today.toDateString();

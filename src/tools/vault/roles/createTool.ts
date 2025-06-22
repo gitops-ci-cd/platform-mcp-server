@@ -43,7 +43,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getCurrentUser(`creating Vault role: ${roleName} for auth method: ${authMethod}`);
+    getCurrentUser(`creating Vault role: ${roleName} for auth method: ${authMethod}`);
 
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
@@ -118,7 +118,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     }
 
     const successData = {
-      success: true,
       role: {
         name: roleName,
         auth_method: authMethod,
@@ -127,8 +126,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         path: rolePath,
       },
       vault_endpoint: vaultConfig.endpoint,
-      created_by: user.email,
-      created_at: new Date().toISOString(),
     };
 
     return {
@@ -145,7 +142,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create Vault role: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

@@ -37,7 +37,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     } = args as EntraGroupConfig;
 
     // Get authenticated user for audit logging
-    const user = getCurrentUser(`creating Entra group: ${displayName}`);
+    getCurrentUser(`creating Entra group: ${displayName}`);
 
     // Load Graph API configuration
     const graphConfig = getGraphConfig();
@@ -64,7 +64,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     );
 
     const successData = {
-      success: true,
       group: {
         id: result.id,
         displayName: result.displayName,
@@ -80,8 +79,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         proxyAddresses: result.proxyAddresses || [],
       },
       tenant_id: graphConfig.tenantId,
-      created_by: user.email,
-      created_at: new Date().toISOString(),
     };
 
     return {
@@ -98,7 +95,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create Entra group: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

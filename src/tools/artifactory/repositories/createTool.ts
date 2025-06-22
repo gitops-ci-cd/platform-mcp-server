@@ -28,7 +28,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     // Get authenticated user for audit logging
-    const user = getCurrentUser(`creating Artifactory repository: ${repositoryKey}`);
+    getCurrentUser(`creating Artifactory repository: ${repositoryKey}`);
 
     // Load Artifactory configuration
     const artifactoryConfig = getArtifactoryConfig();
@@ -67,7 +67,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     );
 
     const successData = {
-      success: true,
       repository: {
         key: repositoryKey,
         type: repositoryType,
@@ -77,8 +76,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         config: repoInfo,
       },
       artifactory_endpoint: artifactoryConfig.endpoint,
-      created_by: user.email,
-      created_at: new Date().toISOString(),
     };
 
     return {
@@ -95,7 +92,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     const errorData = {
       error: `Failed to create Artifactory repository: ${error.message}`,
-      status: "error",
       details: error.stack || error.toString(),
     };
 

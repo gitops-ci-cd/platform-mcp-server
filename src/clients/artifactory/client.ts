@@ -36,7 +36,7 @@ export const artifactoryApiRequest = async (
 
   // Some operations return no content
   if (response.status === 204) {
-    return { success: true };
+    return {};
   }
 
   return await response.json();

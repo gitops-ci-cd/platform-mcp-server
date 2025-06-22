@@ -42,8 +42,6 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
         management_info: {
           web_ui: projectWebUrl,
           api_path: `${argoCDConfig.endpoint}/api/v1/projects/${projectName}`,
-          created_at: project.metadata?.creationTimestamp,
-          created_by: project.metadata?.labels?.["created-by"]?.replace("-at-", "@").replace("-", "."),
         }
       };
     });
