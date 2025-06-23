@@ -1,5 +1,4 @@
-// Microsoft Graph API client utilities
-import type { GraphConfig } from "./config.js";
+import type { EntraGroupConfig, GraphConfig } from "./types.js";
 
 /**
  * Get access token for Microsoft Graph API using client credentials flow
@@ -99,7 +98,7 @@ export const createUserReferences = (userIds: string[]): string[] => {
  * @param config Partial group configuration
  * @returns Complete group configuration with defaults applied
  */
-export const buildGroupConfig = (config: import("./types.js").EntraGroupConfig): any => {
+export const buildGroupConfig = (config: EntraGroupConfig): any => {
   const groupConfig: any = {
     displayName: config.displayName,
     mailEnabled: config.mailEnabled !== false, // Default to true

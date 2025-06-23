@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
@@ -36,7 +37,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } = args as EntraGroupConfig;
 
   try {
-
     // Get authenticated user for audit logging
     getCurrentUser(`creating Entra group: ${displayName}`);
 
@@ -56,23 +56,64 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       members
     });
 
-    // Create the group
-    const data = await graphApiRequest(
-      "POST",
-      "groups",
-      graphConfig,
-      groupConfig
-    );
+    let data = null;
+    let message = "";
+
+    try {
+      // Check if group with same display name already exists
+      const existingGroups = await graphApiRequest(
+        "GET",
+        `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
+        graphConfig
+      );
+
+      if (existingGroups.value && existingGroups.value.length > 0) {
+        data = existingGroups.value[0];
+        message = `Entra group "${displayName}" already exists and is ready to use`;
+      } else {
+        throw new Error("Group not found"); // Force creation
+      }
+    } catch {
+      // Group doesn't exist, create it
+      try {
+        data = await graphApiRequest(
+          "POST",
+          "groups",
+          graphConfig,
+          groupConfig
+        );
+        message = `Entra group "${displayName}" created successfully`;
+      } catch (createError: any) {
+        // Handle common conflicts
+        if (createError.message.includes("already exists") || createError.message.includes("conflict")) {
+          // Try to find the existing group
+          const conflictGroups = await graphApiRequest(
+            "GET",
+            `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
+            graphConfig
+          );
+          if (conflictGroups.value && conflictGroups.value.length > 0) {
+            data = conflictGroups.value[0];
+            message = `Entra group "${displayName}" already exists (detected after creation attempt)`;
+          } else {
+            throw createError;
+          }
+        } else {
+          throw createError;
+        }
+      }
+    }
 
     return toolResponse({
       data,
-      message: `Entra group "${displayName}" created successfully`,
+      message,
       metadata: {
         group_id: data.id,
         display_name: displayName,
         security_enabled: securityEnabled,
         mail_enabled: mailEnabled,
-        tenant_id: graphConfig.tenantId
+        tenant_id: graphConfig.tenantId,
+        action: message.includes("already exists") ? "verified" : "created"
       },
       links: {
         portal: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`
@@ -97,7 +138,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createEntraGroupTool: ToolDefinition = {
   title: "Create Entra Group",
-  description: "Create a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
+  description: "Create or verify a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Idempotent operation that checks if a group with the same display name exists first. Supports security groups, Microsoft 365 groups, and distribution lists.",
   inputSchema,
   requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],
   callback

@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { deleteResource, getResource, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
 

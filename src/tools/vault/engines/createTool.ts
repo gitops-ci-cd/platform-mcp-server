@@ -16,14 +16,14 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
-  try {
-    const { enginePath, engineType, description, options } = args as {
-      enginePath: string;
-      engineType: string;
-      description?: string;
-      options?: Record<string, any>;
-    };
+  const { enginePath, engineType, description, options } = args as {
+    enginePath: string;
+    engineType: string;
+    description?: string;
+    options?: Record<string, any>;
+  };
 
+  try {
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault engine: ${enginePath}`);
 

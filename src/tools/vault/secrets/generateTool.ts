@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
@@ -14,14 +15,14 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
-  try {
-    const { secretPath, secretKeys, enginePath, description } = args as {
-      secretPath: string;
-      secretKeys: string[];
-      enginePath: string;
-      description?: string;
-    };
+  const { secretPath, secretKeys, enginePath, description } = args as {
+    secretPath: string;
+    secretKeys: string[];
+    enginePath: string;
+    description?: string;
+  };
 
+  try {
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault secret structure: ${enginePath}/${secretPath}`);
 
@@ -72,32 +73,53 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       };
     }
 
-    // Create the secret structure
-    await vaultApiRequest(
-      "POST",
-      apiPath,
-      vaultConfig,
-      secretPayload
-    );
+    let data = null;
+    let message = "";
 
-    // Get the created secret to return version info
-    let secretInfo;
     try {
-      secretInfo = await vaultApiRequest(
+      // Check if secret already exists
+      const existingSecret = await vaultApiRequest(
         "GET",
         apiPath,
         vaultConfig
       );
-    } catch {
-      secretInfo = { data: { data: placeholderData } };
+      data = existingSecret;
+      message = `Secret structure at '${enginePath}/${secretPath}' already exists and is ready to use`;
+    } catch (checkError: any) {
+      // Secret doesn't exist, create it
+      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
+        throw checkError; // Re-throw if it's not a "not found" error
+      }
+
+      // Create the secret structure
+      await vaultApiRequest(
+        "POST",
+        apiPath,
+        vaultConfig,
+        secretPayload
+      );
+
+      // Get the created secret to return version info
+      try {
+        const secretInfo = await vaultApiRequest(
+          "GET",
+          apiPath,
+          vaultConfig
+        );
+        data = secretInfo;
+      } catch {
+        data = { data: { data: placeholderData } };
+      }
+
+      message = "Secret structure created with placeholder values. Please update with real values using the Vault UI.";
     }
 
     const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
     const secretWebUrl = `${vaultWebUrl}/ui/vault/secrets/${enginePath}/show/${secretPath}`;
 
     return toolResponse({
-      message: "Secret structure created with placeholder values. Please update with real values using the Vault UI.",
-      data: secretInfo, // Raw secret data from Vault API
+      message,
+      data, // Raw secret data from Vault API
       links: {
         manage: secretWebUrl,
         vault: vaultWebUrl
@@ -108,9 +130,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
           engine: enginePath,
           full_path: `${enginePath}/${secretPath}`,
           keys: secretKeys,
-          version: secretInfo?.data?.metadata?.version || 1,
+          version: data?.data?.metadata?.version || 1,
           description: description || ""
         },
+        action: message.includes("already exists") ? "verified" : "created",
         note: "For security, actual secret values should be set manually through the Vault web interface."
       }
     });
@@ -133,7 +156,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const generateVaultSecretTool: ToolDefinition = {
   title: "Generate Vault Secret",
-  description: "Create a secret structure in Vault with placeholder values. Creates the path and keys but requires manual entry of actual secret values via Vault UI for security.",
+  description: "Create or verify a secret structure in Vault with placeholder values. Idempotent operation that checks if the secret exists first. Creates the path and keys but requires manual entry of actual secret values via Vault UI for security.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:secrets:create", "admin"],
   callback

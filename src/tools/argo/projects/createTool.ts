@@ -36,18 +36,18 @@ const resultSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
-  try {
-    const { name, description, sourceRepos, destinations, parameters } = args as {
-      name: string;
-      description?: string;
-      sourceRepos: string[];
-      destinations: Array<{
-        server: string;
-        namespace?: string;
-      }>;
-      parameters?: Record<string, any>;
-    };
+  const { name, description, sourceRepos, destinations, parameters } = args as {
+    name: string;
+    description?: string;
+    sourceRepos: string[];
+    destinations: Array<{
+      server: string;
+      namespace?: string;
+    }>;
+    parameters?: Record<string, any>;
+  };
 
+  try {
     // Get authenticated user for audit logging
     const user = getCurrentUser(`creating ArgoCD project: ${name}`);
 

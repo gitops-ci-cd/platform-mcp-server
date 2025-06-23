@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 
@@ -13,23 +14,23 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
-  try {
-    const {
-      enginePath,
-      secretPath,
-      requestType = "read",
-      justification,
-      duration = "24h",
-      urgency = "medium",
-    } = args as {
-      enginePath: string;
-      secretPath?: string;
-      requestType?: "read" | "write" | "admin";
-      justification: string;
-      duration?: string;
-      urgency?: "low" | "medium" | "high" | "critical";
-    };
+  const {
+    enginePath,
+    secretPath,
+    requestType = "read",
+    justification,
+    duration = "24h",
+    urgency = "medium",
+  } = args as {
+    enginePath: string;
+    secretPath?: string;
+    requestType?: "read" | "write" | "admin";
+    justification: string;
+    duration?: string;
+    urgency?: "low" | "medium" | "high" | "critical";
+  };
 
+  try {
     // Get authenticated user for audit logging
     const user = getCurrentUser("requesting Vault access");
 
@@ -69,7 +70,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     };
 
     return toolResponse({
-      message: "✅ Vault access request created successfully",
+      message: "Vault access request created successfully",
       data: accessRequest, // Raw access request object
       links: {
         status: `https://vault.legalzoom.com/ui/vault/access-requests/${requestId}`,

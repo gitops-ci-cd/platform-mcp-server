@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
@@ -97,35 +98,57 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         rolePath = `auth/${authMethod}/role/${roleName}`;
     }
 
-    // Create the role
-    await vaultApiRequest(
-      "POST",
-      rolePath,
-      vaultConfig,
-      roleConfigData
-    );
+    let data = null;
+    let message = "";
 
-    // Get the role details to return comprehensive info
-    let roleInfo;
     try {
-      roleInfo = await vaultApiRequest(
+      // Check if role already exists
+      const existingRole = await vaultApiRequest(
         "GET",
         rolePath,
         vaultConfig
       );
-    } catch {
-      // Some auth methods don't support GET on roles, that's okay
-      roleInfo = { data: roleConfigData };
+      data = existingRole?.data || existingRole;
+      message = `Vault role "${roleName}" already exists for ${authMethod} auth method`;
+    } catch (checkError: any) {
+      // Role doesn't exist, create it
+      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
+        throw checkError; // Re-throw if it's not a "not found" error
+      }
+
+      // Create the role
+      await vaultApiRequest(
+        "POST",
+        rolePath,
+        vaultConfig,
+        roleConfigData
+      );
+
+      // Get the role details to return comprehensive info
+      try {
+        const roleInfo = await vaultApiRequest(
+          "GET",
+          rolePath,
+          vaultConfig
+        );
+        data = roleInfo?.data || roleInfo;
+      } catch {
+        // Some auth methods don't support GET on roles, that's okay
+        data = roleConfigData;
+      }
+
+      message = `Vault role "${roleName}" created successfully for ${authMethod} auth method`;
     }
 
     return toolResponse({
-      data: roleInfo?.data || roleConfigData,
-      message: `Vault role "${roleName}" created successfully for ${authMethod} auth method`,
+      data,
+      message,
       metadata: {
         role_name: roleName,
         auth_method: authMethod,
         policies: policies || [],
-        role_path: rolePath
+        role_path: rolePath,
+        action: message.includes("already exists") ? "verified" : "created"
       },
       links: {
         vault: vaultConfig.endpoint
@@ -152,7 +175,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createVaultRoleTool: ToolDefinition = {
   title: "Create Vault Role",
-  description: "Create a new role for a specific authentication method in HashiCorp Vault via direct API call. Roles define authentication constraints and associated policies.",
+  description: "Create or verify a new role for a specific authentication method in HashiCorp Vault via direct API call. Idempotent operation that checks if the role exists first. Roles define authentication constraints and associated policies.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:roles:create", "admin"],
   callback

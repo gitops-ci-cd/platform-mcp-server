@@ -1,5 +1,5 @@
 // Entra ID client exports
-export { getGraphConfig, type GraphConfig } from "./config.js";
+export { getGraphConfig } from "./config.js";
 export {
   getGraphAccessToken,
   graphApiRequest,
@@ -11,6 +11,7 @@ export {
   type EntraGroupConfig,
   type EntraGroupType,
   type EntraGroupVisibility,
+  type GraphConfig,
   ENTRA_GROUP_TYPES,
   ENTRA_GROUP_VISIBILITY
 } from "./types.js";

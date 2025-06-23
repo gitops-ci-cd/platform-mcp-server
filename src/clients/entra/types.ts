@@ -1,5 +1,3 @@
-// Microsoft Entra ID type definitions
-
 /**
  * Common Entra ID group types
  */
@@ -25,4 +23,11 @@ export interface EntraGroupConfig {
   visibility?: EntraGroupVisibility;
   owners?: string[];
   members?: string[];
+}
+
+export interface GraphConfig {
+  endpoint: string;
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
 }

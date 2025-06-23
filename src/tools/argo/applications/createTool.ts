@@ -50,14 +50,14 @@ const resultSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
-  try {
-    const { name, repoURL, destinationNamespace, parameters } = args as {
-      name: string;
-      repoURL: string;
-      destinationNamespace: string;
-      parameters?: Record<string, any>;
-    };
+  const { name, repoURL, destinationNamespace, parameters } = args as {
+    name: string;
+    repoURL: string;
+    destinationNamespace: string;
+    parameters?: Record<string, any>;
+  };
 
+  try {
     // Get authenticated user for audit logging
     const user = getCurrentUser(`creating ArgoCD application: ${name}`);
 

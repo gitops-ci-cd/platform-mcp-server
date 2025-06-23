@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
@@ -27,7 +28,6 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   };
 
   try {
-
     // Get authenticated user for audit logging
     getCurrentUser(`creating Artifactory repository: ${repositoryKey}`);
 
@@ -52,29 +52,52 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       Object.assign(repoConfig, applyPackageTypeDefaults(packageType));
     }
 
-    // Create the repository
-    await artifactoryApiRequest(
-      "PUT",
-      `repositories/${repositoryKey}`,
-      artifactoryConfig,
-      repoConfig
-    );
+    let data = null;
+    let message = "";
 
-    // Get the repository details to return comprehensive info
-    const repoInfo = await artifactoryApiRequest(
-      "GET",
-      `repositories/${repositoryKey}`,
-      artifactoryConfig
-    );
+    try {
+      // Check if repository already exists
+      const existingRepo = await artifactoryApiRequest(
+        "GET",
+        `repositories/${repositoryKey}`,
+        artifactoryConfig
+      );
+      data = existingRepo;
+      message = `Artifactory repository "${repositoryKey}" already exists and is ready to use`;
+    } catch (checkError: any) {
+      // Repository doesn't exist, create it
+      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
+        throw checkError; // Re-throw if it's not a "not found" error
+      }
+
+      // Create the repository
+      await artifactoryApiRequest(
+        "PUT",
+        `repositories/${repositoryKey}`,
+        artifactoryConfig,
+        repoConfig
+      );
+
+      // Get the repository details to return comprehensive info
+      const repoInfo = await artifactoryApiRequest(
+        "GET",
+        `repositories/${repositoryKey}`,
+        artifactoryConfig
+      );
+
+      data = repoInfo;
+      message = `Artifactory repository "${repositoryKey}" created successfully`;
+    }
 
     return toolResponse({
-      data: repoInfo,
-      message: `Artifactory repository "${repositoryKey}" created successfully`,
+      data,
+      message,
       metadata: {
         repository_key: repositoryKey,
         package_type: packageType,
         repository_type: repositoryType,
-        description: description || ""
+        description: description || "",
+        action: message.includes("already exists") ? "verified" : "created"
       },
       links: {
         manage: `${artifactoryConfig.endpoint}/ui/repos/tree/General/${repositoryKey}`,
@@ -101,7 +124,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createArtifactoryRepositoryTool: ToolDefinition = {
   title: "Create Artifactory Repository",
-  description: "Create a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
+  description: "Create or verify a new repository in JFrog Artifactory via direct API call. Idempotent operation that checks if the repository exists first. Supports Docker, Maven, NPM, Gradle, and other package types.",
   inputSchema,
   requiredPermissions: ["artifactory:admin", "artifactory:repos:create", "admin"],
   callback

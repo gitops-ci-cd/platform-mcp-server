@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { ToolDefinition, toolResponse } from "../registry.js";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+
+import { ToolDefinition, toolResponse } from "../registry.js";
 
 const inputSchema = z.object({
   concept: z.enum(["resources", "tools", "prompts", "sampling", "architecture", "transports", "all"])

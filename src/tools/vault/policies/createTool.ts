@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
 import {
@@ -12,12 +13,12 @@ const inputSchema = z.object({
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
-  try {
-    const { name, policy } = args as {
-      name: string;
-      policy: string;
-    };
+  const { name, policy } = args as {
+    name: string;
+    policy: string;
+  };
 
+  try {
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault policy: ${name}`);
 
@@ -29,33 +30,56 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       policy: policy,
     };
 
-    // Create the policy
-    await vaultApiRequest(
-      "PUT",
-      `sys/policies/acl/${name}`,
-      vaultConfig,
-      policyConfig
-    );
+    let data = null;
+    let message = "";
 
-    // Get the policy details to return comprehensive info
-    const policyInfo = await vaultApiRequest(
-      "GET",
-      `sys/policies/acl/${name}`,
-      vaultConfig
-    );
+    try {
+      // Check if policy already exists
+      const existingPolicy = await vaultApiRequest(
+        "GET",
+        `sys/policies/acl/${name}`,
+        vaultConfig
+      );
+      data = existingPolicy;
+      message = `Vault policy '${name}' already exists and is ready to use`;
+    } catch (checkError: any) {
+      // Policy doesn't exist, create it
+      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
+        throw checkError; // Re-throw if it's not a "not found" error
+      }
+
+      // Create the policy
+      await vaultApiRequest(
+        "PUT",
+        `sys/policies/acl/${name}`,
+        vaultConfig,
+        policyConfig
+      );
+
+      // Get the policy details to return comprehensive info
+      const policyInfo = await vaultApiRequest(
+        "GET",
+        `sys/policies/acl/${name}`,
+        vaultConfig
+      );
+
+      data = policyInfo;
+      message = `Vault policy '${name}' created successfully`;
+    }
 
     const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
 
     return toolResponse({
-      message: `Vault policy '${name}' created successfully`,
-      data: policyInfo, // Raw policy data from Vault API
+      message,
+      data, // Raw policy data from Vault API
       links: {
         manage: `${vaultWebUrl}/ui/vault/policies/acl/${name}`,
         vault: vaultWebUrl
       },
       metadata: {
         policyName: name,
-        hasRules: !!policy
+        hasRules: !!policy,
+        action: message.includes("already exists") ? "verified" : "created"
       }
     });
 
@@ -81,7 +105,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createVaultPolicyTool: ToolDefinition = {
   title: "Create Vault Policy",
-  description: "Create a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
+  description: "Create or verify a new ACL policy in HashiCorp Vault via direct API call. Idempotent operation that checks if the policy exists first. Policies define access permissions for authentication methods and users.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:policies:create", "admin"],
   callback

@@ -1,11 +1,4 @@
-// Microsoft Entra ID (Azure AD) configuration utilities
-
-export interface GraphConfig {
-  endpoint: string;
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
-}
+import { GraphConfig } from "./types.js";
 
 /**
  * Load Microsoft Graph configuration from environment variables
