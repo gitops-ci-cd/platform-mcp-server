@@ -1,6 +1,6 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { ResourceTemplateDefinition } from "../registry.js";
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 import { getKubernetesClient } from "../../clients/kubernetes/index.js";
 
 // Resource scope and API mapping for native resources
@@ -136,15 +136,19 @@ const handleNativeResource = async (uri: any, resourceType: string, namespace: s
     }
   };
 
-  return {
-    contents: [
-      {
-        uri: uri.toString(),
-        mimeType: "application/json",
-        text: JSON.stringify(resourceData, null, 2)
-      }
-    ]
-  };
+  return resourceResponse({
+    message: `Successfully retrieved ${normalizedType} resources`,
+    data: resourceData,
+    metadata: {
+      resourceType: normalizedType,
+      namespace: namespace || "cluster-scoped",
+      totalCount: resources.length,
+      scope: resourceConfig.isNamespaced ? "namespaced" : "cluster",
+    },
+    links: {
+      "Kubernetes API Documentation": `https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#${normalizedType.slice(0, -1)}-v1-core`,
+    }
+  }, uri);
 };
 
 // Handle custom Kubernetes resources (CRDs)
@@ -264,15 +268,20 @@ const handleCustomResource = async (uri: any, resourceType: string, namespace: s
     },
   };
 
-  return {
-    contents: [
-      {
-        uri: uri.toString(),
-        mimeType: "application/json",
-        text: JSON.stringify(resourceData, null, 2)
-      }
-    ]
-  };
+  return resourceResponse({
+    message: `Successfully retrieved ${group}/${plural} custom resources`,
+    data: resourceData,
+    metadata: {
+      group,
+      plural,
+      namespace: namespace || "cluster-scoped",
+      totalCount: resources.length,
+      scope: namespace ? "namespaced" : "cluster",
+    },
+    links: {
+      "Kubernetes Custom Resources Documentation": "https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/",
+    }
+  }, uri);
 };
 
 // Read callback function for unified kubernetes resources template
@@ -322,24 +331,21 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => 
     }
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Kubernetes resources: ${error.message}`,
-            troubleshooting: {
-              check_kubeconfig: "Ensure kubectl is configured and can access the cluster",
-              check_permissions: "Verify your Kubernetes credentials have read permissions",
-              check_resource_scope: "Verify if the resource is namespaced or cluster-scoped",
-              supported_native_resources: Object.keys(NATIVE_RESOURCE_CONFIG).join(", "),
-              example_usage: "kubernetes://resources/pods/default or kubernetes://resources/nodes or kubernetes://resources/applications/argocd",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Kubernetes resources: ${error.message}`,
+      metadata: {
+        troubleshooting: [
+          "Ensure kubectl is configured and can access the cluster",
+          "Verify your Kubernetes credentials have read permissions",
+          "Verify if the resource is namespaced or cluster-scoped",
+        ],
+        supportedNativeResources: Object.keys(NATIVE_RESOURCE_CONFIG),
+      },
+      links: {
+        "Kubernetes API Documentation": "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/",
+        "kubectl Documentation": "https://kubernetes.io/docs/reference/kubectl/kubectl/",
+      }
+    }, uri);
   }
 };
 

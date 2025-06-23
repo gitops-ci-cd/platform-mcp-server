@@ -1,4 +1,4 @@
-import { ResourceDefinition } from "../registry.js";
+import { ResourceDefinition, resourceResponse } from "../registry.js";
 import { getArgoCDConfig, argoCDApiRequest } from "../../clients/argocd/index.js";
 
 // Read callback function for ArgoCD projects resource
@@ -59,41 +59,37 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
         web_ui: argoCDWebUrl,
         docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
       },
-      next_actions: {
-        create_new_project: "Use createArgoProject tool to add a new project",
-        view_applications: "Click 'applications' links to see project applications",
-        manage_settings: "Click 'settings' links to configure project settings",
-        learn_more: "Visit the ArgoCD documentation for project management guides",
-      }
     };
 
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: "Successfully retrieved ArgoCD projects",
+      data: resourceData,
+      metadata: {
+        totalCount: projects.length,
+        withSourceRepos: resourceData.summary.with_source_repos,
+        withDestinations: resourceData.summary.with_destinations,
+        withRoles: resourceData.summary.with_roles,
+      },
+      links: {
+        "ArgoCD Web UI": argoCDWebUrl,
+        "ArgoCD Projects Documentation": "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
+        "ArgoCD API Documentation": "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/",
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read ArgoCD projects: ${error.message}`,
-            troubleshooting: {
-              check_argocd_token: "Ensure ARGOCD_TOKEN environment variable is set",
-              check_permissions: "Verify your ArgoCD token has 'projects' list permissions",
-              argocd_docs: "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read ArgoCD projects: ${error.message}`,
+      metadata: {
+        troubleshooting: [
+          "Ensure ARGOCD_TOKEN environment variable is set",
+          "Verify your ArgoCD token has 'projects' list permissions",
+        ],
+      },
+      links: {
+        "ArgoCD API Documentation": "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/",
+      }
+    }, uri);
   }
 };
 

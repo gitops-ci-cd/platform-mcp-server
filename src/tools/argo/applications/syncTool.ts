@@ -17,6 +17,10 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
 
   return toolResponse({
     message: "ArgoCD application sync tool not implemented yet",
+    links: {
+      docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/sync/",
+      api: "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/"
+    },
     metadata: {
       status: "not_implemented",
       potentialActions: [
@@ -32,5 +36,6 @@ export const syncArgoApplicationTool: ToolDefinition = {
   title: "Sync ArgoCD Application",
   description: "Trigger ArgoCD application sync via direct API",
   inputSchema,
+  requiredPermissions: ["argocd:admin", "argocd:sync", "admin"],
   callback
 };

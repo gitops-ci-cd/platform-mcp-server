@@ -1,4 +1,4 @@
-import { ResourceDefinition } from "../registry.js";
+import { ResourceDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
 // Read callback function for vault policies resource
@@ -41,52 +41,50 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
       };
     });
 
-    const resourceData = {
-      policies,
-      summary: {
-        total_count: policies.length,
-        system_policies: policies.filter((p: any) => ["default", "root"].includes(p.name)).length,
-        custom_policies: policies.filter((p: any) => !["default", "root"].includes(p.name)).length,
-      },
-      vault_info: {
-        endpoint: vaultConfig.endpoint,
-        web_ui: vaultWebUrl,
-        docs: "https://www.vaultproject.io/docs/concepts/policies",
-      },
-      next_actions: {
-        create_new_policy: "Use createVaultPolicy tool to add a new ACL policy",
-        browse_existing: "Click 'view' links above to inspect existing policies",
-        learn_more: "Visit the Vault documentation for policy syntax and examples",
-      }
-    };
-
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
+    return resourceResponse({
+      message: `Found ${policies.length} Vault ACL policies`,
+      data: {
+        policies,
+        summary: {
+          total_count: policies.length,
+          system_policies: policies.filter((p: any) => ["default", "root"].includes(p.name)).length,
+          custom_policies: policies.filter((p: any) => !["default", "root"].includes(p.name)).length,
+        },
+        vault_info: {
+          endpoint: vaultConfig.endpoint,
+          web_ui: vaultWebUrl,
+          docs: "https://www.vaultproject.io/docs/concepts/policies",
         }
-      ]
-    };
+      },
+      links: {
+        vault_ui: vaultWebUrl,
+        docs: "https://www.vaultproject.io/docs/concepts/policies",
+        api_docs: "https://www.vaultproject.io/api/system/policies"
+      },
+      metadata: {
+        potentialActions: [
+          "Use createVaultPolicy tool to add a new ACL policy",
+          "Click 'view' links above to inspect existing policies",
+          "Visit the Vault documentation for policy syntax and examples"
+        ]
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Vault policies: ${error.message}`,
-            troubleshooting: {
-              check_vault_token: "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
-              check_permissions: "Verify your Vault token has 'sys/policies/acl' list permissions",
-              vault_docs: "https://www.vaultproject.io/api/system/policies",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Vault policies: ${error.message}`,
+      links: {
+        docs: "https://www.vaultproject.io/api/system/policies",
+        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
+          "Verify your Vault token has 'sys/policies/acl' list permissions",
+          "Check Vault server connectivity and accessibility"
+        ]
+      }
+    }, uri);
   }
 };
 

@@ -110,8 +110,11 @@ Generate complete Terraform configuration:`;
     });
   } catch (error: any) {
     return toolResponse({
-      data: { error: error.message },
       message: `Error generating Terraform configuration: ${error.message}`,
+      links: {
+        docs: "https://registry.terraform.io/",
+        troubleshooting: "https://developer.hashicorp.com/terraform/troubleshooting"
+      },
       metadata: {
         provider: provider,
         resource_type: fullResourceType,

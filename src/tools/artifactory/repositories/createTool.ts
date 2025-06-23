@@ -107,8 +107,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
   } catch (error: any) {
     return toolResponse({
-      data: { error: error.message },
       message: `Failed to create Artifactory repository: ${error.message}`,
+      links: {
+        docs: "https://jfrog.com/help/r/jfrog-artifactory-documentation",
+        troubleshooting: "https://jfrog.com/help/r/jfrog-artifactory-documentation/troubleshooting"
+      },
       metadata: {
         repository_key: repositoryKey,
         troubleshooting: [

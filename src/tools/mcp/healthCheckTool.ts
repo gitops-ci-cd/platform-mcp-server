@@ -7,22 +7,6 @@ const inputSchema = z.object({
     .describe("The health endpoint URL to check")
 });
 
-const outputSchema = z.object({
-  endpoint: z.string().describe("The endpoint that was checked"),
-  timestamp: z.string().describe("ISO timestamp when the check was performed"),
-  status: z.object({
-    code: z.number().describe("HTTP status code"),
-    text: z.string().describe("HTTP status text"),
-    healthy: z.boolean().describe("Whether the service is considered healthy")
-  }).optional().describe("HTTP response status (only present on successful request)"),
-  headers: z.record(z.string()).optional().describe("HTTP response headers (only present on successful request)"),
-  body: z.any().optional().describe("Response body content (only present on successful request)"),
-  error: z.object({
-    type: z.string().describe("Error type"),
-    message: z.string().describe("Error message")
-  }).optional().describe("Error details (only present on failure)")
-});
-
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   const { endpoint } = args;
 
@@ -67,6 +51,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       data: healthData,
       message: response.ok ? "Health check successful" : `Health check failed with status ${response.status}`,
+      links: {
+        docs: "https://modelcontextprotocol.io/docs/concepts/architecture#health-checks"
+      },
       metadata: {
         endpoint: endpoint,
         timestamp: healthData.timestamp,
@@ -91,6 +78,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       data: errorData,
       message: `Health check failed: ${error.message}`,
+      links: {
+        docs: "https://modelcontextprotocol.io/docs/concepts/architecture#health-checks",
+        troubleshooting: "https://modelcontextprotocol.io/docs/troubleshooting"
+      },
       metadata: {
         endpoint: endpoint,
         timestamp: errorData.timestamp,
@@ -105,6 +96,5 @@ export const mcpHealthCheckTool: ToolDefinition = {
   title: "Check MCP Server Health",
   description: "Check the health status of the MCP server by calling its health endpoint. Returns raw JSON data for the AI to parse.",
   inputSchema,
-  outputSchema,
   callback
 };

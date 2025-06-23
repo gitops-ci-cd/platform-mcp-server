@@ -164,6 +164,10 @@ Generate complete YAML manifest:`;
     return toolResponse({
       message: `Generated ${type} ${subtype} manifest for ${name}`,
       data: response.content.text,
+      links: {
+        docs: exampleData?.examples?.[0] || "https://kubernetes.io/docs/",
+        examples: exampleData?.examples?.[1] || "https://github.com/kubernetes/examples"
+      },
       metadata: {
         manifestType: type,
         subtype,
@@ -173,6 +177,10 @@ Generate complete YAML manifest:`;
   } catch (error: any) {
     return toolResponse({
       message: `Error generating manifest: ${error.message}`,
+      links: {
+        docs: "https://kubernetes.io/docs/",
+        troubleshooting: "https://kubernetes.io/docs/troubleshooting/"
+      },
       metadata: {
         troubleshooting: [
           "Check that the manifest type and subtype are supported",

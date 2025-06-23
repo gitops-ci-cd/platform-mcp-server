@@ -1,6 +1,6 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { ResourceTemplateDefinition } from "../registry.js";
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 
 const conceptSummaries: Record<string, string> = {
   architecture: "Core architecture and communication patterns of the Model Context Protocol.",
@@ -17,26 +17,33 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   const summary = conceptSummaries[concept];
 
   if (!summary) {
-    throw new Error(`Unknown concept: ${concept}`);
+    return resourceResponse({
+      message: `Unknown concept: ${concept}`,
+      metadata: {
+        troubleshooting: [
+          "Check the concept name for typos",
+          "Use auto-completion to see available concepts",
+        ],
+        availableConcepts: Object.keys(conceptSummaries),
+      },
+      links: {
+        "MCP Documentation": "https://modelcontextprotocol.io/docs/concepts/",
+      }
+    }, new URL(uri.href));
   }
 
-  return {
-    contents: [
-      {
-        uri: uri.href,
-        text: `# MCP Concept: ${concept}
-
-**Source**: <${uri.href}>
-
-## Summary
-
-${summary}
-
-**For complete details, I can access the full documentation at the source URL above.**`,
-        mimeType: "text/markdown",
-      },
-    ],
-  };
+  return resourceResponse({
+    message: conceptSummaries[concept],
+    metadata: {
+      potentialActions: [
+        "Build a custom MCP resource",
+      ],
+    },
+    links: {
+      "MCP Introduction": "https://modelcontextprotocol.io/introduction",
+      "Documentation": uri.href,
+    }
+  }, uri);
 };
 
 export const mcpConceptsTemplate: ResourceTemplateDefinition = {

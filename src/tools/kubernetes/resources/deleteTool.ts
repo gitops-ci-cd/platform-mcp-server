@@ -11,22 +11,6 @@ const inputSchema = z.object({
   dryRun: z.boolean().default(false).describe("Perform a dry run without actually deleting the resource")
 });
 
-const outputSchema = z.object({
-  action: z.enum(["deleted", "dry-run"]).optional().describe("Action performed"),
-  resource: z.object({
-    kind: z.string().describe("Resource kind"),
-    name: z.string().describe("Resource name"),
-    namespace: z.string().optional().describe("Resource namespace"),
-    uid: z.string().optional().describe("Resource UID"),
-    deletionTimestamp: z.string().optional().describe("When deletion was initiated")
-  }).optional().describe("Information about the deleted resource"),
-  message: z.string().optional().describe("Success message or dry-run information"),
-  dryRun: z.boolean().optional().describe("Whether this was a dry run"),
-  gracePeriodSeconds: z.number().optional().describe("Grace period used for deletion"),
-  error: z.string().optional().describe("Error message (only present on failure)"),
-  statusCode: z.number().optional().describe("HTTP status code for the error (only present on failure)")
-});
-
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
   const { kind, name, namespace, gracePeriodSeconds, dryRun } = args as {
     kind: typeof SUPPORTED_RESOURCE_KINDS[number];
@@ -44,6 +28,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       return toolResponse({
         message: `Dry run: Would delete ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ""}`,
         data,
+        links: {
+          docs: "https://kubernetes.io/docs/reference/kubectl/kubectl-delete/"
+        },
         metadata: {
           operation: "delete"
         }
@@ -56,6 +43,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       message: `Successfully deleted ${kind}/${name}${namespace ? ` from namespace ${namespace}` : ""}`,
       data,
+      links: {
+        docs: "https://kubernetes.io/docs/reference/kubectl/kubectl-delete/"
+      },
       metadata: {
         gracePeriodSeconds: gracePeriodSeconds || undefined
       }
@@ -66,6 +56,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       message: k8sError.message,
       data: { kind, name, namespace },
+      links: {
+        docs: "https://kubernetes.io/docs/reference/kubectl/",
+        troubleshooting: "https://kubernetes.io/docs/troubleshooting/"
+      },
       metadata: {
         statusCode: k8sError.statusCode,
         troubleshooting: [
@@ -82,6 +76,6 @@ export const deleteKubernetesResourceTool: ToolDefinition = {
   title: "Delete Kubernetes Resource",
   description: "Delete a Kubernetes resource by kind and name. Supports dry-run mode and graceful deletion.",
   inputSchema,
-  outputSchema,
+  requiredPermissions: ["k8s:admin", "k8s:delete", "admin"],
   callback
 };

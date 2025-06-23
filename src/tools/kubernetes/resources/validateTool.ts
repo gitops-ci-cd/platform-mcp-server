@@ -14,23 +14,6 @@ const inputSchema = z.object({
   includeEvents: z.boolean().default(true).describe("Include related events in the analysis for additional context")
 });
 
-const outputSchema = z.object({
-  metadata: z.object({
-    kind: z.string().describe("Resource kind that was analyzed"),
-    name: z.string().describe("Resource name that was analyzed"),
-    namespace: z.string().describe("Namespace of the resource"),
-    analysisType: z.enum(["security", "performance", "reliability", "cost", "comprehensive"]).describe("Type of analysis performed"),
-    timestamp: z.string().describe("ISO timestamp when analysis was performed")
-  }).optional().describe("Analysis metadata"),
-  analysis: z.string().optional().describe("LLM-generated analysis with findings and recommendations"),
-  rawData: z.object({
-    resource: z.any().describe("Raw Kubernetes resource data"),
-    events: z.array(z.any()).optional().describe("Related Kubernetes events if requested")
-  }).optional().describe("Raw resource and event data used for analysis"),
-  error: z.string().optional().describe("Error message (only present on failure)"),
-  statusCode: z.number().optional().describe("HTTP status code for the error (only present on failure)")
-});
-
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { kind, name, namespace, analysisType, includeEvents } = args as {
     kind: typeof SUPPORTED_RESOURCE_KINDS[number];
@@ -164,6 +147,10 @@ Format your response in a structured way that's easy for both humans and AI agen
         analysis: analysisResult
       },
       message: `Analysis complete for ${kind}/${name}${namespace ? ` in namespace ${namespace}` : ""}`,
+      links: {
+        docs: "https://kubernetes.io/docs/",
+        troubleshooting: "https://kubernetes.io/docs/troubleshooting/"
+      },
       metadata: {
         kind,
         name,
@@ -181,8 +168,11 @@ Format your response in a structured way that's easy for both humans and AI agen
       : `Failed to analyze ${kind}/${name}: ${k8sError.message}`;
 
     return toolResponse({
-      data: { error: errorMessage, statusCode: k8sError.statusCode },
       message: errorMessage,
+      links: {
+        docs: "https://kubernetes.io/docs/",
+        troubleshooting: "https://kubernetes.io/docs/troubleshooting/"
+      },
       metadata: {
         kind,
         name,
@@ -203,7 +193,6 @@ export const validateKubernetesResourceTool: ToolDefinition = {
   title: "Validate Kubernetes Resource",
   description: "Analyze a Kubernetes resource using AI to identify security, performance, reliability, and cost optimization opportunities. Provides detailed recommendations and best practices.",
   inputSchema,
-  outputSchema,
   requiredPermissions: ["k8s:view", "admin"],
   callback
 };

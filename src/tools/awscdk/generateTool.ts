@@ -227,8 +227,11 @@ Generate complete CDK TypeScript code:`;
     });
   } catch (error: any) {
     return toolResponse({
-      data: { error: error.message },
       message: `Error generating CDK construct: ${error.message}`,
+      links: {
+        docs: "https://docs.aws.amazon.com/cdk/v2/guide/",
+        troubleshooting: "https://docs.aws.amazon.com/cdk/v2/guide/troubleshooting.html"
+      },
       metadata: {
         category: category,
         construct_type: constructType,

@@ -1,19 +1,50 @@
+import { URL } from "url";
 import {
   McpServer,
   RegisteredResource,
   RegisteredResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import { Variables } from "@modelcontextprotocol/sdk/shared/uriTemplate.js";
 
 // Resource definition interface
-export interface ResourceDefinition extends Pick<RegisteredResource, "title" | "metadata" | "readCallback"> {
+export interface ResourceDefinition extends Pick<RegisteredResource, "title" | "metadata"> {
   uri: string;
   requiredPermissions?: string[];
+  readCallback: (uri: URL, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => Promise<ReturnType<typeof resourceResponse>>;
 }
 
 // Template definition interface
-export interface ResourceTemplateDefinition extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "title" | "metadata" | "readCallback"> {
+export interface ResourceTemplateDefinition extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "title" | "metadata"> {
   requiredPermissions?: string[];
+  readCallback: (uri: URL, variables: Variables, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => Promise<ReturnType<typeof resourceResponse>>;
 }
+
+interface ResourceResponseData {
+  message: string;
+  data?: any;
+  links: Record<string, string>;
+  metadata: {
+    potentialActions?: string[];
+    troubleshooting?: string[];
+    [key: string]: any;
+  };
+  [key: string]: any; // Index signature for MCP compatibility
+}
+
+// Helper function to standardize responses
+export const resourceResponse = (data: ResourceResponseData, uri: URL) => {
+  return {
+    contents: [
+      {
+        uri: uri.href,
+        text: JSON.stringify(data, null, 2),
+        mimeType: "application/json",
+      }
+    ]
+  };
+};
 
 // Registry to store all available resources
 export const resourceRegistry = new Map<string, ResourceDefinition>();

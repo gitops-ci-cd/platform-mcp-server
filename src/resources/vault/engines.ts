@@ -1,4 +1,4 @@
-import { ResourceDefinition } from "../registry.js";
+import { ResourceDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
 // Read callback function for vault engines resource
@@ -45,54 +45,52 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
       };
     });
 
-    const resourceData = {
-      engines,
-      summary: {
-        total_count: engines.length,
-        by_type: engines.reduce((acc, engine) => {
-          acc[engine.type] = (acc[engine.type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-      },
-      vault_info: {
-        endpoint: vaultConfig.endpoint,
-        web_ui: vaultWebUrl,
-        docs: "https://www.vaultproject.io/docs/secrets",
-      },
-      next_actions: {
-        create_new_engine: "Use createVaultEngine tool to add a new secret engine",
-        browse_existing: "Click 'browse_secrets' links above to explore existing engines",
-        learn_more: "Visit the Vault documentation for engine-specific guides",
-      }
-    };
-
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
+    return resourceResponse({
+      message: `Found ${engines.length} Vault secret engines`,
+      data: {
+        engines,
+        summary: {
+          total_count: engines.length,
+          by_type: engines.reduce((acc, engine) => {
+            acc[engine.type] = (acc[engine.type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+        },
+        vault_info: {
+          endpoint: vaultConfig.endpoint,
+          web_ui: vaultWebUrl,
+          docs: "https://www.vaultproject.io/docs/secrets",
         }
-      ]
-    };
+      },
+      links: {
+        vault_ui: vaultWebUrl,
+        docs: "https://www.vaultproject.io/docs/secrets",
+        api_docs: "https://www.vaultproject.io/api/system/mounts"
+      },
+      metadata: {
+        potentialActions: [
+          "Use createVaultEngine tool to add a new secret engine",
+          "Click 'browse_secrets' links above to explore existing engines",
+          "Visit the Vault documentation for engine-specific guides"
+        ]
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Vault engines: ${error.message}`,
-            troubleshooting: {
-              check_vault_token: "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
-              check_permissions: "Verify your Vault token has 'sys/mounts' read permissions",
-              vault_docs: "https://www.vaultproject.io/api/system/mounts",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Vault engines: ${error.message}`,
+      links: {
+        docs: "https://www.vaultproject.io/api/system/mounts",
+        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
+          "Verify your Vault token has 'sys/mounts' read permissions",
+          "Check Vault server connectivity and accessibility"
+        ]
+      }
+    }, uri);
   }
 };
 

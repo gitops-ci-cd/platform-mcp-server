@@ -157,8 +157,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
   } catch (error: any) {
     return toolResponse({
-      data: { error: error.message },
       message: `Failed to create Vault role: ${error.message}`,
+      links: {
+        docs: "https://developer.hashicorp.com/vault/docs/auth",
+        troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
+      },
       metadata: {
         role_name: roleName,
         auth_method: authMethod,

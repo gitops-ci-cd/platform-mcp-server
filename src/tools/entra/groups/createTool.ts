@@ -123,6 +123,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } catch (error: any) {
     return toolResponse({
       message: `Failed to create Entra group: ${error.message}`,
+      links: {
+        docs: "https://docs.microsoft.com/en-us/graph/api/group-post-groups",
+        troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting"
+      },
       metadata: {
         display_name: displayName,
         troubleshooting: [

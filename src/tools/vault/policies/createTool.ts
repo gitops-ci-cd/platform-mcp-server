@@ -84,22 +84,20 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     });
 
   } catch (error: any) {
-    const errorData = {
-      error: `Failed to create Vault policy: ${error.message}`,
-      details: error.stack || error.toString(),
-    };
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(errorData, null, 2),
-          mimeType: "application/json"
-        }
-      ],
-      structuredContent: errorData,
-      isError: true
-    };
+    return toolResponse({
+      message: `Failed to create Vault policy: ${error.message}`,
+      links: {
+        docs: "https://developer.hashicorp.com/vault/docs/concepts/policies",
+        troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure VAULT_TOKEN environment variable is set with admin permissions",
+          "Verify your token has sys/policies/acl/* write capabilities",
+          "Check that the policy HCL syntax is valid"
+        ]
+      }
+    }, true);
   }
 };
 

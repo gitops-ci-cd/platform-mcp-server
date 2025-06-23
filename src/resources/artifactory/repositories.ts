@@ -1,4 +1,4 @@
-import { ResourceDefinition } from "../registry.js";
+import { ResourceDefinition, resourceResponse } from "../registry.js";
 import { getArtifactoryConfig, artifactoryApiRequest } from "../../clients/artifactory/index.js";
 
 // Interface for filtering and sorting options
@@ -141,13 +141,6 @@ export async function getArtifactoryRepositories(options: RepositoryOptions = {}
       web_ui: artifactoryWebUrl,
       docs: "https://www.jfrog.com/confluence/display/JFROG/Repository+Management",
     },
-    next_actions: {
-      create_new_repository: "Use createArtifactoryRepository tool to add a new repository",
-      browse_artifacts: "Click 'browse' links to explore repository contents",
-      manage_settings: "Click 'settings' links to configure repository settings",
-      upload_artifacts: "Click 'upload' links to upload new artifacts",
-      learn_more: "Visit the JFrog documentation for repository management guides",
-    }
   };
 }
 
@@ -157,33 +150,34 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
     // Use the shared function with default options (no filtering)
     const resourceData = await getArtifactoryRepositories();
 
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: "Successfully retrieved Artifactory repositories",
+      data: resourceData,
+      metadata: {
+        totalCount: resourceData.repositories.length,
+        byType: resourceData.summary.by_type,
+        byPackageType: resourceData.summary.by_package_type,
+      },
+      links: {
+        "Artifactory Web UI": resourceData.artifactory_info.web_ui,
+        "Repository Management Documentation": "https://www.jfrog.com/confluence/display/JFROG/Repository+Management",
+        "Artifactory REST API": "https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API",
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Artifactory repositories: ${error.message}`,
-            troubleshooting: {
-              check_artifactory_token: "Ensure ARTIFACTORY_URL and ARTIFACTORY_TOKEN environment variables are set",
-              check_permissions: "Verify your Artifactory token has repository read permissions",
-              artifactory_docs: "https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Artifactory repositories: ${error.message}`,
+      metadata: {
+        troubleshooting: [
+          "Ensure ARTIFACTORY_URL and ARTIFACTORY_TOKEN environment variables are set",
+          "Verify your Artifactory token has repository read permissions",
+        ],
+      },
+      links: {
+        "Artifactory REST API Documentation": "https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API",
+      }
+    }, uri);
   }
 };
 

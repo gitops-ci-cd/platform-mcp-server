@@ -91,6 +91,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       message: `Failed to create Vault access request: ${error.message}`,
       data: error, // Raw error object
+      links: {
+        docs: "https://developer.hashicorp.com/vault/docs/auth",
+        troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
+      },
       metadata: {
         troubleshooting: [
           "Ensure all required parameters are provided",

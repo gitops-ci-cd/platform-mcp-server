@@ -1,4 +1,4 @@
-import { ResourceDefinition } from "../registry.js";
+import { ResourceDefinition, resourceResponse } from "../registry.js";
 import { getGraphConfig, graphApiRequest } from "../../clients/entra/index.js";
 
 // Read callback function for Entra groups resource
@@ -55,58 +55,56 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
       };
     });
 
-    const resourceData = {
-      groups,
-      summary: {
-        total_count: groups.length,
-        by_type: groups.reduce((acc: any, group: any) => {
-          acc[group.type] = (acc[group.type] || 0) + 1;
-          return acc;
-        }, {}),
-        security_enabled: groups.filter((g: any) => g.securityEnabled).length,
-        mail_enabled: groups.filter((g: any) => g.mailEnabled).length,
-        with_mail: groups.filter((g: any) => g.mail).length,
-      },
-      entra_info: {
-        endpoint: graphConfig.endpoint,
-        portal_url: "https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupsManagementMenuBlade/AllGroups",
-        docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
-      },
-      next_actions: {
-        create_new_group: "Use createEntraGroup tool to add a new group",
-        manage_members: "Click 'members' links to manage group membership",
-        view_portal: "Visit Azure Portal to manage groups via web interface",
-        learn_more: "Visit the Microsoft Graph documentation for group management guides",
-      }
-    };
-
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
+    return resourceResponse({
+      message: `Found ${groups.length} Entra ID groups`,
+      data: {
+        groups,
+        summary: {
+          total_count: groups.length,
+          by_type: groups.reduce((acc: any, group: any) => {
+            acc[group.type] = (acc[group.type] || 0) + 1;
+            return acc;
+          }, {}),
+          security_enabled: groups.filter((g: any) => g.securityEnabled).length,
+          mail_enabled: groups.filter((g: any) => g.mailEnabled).length,
+          with_mail: groups.filter((g: any) => g.mail).length,
+        },
+        entra_info: {
+          endpoint: graphConfig.endpoint,
+          portal_url: "https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupsManagementMenuBlade/AllGroups",
+          docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
         }
-      ]
-    };
+      },
+      links: {
+        portal: "https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupsManagementMenuBlade/AllGroups",
+        docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
+        api_docs: "https://docs.microsoft.com/en-us/graph/api/group-list"
+      },
+      metadata: {
+        potentialActions: [
+          "Use createEntraGroup tool to add a new group",
+          "Click 'members' links to manage group membership",
+          "Visit Azure Portal to manage groups via web interface",
+          "Visit the Microsoft Graph documentation for group management guides"
+        ]
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Entra groups: ${error.message}`,
-            troubleshooting: {
-              check_entra_token: "Ensure ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, and ENTRA_TENANT_ID environment variables are set",
-              check_permissions: "Verify your app registration has Group.Read.All permissions",
-              entra_docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Entra groups: ${error.message}`,
+      links: {
+        docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
+        troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting"
+      },
+      metadata: {
+        troubleshooting: [
+          "Ensure ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, and ENTRA_TENANT_ID environment variables are set",
+          "Verify your app registration has Group.Read.All permissions",
+          "Check Microsoft Graph API connectivity and service status"
+        ]
+      }
+    }, uri);
   }
 };
 

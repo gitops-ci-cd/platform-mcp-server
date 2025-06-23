@@ -12,20 +12,6 @@ const inputSchema = z.object({
     .describe("Whether to include practical examples in the explanation")
 });
 
-const outputSchema = z.object({
-  concept: z.enum(["resources", "tools", "prompts", "sampling", "architecture", "transports", "all"])
-    .describe("The MCP concept that was explained"),
-  audience: z.enum(["beginner", "developer", "architect"])
-    .describe("The target audience for the explanation"),
-  includeExample: z.boolean().describe("Whether examples were included"),
-  explanation: z.string().describe("The generated explanation text"),
-  metadata: z.object({
-    generated: z.string().describe("ISO timestamp when explanation was generated"),
-    usedSampling: z.boolean().describe("Whether MCP sampling was used successfully"),
-    wordCount: z.number().describe("Approximate word count of the explanation")
-  }).describe("Additional metadata about the explanation generation")
-});
-
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { concept, audience, includeExample } = args;
   let isError = false;
@@ -107,6 +93,10 @@ Structure your response with clear sections and make it engaging and informative
   return toolResponse({
     data: explanation,
     message: `Generated explanation for MCP ${concept} concept`,
+    links: {
+      docs: "https://modelcontextprotocol.io/docs/",
+      spec: "https://spec.modelcontextprotocol.io/"
+    },
     metadata: {
       concept,
       audience,
@@ -122,6 +112,5 @@ export const mcpExplainerTool: ToolDefinition = {
   title: "Explain MCP Concept",
   description: "Generate detailed explanations of MCP concepts using sampling. This tool demonstrates both MCP tools and sampling capabilities by explaining MCP itself!",
   inputSchema,
-  outputSchema,
   callback
 };

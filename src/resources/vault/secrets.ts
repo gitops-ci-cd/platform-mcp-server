@@ -1,6 +1,6 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { ResourceTemplateDefinition } from "../registry.js";
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
 // Read callback function for vault secrets template
@@ -71,41 +71,42 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => 
         engine_url: `${vaultWebUrl}/ui/vault/secrets/${enginePath}`,
         docs: "https://www.vaultproject.io/docs/secrets/kv",
       },
-      next_actions: {
-        create_new_secret: `Navigate to ${vaultWebUrl}/ui/vault/secrets/${enginePath}/create`,
-        browse_engine: `Visit ${vaultWebUrl}/ui/vault/secrets/${enginePath}`,
-        learn_more: "Visit the Vault KV secrets engine documentation",
-      }
     };
 
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Successfully retrieved secrets from engine: ${enginePath}`,
+      data: resourceData,
+      metadata: {
+        enginePath,
+        totalCount: secrets.length,
+        folders: secrets.filter((s: any) => s.type === "folder").length,
+        secrets: secrets.filter((s: any) => s.type === "secret").length,
+      },
+      links: {
+        "Vault Web UI - Engine": `${vaultWebUrl}/ui/vault/secrets/${enginePath}`,
+        "Create New Secret": `${vaultWebUrl}/ui/vault/secrets/${enginePath}/create`,
+        "Vault KV Documentation": "https://www.vaultproject.io/docs/secrets/kv",
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Vault secrets: ${error.message}`,
-            troubleshooting: {
-              check_engine_path: "Verify the engine path exists and is mounted",
-              check_vault_token: "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
-              check_permissions: "Verify your Vault token has read permissions for this engine",
-              example_usage: "vault://secrets/kv-v2 or vault://secrets/secret",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Vault secrets: ${error.message}`,
+      metadata: {
+        troubleshooting: [
+          "Verify the engine path exists and is mounted",
+          "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
+          "Verify your Vault token has read permissions for this engine",
+        ],
+        potentialActions: [
+          "Try a different engine path (e.g., vault://secrets/kv-v2)",
+          "Check available engines using the vault list sys/mounts command",
+        ],
+      },
+      links: {
+        "Vault KV Documentation": "https://www.vaultproject.io/docs/secrets/kv",
+      }
+    }, uri);
   }
 };
 

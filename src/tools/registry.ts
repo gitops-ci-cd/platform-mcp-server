@@ -9,10 +9,10 @@ export interface ToolDefinition extends Pick<RegisteredTool, "title" | "descript
 }
 
 interface ToolResponseData {
-  message?: string;
+  message: string;
   data?: any;
-  links?: Record<string, string>;
-  metadata?: {
+  links: Record<string, string>;
+  metadata: {
     potentialActions?: string[];
     troubleshooting?: string[];
     [key: string]: any;
@@ -20,14 +20,14 @@ interface ToolResponseData {
   [key: string]: any; // Index signature for MCP compatibility
 }
 
-// Helper function to standardize tool responses
+// Helper function to standardize responses
 export const toolResponse = (data: ToolResponseData, isError: boolean = false) => {
   return {
     content: [
       {
         type: "text" as const,
         text: JSON.stringify(data, null, 2),
-        mimeType: "application/json"
+        mimeType: "application/json",
       }
     ],
     structuredContent: data,

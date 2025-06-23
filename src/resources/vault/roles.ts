@@ -1,4 +1,4 @@
-import { ResourceDefinition } from "../registry.js";
+import { ResourceDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
 // Read callback function for Vault roles resource
@@ -75,41 +75,42 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
         auth_methods_url: `${vaultWebUrl}/ui/vault/access`,
         docs: "https://www.vaultproject.io/docs/auth",
       },
-      next_actions: {
-        create_new_role: "Navigate to an auth method in the Vault UI and create a new role",
-        manage_auth_methods: `Visit ${vaultWebUrl}/ui/vault/access to manage authentication methods`,
-        learn_more: "Visit the Vault authentication documentation",
-      }
     };
 
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify(resourceData, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: "Successfully retrieved Vault roles",
+      data: resourceData,
+      metadata: {
+        totalCount: allRoles.length,
+        byAuthType: allRoles.reduce((acc: any, role: any) => {
+          acc[role.auth_type] = (acc[role.auth_type] || 0) + 1;
+          return acc;
+        }, {}),
+        byAuthMethod: allRoles.reduce((acc: any, role: any) => {
+          acc[role.auth_method] = (acc[role.auth_method] || 0) + 1;
+          return acc;
+        }, {}),
+      },
+      links: {
+        "Vault Web UI - Access Methods": `${vaultWebUrl}/ui/vault/access`,
+        "Vault Authentication Documentation": "https://www.vaultproject.io/docs/auth",
+      }
+    }, uri);
 
   } catch (error: any) {
-    return {
-      contents: [
-        {
-          uri: uri.toString(),
-          mimeType: "application/json",
-          text: JSON.stringify({
-            error: `Failed to read Vault roles: ${error.message}`,
-            troubleshooting: {
-              check_vault_token: "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
-              check_permissions: "Verify your Vault token has read permissions for auth methods",
-              check_auth_methods: "Ensure auth methods are enabled and configured",
-              vault_docs: "https://www.vaultproject.io/docs/auth",
-            }
-          }, null, 2)
-        }
-      ]
-    };
+    return resourceResponse({
+      message: `Failed to read Vault roles: ${error.message}`,
+      metadata: {
+        troubleshooting: [
+          "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
+          "Verify your Vault token has read permissions for auth methods",
+          "Ensure auth methods are enabled and configured",
+        ],
+      },
+      links: {
+        "Vault Authentication Documentation": "https://www.vaultproject.io/docs/auth",
+      }
+    }, uri);
   }
 };
 
