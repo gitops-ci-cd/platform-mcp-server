@@ -1,5 +1,6 @@
-import { ResourceTemplateDefinition } from "../registry.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+import { ResourceTemplateDefinition } from "../registry.js";
 import { getKubernetesClient } from "../../clients/kubernetes/index.js";
 
 // Resource scope and API mapping for native resources

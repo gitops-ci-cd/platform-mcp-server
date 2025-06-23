@@ -1,5 +1,6 @@
-import { ResourceTemplateDefinition } from "../registry.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+import { ResourceTemplateDefinition } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
 // Read callback function for vault secrets template
