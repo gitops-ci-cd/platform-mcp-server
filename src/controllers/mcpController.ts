@@ -8,7 +8,7 @@ import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { registerToolsWithServer, initializeTools } from "../tools/index.js";
 import { registerResourcesWithServer, registerResourceTemplatesWithServer, initializeResources } from "../resources/index.js";
 import { registerPromptsWithServer, initializePrompts } from "../prompts/index.js";
-import { getUserInfo, getCurrentUser, setUserContext } from "../auth/index.js";
+import { getUserInfo, getCurrentUser, setUserContext } from "../../lib/auth/index.js";
 
 import pkg from "../../package.json" with { type: "json" };
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { authMiddleware } from "../auth/index.js";
+import { authMiddleware } from "../../lib/auth/index.js";
 import healthRoutes from "./healthRoutes.js";
 import mcpRoutes from "./mcpRoutes.js";
 

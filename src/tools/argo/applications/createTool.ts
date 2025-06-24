@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
-import { getCurrentUser } from "../../../auth/index.js";
+import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArgoCDConfig,
   argoCDApiRequest
