@@ -11,7 +11,7 @@ export interface ArgoCDConfig {
  * @throws Error if required environment variables are missing
  */
 export const getArgoCDConfig = (): ArgoCDConfig => {
-  const endpoint = process.env.ARGOCD_SERVER || "https://argocd.legalzoom.com";
+  const endpoint = process.env.ARGOCD_SERVER || "";
   const token = process.env.ARGOCD_TOKEN;
 
   if (!token) {

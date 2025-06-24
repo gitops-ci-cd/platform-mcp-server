@@ -4,107 +4,70 @@ import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
 // Read callback function for vault secrets template
-const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => {
+const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
+  const { secretMountPath } = variables as {
+    secretMountPath: string
+  };
+
+  // Convert the flattened engine path back to the real path (replace -- with /)
+  const realSecretMountPath = secretMountPath.replace(/--/g, "/");
+
   try {
-    // Extract engine parameter from URI
-    const match = uri.toString().match(/vault:\/\/secrets\/(.+)/);
-    const enginePath = match?.[1];
-
-    if (!enginePath) {
-      throw new Error("Engine path is required. Use format: vault://secrets/{engine}");
-    }
-
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
 
-    // List secrets in the specified engine
-    const secretsResponse = await vaultApiRequest(
-      "GET",
-      `${enginePath}/metadata?list=true`,
-      vaultConfig
-    );
+    const keys: string[] = [];
 
-    if (!secretsResponse?.data?.keys) {
-      throw new Error(`No secrets found in engine: ${enginePath}`);
-    }
+    const extractKeys = async (path: string) => {
+      const response = await vaultApiRequest(
+        "LIST",
+        `${realSecretMountPath}/metadata/${path}`,
+        vaultConfig
+      );
+      const k = response?.data?.keys || [];
+      const secrets = k.filter((key: string) => !key.endsWith("/"));
+      const folders = k.filter((key: string) => key.endsWith("/"));
 
-    const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
+      keys.push(...secrets.map((key: string) => `${path}${key}`));
 
-    // Transform secrets data with action-oriented information
-    const secrets = secretsResponse.data.keys.map((secretName: string) => {
-      const isFolder = secretName.endsWith("/");
-      const cleanSecretName = secretName.replace(/\/$/, "");
-      const secretWebUrl = `${vaultWebUrl}/ui/vault/secrets/${enginePath}/show/${cleanSecretName}`;
-
-      return {
-        name: cleanSecretName,
-        type: isFolder ? "folder" : "secret",
-        engine: enginePath,
-        actions: {
-          view: secretWebUrl,
-          edit: `${vaultWebUrl}/ui/vault/secrets/${enginePath}/edit/${cleanSecretName}`,
-          delete: `${secretWebUrl}?action=delete`,
-          copy_path: `${enginePath}/${cleanSecretName}`,
-          ...(isFolder ? {
-            browse: `${vaultWebUrl}/ui/vault/secrets/${enginePath}/list/${cleanSecretName}`,
-          } : {}),
-        },
-        management_info: {
-          web_ui: secretWebUrl,
-          api_path: `${vaultConfig.endpoint}/v1/${enginePath}/data/${cleanSecretName}`,
-          metadata_path: `${vaultConfig.endpoint}/v1/${enginePath}/metadata/${cleanSecretName}`,
-        }
+      for (const folder of folders) {
+        // Recursively call extractKeys for subfolders
+        await extractKeys(`${path}${folder}`);
       };
-    });
-
-    const resourceData = {
-      engine: enginePath,
-      secrets,
-      summary: {
-        total_count: secrets.length,
-        folders: secrets.filter((s: any) => s.type === "folder").length,
-        secrets: secrets.filter((s: any) => s.type === "secret").length,
-      },
-      vault_info: {
-        endpoint: vaultConfig.endpoint,
-        web_ui: vaultWebUrl,
-        engine_url: `${vaultWebUrl}/ui/vault/secrets/${enginePath}`,
-        docs: "https://www.vaultproject.io/docs/secrets/kv",
-      },
     };
 
+    await extractKeys("").catch((error) => {
+      throw new Error(`Failed to list secrets at path '${realSecretMountPath}': ${error.message}`);
+    });
+
     return resourceResponse({
-      message: `Successfully retrieved secrets from engine: ${enginePath}`,
-      data: resourceData,
+      message: `Successfully retrieved secrets from engine: ${realSecretMountPath}`,
+      data: {
+        keys
+      },
       metadata: {
-        enginePath,
-        totalCount: secrets.length,
-        folders: secrets.filter((s: any) => s.type === "folder").length,
-        secrets: secrets.filter((s: any) => s.type === "secret").length,
+        name: realSecretMountPath,
+        totalCount: keys.length,
       },
       links: {
-        "Vault Web UI - Engine": `${vaultWebUrl}/ui/vault/secrets/${enginePath}`,
-        "Create New Secret": `${vaultWebUrl}/ui/vault/secrets/${enginePath}/create`,
-        "Vault KV Documentation": "https://www.vaultproject.io/docs/secrets/kv",
+        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realSecretMountPath)}`,
+        concept: "https://www.vaultproject.io/docs/secrets/kv",
+        apiDocs: "https://developer.hashicorp.com/vault/api-docs/secret/kv/kv-v2",
       }
     }, uri);
-
   } catch (error: any) {
     return resourceResponse({
-      message: `Failed to read Vault secrets: ${error.message}`,
+      message: `Failed to read Vault secrets from engine ${realSecretMountPath}: ${error.message}`,
       metadata: {
         troubleshooting: [
           "Verify the engine path exists and is mounted",
           "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
           "Verify your Vault token has read permissions for this engine",
         ],
-        potentialActions: [
-          "Try a different engine path (e.g., vault://secrets/kv-v2)",
-          "Check available engines using the vault list sys/mounts command",
-        ],
       },
       links: {
-        "Vault KV Documentation": "https://www.vaultproject.io/docs/secrets/kv",
+        docs: "https://www.vaultproject.io/docs/secrets/kv",
+        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting",
       }
     }, uri);
   }
@@ -114,21 +77,29 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri) => 
 export const vaultSecretsTemplate: ResourceTemplateDefinition = {
   title: "Vault Secrets by Engine",
   resourceTemplate: new ResourceTemplate(
-    "vault://secrets/{engine}",
+    "vault://secrets/{secretMountPath}",
     {
       list: undefined,
       complete: {
-        engine: async () => {
+        secretMountPath: async (_arg: string): Promise<string[]> => {
           try {
             const vaultConfig = getVaultConfig();
-            const mountsResponse = await vaultApiRequest("GET", "sys/mounts", vaultConfig);
-            if (mountsResponse?.data) {
-              return Object.keys(mountsResponse.data).map(path => path.replace(/\/$/, ""));
-            }
+
+            // List all mounted engines for completion
+            const mountsResponse = await vaultApiRequest(
+              "GET",
+              "sys/mounts",
+              vaultConfig
+            );
+
+            return Object.keys(mountsResponse.data)
+              .map(path => path.replace(/\/$/, "")) // Remove trailing slash
+              .map(path => path.replace(/\//g, "--")) // Replace / with -- for URI safety
+              .sort();
           } catch {
             console.warn("Could not fetch engines for completion");
           }
-          return ["kv-v2", "secret", "database", "pki"];
+          return [];
         }
       }
     }

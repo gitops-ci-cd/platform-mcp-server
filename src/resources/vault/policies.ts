@@ -1,78 +1,55 @@
-import { ResourceDefinition, resourceResponse } from "../registry.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
-// Read callback function for vault policies resource
-const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
+// Read callback function for vault policy resource template
+const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
+  const { policyName } = variables as {
+    policyName: string
+  };
+
+  // Convert the flattened policy name back to the real name (replace -- with /)
+  const realPolicyName = policyName.replace(/--/g, "/");
+
   try {
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
 
-    // List all ACL policies
-    const policiesResponse = await vaultApiRequest(
+    // Get specific policy details
+    const response = await vaultApiRequest(
       "GET",
-      "sys/policies/acl",
+      `sys/policies/acl/${realPolicyName}`,
       vaultConfig
     );
 
-    if (!policiesResponse?.data?.keys) {
-      throw new Error("No policies data returned from Vault");
+    if (!response?.data?.policy) {
+      throw new Error(`Policy '${realPolicyName}' not found or no policy data returned`);
     }
 
-    const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
-
-    // Transform policies data with action-oriented information
-    const policies = policiesResponse.data.keys.map((policyName: string) => {
-      const policyWebUrl = `${vaultWebUrl}/ui/vault/policies/acl/${policyName}`;
-
-      return {
-        name: policyName,
-        type: "acl",
-        actions: {
-          view: policyWebUrl,
-          edit: policyWebUrl,
-          delete: `${policyWebUrl}?action=delete`,
-          duplicate: `${vaultWebUrl}/ui/vault/policies/acl/create?template=${policyName}`,
-        },
-        management_info: {
-          web_ui: policyWebUrl,
-          api_path: `${vaultConfig.endpoint}/v1/sys/policies/acl/${policyName}`,
-          docs: "https://www.vaultproject.io/docs/concepts/policies",
-        }
-      };
-    });
-
     return resourceResponse({
-      message: `Found ${policies.length} Vault ACL policies`,
-      data: {
-        policies,
-        summary: {
-          total_count: policies.length,
-          system_policies: policies.filter((p: any) => ["default", "root"].includes(p.name)).length,
-          custom_policies: policies.filter((p: any) => !["default", "root"].includes(p.name)).length,
-        },
-        vault_info: {
-          endpoint: vaultConfig.endpoint,
-          web_ui: vaultWebUrl,
-          docs: "https://www.vaultproject.io/docs/concepts/policies",
-        }
+      message: `Retrieved Vault ACL policy: ${realPolicyName}`,
+      data: response.data,
+      metadata: {
+        name: realPolicyName,
+        isSystemPolicy: ["default", "root"].includes(realPolicyName),
+        potentialActions: [
+          "Use createVaultPolicy tool to create a similar policy",
+          "Edit policy via Vault UI link above",
+          "Review policy syntax documentation for customization"
+        ]
       },
       links: {
-        vault_ui: vaultWebUrl,
-        docs: "https://www.vaultproject.io/docs/concepts/policies",
-        api_docs: "https://www.vaultproject.io/api/system/policies"
+        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/policy/acl/${encodeURIComponent(realPolicyName)}`,
+        concept: "https://www.vaultproject.io/docs/concepts/policies",
+        apiDocs: "https://www.vaultproject.io/api/system/policies",
+        syntax: "https://www.vaultproject.io/docs/concepts/policies#policy-syntax"
       },
-      metadata: {
-        potentialActions: [
-          "Use createVaultPolicy tool to add a new ACL policy",
-          "Click 'view' links above to inspect existing policies",
-          "Visit the Vault documentation for policy syntax and examples"
-        ]
-      }
     }, uri);
 
   } catch (error: any) {
     return resourceResponse({
-      message: `Failed to read Vault policies: ${error.message}`,
+      message: `Failed to read Vault policy ${realPolicyName}: ${error.message}`,
       links: {
         docs: "https://www.vaultproject.io/api/system/policies",
         troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
@@ -80,7 +57,8 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
       metadata: {
         troubleshooting: [
           "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
-          "Verify your Vault token has 'sys/policies/acl' list permissions",
+          "Verify your Vault token has 'sys/policies/acl' read permissions",
+          `Check that the policy name '${realPolicyName}' exists and is spelled correctly`,
           "Check Vault server connectivity and accessibility"
         ]
       }
@@ -88,13 +66,37 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
   }
 };
 
-// Resource definition for vault policies
-export const vaultPoliciesResource: ResourceDefinition = {
-  uri: "vault://policies",
+// Resource template definition for vault policies
+export const vaultPoliciesTemplate: ResourceTemplateDefinition = {
   title: "Vault Policies",
+  resourceTemplate: new ResourceTemplate(
+    "vault://policies/{policyName}",
+    {
+      list: undefined,
+      complete: {
+        policyName: async (_arg: string): Promise<string[]> => {
+          try {
+            const vaultConfig = getVaultConfig();
+
+            // List all ACL policies for completion
+            const policiesResponse = await vaultApiRequest(
+              "LIST",
+              "sys/policies/acl",
+              vaultConfig
+            );
+
+            return policiesResponse.data.keys.sort();
+          } catch {
+            console.warn("Could not fetch policies for completion");
+          }
+          return [];
+        }
+      }
+    }
+  ),
   metadata: {
-    description: "List of all Vault ACL policies with management links",
+    description: "Access specific Vault ACL policies by name. Provides policy details, rules, and management actions",
   },
-  requiredPermissions: ["vault:read", "vault:policies:list", "admin"],
+  requiredPermissions: ["vault:read", "vault:policies:read", "admin"],
   readCallback,
 };

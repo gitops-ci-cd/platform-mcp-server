@@ -1,84 +1,51 @@
-import { ResourceDefinition, resourceResponse } from "../registry.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
 
-// Read callback function for vault engines resource
-const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
+// Read callback function for vault engine resource template
+const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
+  const { engineName } = variables as {
+    engineName: string
+  };
+
+  // Convert the flattened engine path back to the real path (replace -- with /)
+  const realEngineName = engineName.replace(/--/g, "/");
+
   try {
     // Load Vault configuration
     const vaultConfig = getVaultConfig();
 
-    // List all mounted engines
-    const mountsResponse = await vaultApiRequest(
+    // Get specific engine details
+    const response = await vaultApiRequest(
       "GET",
-      "sys/mounts",
+      `sys/mounts/${realEngineName}`,
       vaultConfig
     );
 
-    if (!mountsResponse?.data) {
-      throw new Error("No mounts data returned from Vault");
+    if (!response?.data) {
+      throw new Error(`Engine '${realEngineName}' not found or no data returned`);
     }
 
-    const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
-
-    // Transform engines data with action-oriented information
-    const engines = Object.entries(mountsResponse.data).map(([path, engineData]: [string, any]) => {
-      const cleanPath = path.replace(/\/$/, "");
-      const engineWebUrl = `${vaultWebUrl}/ui/vault/secrets/${cleanPath}`;
-
-      return {
-        path: cleanPath,
-        type: engineData.type,
-        description: engineData.description || "",
-        uuid: engineData.uuid,
-        accessor: engineData.accessor,
-        actions: {
-          manage: `${engineWebUrl}`,
-          browse_secrets: `${engineWebUrl}/list`,
-          create_secret: `${engineWebUrl}/create`,
-          configure: `${vaultWebUrl}/ui/vault/secrets/${cleanPath}/configuration`,
-        },
-        management_info: {
-          web_ui: engineWebUrl,
-          api_path: `${vaultConfig.endpoint}/v1/${cleanPath}`,
-          type_docs: `https://www.vaultproject.io/docs/secrets/${engineData.type}`,
-        }
-      };
-    });
-
     return resourceResponse({
-      message: `Found ${engines.length} Vault secret engines`,
-      data: {
-        engines,
-        summary: {
-          total_count: engines.length,
-          by_type: engines.reduce((acc, engine) => {
-            acc[engine.type] = (acc[engine.type] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>),
-        },
-        vault_info: {
-          endpoint: vaultConfig.endpoint,
-          web_ui: vaultWebUrl,
-          docs: "https://www.vaultproject.io/docs/secrets",
-        }
+      message: `Retrieved Vault secret engine: ${realEngineName}`,
+      data: response.data,
+      metadata: {
+        name: realEngineName,
+        potentialActions: [
+          "Configure engine via Vault UI link above",
+          "Review engine documentation for configuration options"
+        ]
       },
       links: {
-        vault_ui: vaultWebUrl,
-        docs: "https://www.vaultproject.io/docs/secrets",
-        api_docs: "https://www.vaultproject.io/api/system/mounts"
+        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realEngineName)}`,
+        concept: "https://www.vaultproject.io/docs/secrets",
+        apiDocs: "https://www.vaultproject.io/api/system/mounts",
       },
-      metadata: {
-        potentialActions: [
-          "Use createVaultEngine tool to add a new secret engine",
-          "Click 'browse_secrets' links above to explore existing engines",
-          "Visit the Vault documentation for engine-specific guides"
-        ]
-      }
     }, uri);
-
   } catch (error: any) {
     return resourceResponse({
-      message: `Failed to read Vault engines: ${error.message}`,
+      message: `Failed to read Vault engine ${realEngineName}: ${error.message}`,
       links: {
         docs: "https://www.vaultproject.io/api/system/mounts",
         troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
@@ -87,6 +54,7 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
         troubleshooting: [
           "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
           "Verify your Vault token has 'sys/mounts' read permissions",
+          `Check that the engine path '${realEngineName}' exists and is spelled correctly`,
           "Check Vault server connectivity and accessibility"
         ]
       }
@@ -94,13 +62,40 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
   }
 };
 
-// Resource definition for vault engines
-export const vaultEnginesResource: ResourceDefinition = {
-  uri: "vault://engines",
+// Resource template definition for vault engines
+export const vaultEnginesTemplate: ResourceTemplateDefinition = {
   title: "Vault Secret Engines",
+  resourceTemplate: new ResourceTemplate(
+    "vault://engines/{engineName}",
+    {
+      list: undefined,
+      complete: {
+        engineName: async (_arg: string): Promise<string[]> => {
+          try {
+            const vaultConfig = getVaultConfig();
+
+            // List all mounted engines for completion
+            const mountsResponse = await vaultApiRequest(
+              "GET",
+              "sys/mounts",
+              vaultConfig
+            );
+
+            return Object.keys(mountsResponse.data)
+              .map(path => path.replace(/\/$/, "")) // Remove trailing slash
+              .map(path => path.replace(/\//g, "--")) // Replace / with -- for URI safety
+              .sort();
+          } catch {
+            console.warn("Could not fetch engines for completion");
+          }
+          return [];
+        }
+      }
+    }
+  ),
   metadata: {
-    description: "List of all mounted Vault secret engines with management links",
+    description: "Access specific Vault secret engines by path. Provides engine details and configuration",
   },
-  requiredPermissions: ["vault:read", "vault:engines:list", "admin"],
+  requiredPermissions: ["vault:read", "vault:engines:read", "admin"],
   readCallback,
 };

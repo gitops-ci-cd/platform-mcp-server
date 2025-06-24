@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
+import { getVaultConfig } from "../../../clients/vault/index.js";
 
 const inputSchema = z.object({
   enginePath: z.string().describe("The secrets engine path (e.g., 'secret', 'database', 'kv-v2')"),
@@ -33,6 +34,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   try {
     // Get authenticated user for audit logging
     const user = getCurrentUser("requesting Vault access");
+
+    // Load Vault configuration
+    const vaultConfig = getVaultConfig();
 
     // TODO: Implement actual access request logic
     // This could integrate with:
@@ -69,12 +73,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       ],
     };
 
+    const engineWebUrl = `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`;
+
     return toolResponse({
       message: "Vault access request created successfully",
       data: accessRequest, // Raw access request object
       links: {
-        status: `https://vault.legalzoom.com/ui/vault/access-requests/${requestId}`,
-        vault: "https://vault.legalzoom.com/ui/"
+        status: `${engineWebUrl}/ui/vault/access-requests/${requestId}`,
       },
       metadata: {
         requestId,

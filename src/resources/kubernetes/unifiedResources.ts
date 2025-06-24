@@ -9,26 +9,27 @@ const NATIVE_RESOURCE_CONFIG: Record<string, {
   method: string;
   isNamespaced: boolean;
   aliases?: string[];
+  apiGroup: string; // Added for correct documentation URLs
 }> = {
   // Core namespaced resources
-  pods: { api: "coreV1Api", method: "listNamespacedPod", isNamespaced: true, aliases: ["pod", "po"] },
-  services: { api: "coreV1Api", method: "listNamespacedService", isNamespaced: true, aliases: ["service", "svc"] },
-  configmaps: { api: "coreV1Api", method: "listNamespacedConfigMap", isNamespaced: true, aliases: ["configmap", "cm"] },
-  secrets: { api: "coreV1Api", method: "listNamespacedSecret", isNamespaced: true, aliases: ["secret"] },
+  pods: { api: "coreV1Api", method: "listNamespacedPod", isNamespaced: true, aliases: ["pod", "po"], apiGroup: "v1-core" },
+  services: { api: "coreV1Api", method: "listNamespacedService", isNamespaced: true, aliases: ["service", "svc"], apiGroup: "v1-core" },
+  configmaps: { api: "coreV1Api", method: "listNamespacedConfigMap", isNamespaced: true, aliases: ["configmap", "cm"], apiGroup: "v1-core" },
+  secrets: { api: "coreV1Api", method: "listNamespacedSecret", isNamespaced: true, aliases: ["secret"], apiGroup: "v1-core" },
 
   // Apps namespaced resources
-  deployments: { api: "appsV1Api", method: "listNamespacedDeployment", isNamespaced: true, aliases: ["deployment", "deploy"] },
-  replicasets: { api: "appsV1Api", method: "listNamespacedReplicaSet", isNamespaced: true, aliases: ["replicaset", "rs"] },
-  daemonsets: { api: "appsV1Api", method: "listNamespacedDaemonSet", isNamespaced: true, aliases: ["daemonset", "ds"] },
-  statefulsets: { api: "appsV1Api", method: "listNamespacedStatefulSet", isNamespaced: true, aliases: ["statefulset", "sts"] },
+  deployments: { api: "appsV1Api", method: "listNamespacedDeployment", isNamespaced: true, aliases: ["deployment", "deploy"], apiGroup: "v1-apps" },
+  replicasets: { api: "appsV1Api", method: "listNamespacedReplicaSet", isNamespaced: true, aliases: ["replicaset", "rs"], apiGroup: "v1-apps" },
+  daemonsets: { api: "appsV1Api", method: "listNamespacedDaemonSet", isNamespaced: true, aliases: ["daemonset", "ds"], apiGroup: "v1-apps" },
+  statefulsets: { api: "appsV1Api", method: "listNamespacedStatefulSet", isNamespaced: true, aliases: ["statefulset", "sts"], apiGroup: "v1-apps" },
 
   // Networking namespaced resources
-  ingresses: { api: "networkingV1Api", method: "listNamespacedIngress", isNamespaced: true, aliases: ["ingress", "ing"] },
+  ingresses: { api: "networkingV1Api", method: "listNamespacedIngress", isNamespaced: true, aliases: ["ingress", "ing"], apiGroup: "v1-networking" },
 
   // Cluster-scoped resources
-  nodes: { api: "coreV1Api", method: "listNode", isNamespaced: false, aliases: ["node"] },
-  namespaces: { api: "coreV1Api", method: "listNamespace", isNamespaced: false, aliases: ["namespace", "ns"] },
-  persistentvolumes: { api: "coreV1Api", method: "listPersistentVolume", isNamespaced: false, aliases: ["persistentvolume", "pv"] },
+  nodes: { api: "coreV1Api", method: "listNode", isNamespaced: false, aliases: ["node"], apiGroup: "v1-core" },
+  namespaces: { api: "coreV1Api", method: "listNamespace", isNamespaced: false, aliases: ["namespace", "ns"], apiGroup: "v1-core" },
+  persistentvolumes: { api: "coreV1Api", method: "listPersistentVolume", isNamespaced: false, aliases: ["persistentvolume", "pv"], apiGroup: "v1-core" },
 };
 
 // Handle native Kubernetes resources
@@ -132,7 +133,7 @@ const handleNativeResource = async (uri: any, resourceType: string, namespace: s
     },
     kubernetes_info: {
       resource_type: normalizedType,
-      docs: `https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#${normalizedType.slice(0, -1)}-v1-core`,
+      docs: `https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#${normalizedType.slice(0, -1)}-${resourceConfig.apiGroup}`,
     }
   };
 
@@ -146,7 +147,7 @@ const handleNativeResource = async (uri: any, resourceType: string, namespace: s
       scope: resourceConfig.isNamespaced ? "namespaced" : "cluster",
     },
     links: {
-      "Kubernetes API Documentation": `https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#${normalizedType.slice(0, -1)}-v1-core`,
+      "Kubernetes API Documentation": `https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#${normalizedType.slice(0, -1)}-${resourceConfig.apiGroup}`,
     }
   }, uri);
 };

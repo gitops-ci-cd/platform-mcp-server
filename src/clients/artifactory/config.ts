@@ -7,7 +7,7 @@ import type { ArtifactoryConfig } from "./types.js";
  * @throws Error if required environment variables are missing
  */
 export const getArtifactoryConfig = (): ArtifactoryConfig => {
-  const endpoint = process.env.ARTIFACTORY_URL || "https://artifactory.legalzoom.com";
+  const endpoint = process.env.ARTIFACTORY_URL || "";
   const username = process.env.ARTIFACTORY_USERNAME;
   const password = process.env.ARTIFACTORY_PASSWORD || process.env.ARTIFACTORY_API_KEY;
 

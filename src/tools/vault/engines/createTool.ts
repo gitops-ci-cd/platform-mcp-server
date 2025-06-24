@@ -73,8 +73,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       message = `Vault engine '${enginePath}' created successfully`;
     }
 
-    const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
-    const engineWebUrl = `${vaultWebUrl}/ui/vault/secrets/${enginePath}`;
+    const engineWebUrl = `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`;
 
     return toolResponse({
       message,
