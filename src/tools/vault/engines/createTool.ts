@@ -63,8 +63,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       data,
       links: {
         vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`,
-        concept: "https://www.vaultproject.io/docs/secrets",
-        apiDocs: "https://www.vaultproject.io/api/system/mounts",
+        concept: "https://developer.hashicorp.com/vault/docs/secrets",
+        apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
+        cliDocs: "https://developer.hashicorp.com/vault/docs/commands/secrets",
       },
       metadata: {
         name: enginePath,
@@ -79,8 +80,8 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       message: `Failed to create Vault engine: ${error.message}`,
       links: {
-        docs: "https://developer.hashicorp.com/vault/docs/secrets",
-        support: "https://developer.hashicorp.com/vault/community"
+        docs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
       },
       metadata: {
         name: enginePath,

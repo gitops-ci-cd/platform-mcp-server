@@ -30,17 +30,17 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       },
       links: {
         vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/policy/acl/${encodeURIComponent(realPolicyName)}`,
-        concept: "https://www.vaultproject.io/docs/concepts/policies",
-        apiDocs: "https://www.vaultproject.io/api/system/policies",
-        syntax: "https://www.vaultproject.io/docs/concepts/policies#policy-syntax"
+        concept: "https://developer.hashicorp.com/vault/docs/concepts/policies",
+        apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
+        cliDocs: "https://developer.hashicorp.com/vault/docs/commands/policy",
       },
     }, uri);
   } catch (error: any) {
     return resourceResponse({
       message: `Failed to read Vault policy ${realPolicyName}: ${error.message}`,
       links: {
-        docs: "https://www.vaultproject.io/api/system/policies",
-        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
+        docs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault"
       },
       metadata: {
         troubleshooting: [

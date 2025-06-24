@@ -28,16 +28,17 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       },
       links: {
         vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realEngineName)}`,
-        concept: "https://www.vaultproject.io/docs/secrets",
-        apiDocs: "https://www.vaultproject.io/api/system/mounts",
+        concept: "https://developer.hashicorp.com/vault/docs/secrets",
+        apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
+        cliDocs: "https://developer.hashicorp.com/vault/docs/commands/secrets",
       },
     }, uri);
   } catch (error: any) {
     return resourceResponse({
       message: `Failed to read Vault engine ${realEngineName}: ${error.message}`,
       links: {
-        docs: "https://www.vaultproject.io/api/system/mounts",
-        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
+        docs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
       },
       metadata: {
         troubleshooting: [

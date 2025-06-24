@@ -75,8 +75,8 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       },
       links: {
         vault: vaultConfig.endpoint,
-        concept: "https://www.vaultproject.io/docs/auth",
-        apiDocs: `https://www.vaultproject.io/api/auth/${authMethod}`,
+        concept: "https://developer.hashicorp.com/vault/docs/auth",
+        apiDocs: `https://developer.hashicorp.com/vault/api-docs/auth/${authMethod}`,
       }
     });
 
@@ -85,7 +85,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       message: `Failed to create Vault role: ${error.message}`,
       links: {
         docs: "https://developer.hashicorp.com/vault/docs/auth",
-        troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
       },
       metadata: {
         name: roleName,

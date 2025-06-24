@@ -46,7 +46,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       },
       links: {
         vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realSecretMountPath)}`,
-        concept: "https://www.vaultproject.io/docs/secrets/kv",
+        concept: "https://developer.hashicorp.com/vault/docs/secrets/kv",
         apiDocs: "https://developer.hashicorp.com/vault/api-docs/secret/kv/kv-v2",
       }
     }, uri);
@@ -61,8 +61,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
         ],
       },
       links: {
-        docs: "https://www.vaultproject.io/docs/secrets/kv",
-        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting",
+        docs: "https://developer.hashicorp.com/vault/docs/secrets/kv",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
       }
     }, uri);
   }

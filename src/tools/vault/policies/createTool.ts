@@ -59,8 +59,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       data, // Raw policy data from Vault API
       links: {
         manage: `${vaultWebUrl}/ui/vault/policies/acl/${name}`,
-        concept: "https://www.vaultproject.io/docs/concepts/policies",
-        apiDocs: "https://www.vaultproject.io/api/system/policies",
+        concept: "https://developer.hashicorp.com/vault/docs/concepts/policies",
+        apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
+        cliDocs: "https://developer.hashicorp.com/vault/docs/commands/policy",
       },
       metadata: {
         name,
@@ -71,8 +72,8 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     return toolResponse({
       message: `Failed to create Vault policy: ${error.message}`,
       links: {
-        docs: "https://developer.hashicorp.com/vault/docs/concepts/policies",
-        troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
+        docs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault"
       },
       metadata: {
         name,

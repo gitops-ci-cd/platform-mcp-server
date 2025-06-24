@@ -28,16 +28,17 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       },
       links: {
         vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/access/${encodeURIComponent(realAuthPath)}`,
-        concept: "https://www.vaultproject.io/docs/auth",
-        apiDocs: "https://www.vaultproject.io/api/system/auth",
+        concept: "https://developer.hashicorp.com/vault/docs/auth",
+        apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/auth",
+        cliDocs: "https://developer.hashicorp.com/vault/docs/commands/auth",
       },
     }, uri);
   } catch (error: any) {
     return resourceResponse({
       message: `Failed to read Vault auth method ${realAuthPath}: ${error.message}`,
       links: {
-        docs: "https://www.vaultproject.io/api/system/auth",
-        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
+        docs: "https://developer.hashicorp.com/vault/api-docs/system/auth",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
       },
       metadata: {
         troubleshooting: [

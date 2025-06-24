@@ -44,8 +44,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       data: response.data,
       links: {
         vaultUI: `${vaultWebUrl}/ui/vault/access/${encodeURIComponent(authMethod)}/item/role/show/${roleName}`,
-        concept: "https://www.vaultproject.io/docs/auth",
-        apiDocs: `https://www.vaultproject.io/api/auth/${authType}`,
+        concept: "https://developer.hashicorp.com/vault/docs/auth",
+        apiDocs: `https://developer.hashicorp.com/vault/api-docs/auth/${authType}`,
       },
       metadata: {
         name: roleName,
@@ -63,8 +63,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     return resourceResponse({
       message: `Failed to read Vault role ${authMethod}/${roleName}: ${error.message}`,
       links: {
-        docs: "https://www.vaultproject.io/docs/auth",
-        troubleshooting: "https://www.vaultproject.io/docs/troubleshooting"
+        docs: "https://developer.hashicorp.com/vault/docs/auth",
+        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
       },
       metadata: {
         troubleshooting: [
