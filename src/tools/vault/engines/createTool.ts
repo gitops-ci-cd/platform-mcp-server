@@ -41,12 +41,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     let message = "";
 
     try {
-      const existingEngine = await vaultApiRequest(
+      const response = await vaultApiRequest(
         "GET",
         `sys/mounts/${enginePath}`,
         vaultConfig
       );
-      data = existingEngine?.data;
+      data = response?.data;
       message = `Vault engine '${enginePath}' already exists and is ready to use`;
     } catch (checkError: any) {
       // Engine doesn't exist, create it
@@ -63,13 +63,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       );
 
       // Get the engine details to return comprehensive info
-      const engineInfo = await vaultApiRequest(
+      const response = await vaultApiRequest(
         "GET",
         `sys/mounts/${enginePath}`,
         vaultConfig
       );
 
-      data = engineInfo?.data;
+      data = response?.data;
       message = `Vault engine '${enginePath}' created successfully`;
     }
 
