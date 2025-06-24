@@ -56,7 +56,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       message,
       data, // Raw policy data from Vault API
       links: {
-        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/policies/acl/${name}`,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/policy/acl/${name}`,
         concept: "https://developer.hashicorp.com/vault/docs/concepts/policies",
         apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
         cliDocs: "https://developer.hashicorp.com/vault/docs/commands/policy",

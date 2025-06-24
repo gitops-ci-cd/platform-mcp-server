@@ -21,7 +21,7 @@ export const getCurrentUser = (operation: string): AuthenticatedUser => {
   const user = getCurrentUserSilent();
 
   // Always log the operation
-  console.log(`User ${user.email} ${operation}`);
+  console.info(`User ${user.email} (${operation})`);
 
   return user;
 };

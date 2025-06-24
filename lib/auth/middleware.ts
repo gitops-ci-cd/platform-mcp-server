@@ -1,7 +1,15 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 
+import { getUserInfo } from "./user.js";
+import { setUserContext } from "./context.js";
 import { EntraTokenVerifier } from "./tokenVerifier.js";
+
+// Extend Request type to include MCP auth info
+interface AuthenticatedRequest extends Request {
+  auth?: AuthInfo;
+}
 
 /**
  * Authentication middleware for MS Entra ID
@@ -10,7 +18,7 @@ import { EntraTokenVerifier } from "./tokenVerifier.js";
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // In development mode, skip authentication
   if (process.env.NODE_ENV === "development") {
-    console.log("🔓 Development mode: Skipping authentication middleware");
+    console.debug("🔓 Development mode: Skipping authentication middleware");
     return next();
   }
 
@@ -21,4 +29,11 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   });
 
   return entraAuthMiddleware(req, res, next);
+};
+
+export const userContextMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const user = getUserInfo(req.auth);
+  setUserContext(user);
+
+  next();
 };

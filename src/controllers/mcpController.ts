@@ -3,19 +3,13 @@ import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 import { registerToolsWithServer, initializeTools } from "../tools/index.js";
 import { registerResourcesWithServer, registerResourceTemplatesWithServer, initializeResources } from "../resources/index.js";
 import { registerPromptsWithServer, initializePrompts } from "../prompts/index.js";
-import { getUserInfo, getCurrentUser, setUserContext } from "../../lib/auth/index.js";
+import { getCurrentUser } from "../../lib/auth/index.js";
 
 import pkg from "../../package.json" with { type: "json" };
-
-// Extend Request type to include MCP auth info
-interface AuthenticatedRequest extends Request {
-  auth?: AuthInfo;
-}
 
 const { name, version } = pkg;
 
@@ -54,13 +48,8 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
 
     const server = new McpServer({ name, version });
 
-    const authInfo = (req as AuthenticatedRequest).auth;
-    const user = getUserInfo(authInfo);
+    const user = getCurrentUser("accessing MCP server");
     const userPermissions = user.permissions || [];
-
-    // Set user context for async operations
-    setUserContext(user);
-    getCurrentUser(`accessing MCP server with permissions: ${userPermissions}`);
 
     // Register all authorized capabilities
     registerToolsWithServer(server, userPermissions);
