@@ -3,9 +3,9 @@ export { getVaultConfig } from "./config.js";
 export {
   vaultApiRequest,
   listAuthMethods, readAuthMethod,
-  listEngines, readEngine,
-  listPolicies, readPolicy,
-  listRoles, readRole,
+  listEngines, readEngine, createEngine,
+  listPolicies, readPolicy, createPolicy,
+  listRoles, readRole, createRole,
   readSecretMetadata
 } from "./client.js";
-export { VAULT_ENGINE_TYPES } from "./types.js";
+export { VAULT_ENGINE_TYPES, VAULT_ENGINE_TYPES_WITH_ROLES } from "./types.js";

@@ -1,6 +1,7 @@
 // Vault API client utilities
 import type { VaultConfig } from "./config.js";
 import { getVaultConfig } from "./config.js";
+import { VAULT_ENGINE_TYPES_WITH_ROLES } from "./types.js";
 import { resourceCache } from "../../cache.js";
 
 /**
@@ -146,6 +147,17 @@ export const readEngine = async (name: string): Promise<any> => {
   return response;
 };
 
+export const createEngine = async (path: string, engineConfig: any): Promise<any> => {
+  const vaultConfig = getVaultConfig();
+
+  await vaultApiRequest(
+    "POST",
+    `sys/mounts/${path}`,
+    vaultConfig,
+    engineConfig
+  );
+};
+
 export const listPolicies = async (name: string): Promise<string[]> => {
   try {
     // Check cache first
@@ -193,6 +205,17 @@ export const readPolicy = async (name: string): Promise<any> => {
   return response;
 };
 
+export const createPolicy = async (name: string, engineConfig: any): Promise<any> => {
+  const vaultConfig = getVaultConfig();
+
+  await vaultApiRequest(
+    "POST",
+    `sys/policies/acl/${name}`,
+    vaultConfig,
+    engineConfig
+  );
+};
+
 export const listRoles = async (name: string): Promise<string[]> => {
   try {
     // Check cache first
@@ -226,13 +249,13 @@ export const listRoles = async (name: string): Promise<string[]> => {
       const authType = (authMethod as any).type;
 
       // Only check auth methods that support roles
-      if (["kubernetes", "aws", "azure", "gcp", "jwt", "oidc", "ldap", "approle", "userpass"].includes(authType)) {
+      if (VAULT_ENGINE_TYPES_WITH_ROLES.includes(authType)) {
         // For Kubernetes and other auth methods, try both 'role' and 'roles' endpoints
         let rolesResponse;
         try {
           rolesResponse = await vaultApiRequest(
             "LIST",
-            `auth/${cleanPath}/role`,
+            rolePath(cleanPath),
             vaultConfig
           );
         } catch {
@@ -274,23 +297,66 @@ export const listRoles = async (name: string): Promise<string[]> => {
 export const readRole = async (authMethod: string, name: string): Promise<any> => {
   const vaultConfig = getVaultConfig();
 
-  let response;
-  try {
-    response = await vaultApiRequest(
-      "GET",
-      `auth/${authMethod}/role/${name}`,
-      vaultConfig
-    );
-  } catch {
-    // If 'role' fails, try 'roles' (different auth methods use different endpoints)
-    response = await vaultApiRequest(
-      "GET",
-      `auth/${authMethod}/roles/${name}`,
-      vaultConfig
-    );
-  }
+  const response = await vaultApiRequest(
+    "GET",
+    `${rolePath(authMethod)}/${name}`,
+    vaultConfig
+  );
 
   return response;
+};
+
+export const createRole = async (authMethod: string, name: string, roleConfig: any): Promise<any> => {
+  const vaultConfig = getVaultConfig();
+
+  await vaultApiRequest(
+    "POST",
+    `${rolePath(authMethod)}/${name}`,
+    vaultConfig,
+    roleConfig
+  );
+};
+
+const rolePath = (authMethod: string): string => {
+  // Different auth methods have different role creation endpoints
+  let rolePath: string;
+  switch (authMethod) {
+    case "approle":
+      rolePath = "auth/approle/role";
+      break;
+    case "aws":
+      rolePath = "auth/aws/role";
+      break;
+    case "azure":
+      rolePath = "auth/azure/role";
+      break;
+    case "gcp":
+      rolePath = "auth/gcp/role";
+      break;
+    case "kubernetes":
+      rolePath = "auth/kubernetes/role";
+      break;
+    case "ldap":
+      rolePath = "auth/ldap/groups";
+      break;
+    case "oidc":
+    case "jwt":
+      rolePath = "auth/jwt/role";
+      break;
+    case "userpass":
+      rolePath = "auth/userpass/users";
+      break;
+    case "cert":
+      rolePath = "auth/cert/certs";
+      break;
+    case "github":
+      rolePath = "auth/github/map/teams";
+      break;
+    default:
+      rolePath = `auth/${authMethod}/role`;
+  }
+
+  return rolePath;
 };
 
 export const readSecretMetadata = async (engineName: string,  path: string): Promise<any> => {

@@ -4,7 +4,8 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getVaultConfig,
-  vaultApiRequest,
+  createPolicy,
+  readPolicy,
 } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
@@ -22,25 +23,15 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault policy: ${name}`);
 
-    // Load Vault configuration
     const vaultConfig = getVaultConfig();
-
-    // Prepare policy configuration
-    const policyConfig = {
-      policy: policy,
-    };
 
     let data = null;
     let message = "";
 
     try {
       // Check if policy already exists
-      const existingPolicy = await vaultApiRequest(
-        "GET",
-        `sys/policies/acl/${name}`,
-        vaultConfig
-      );
-      data = existingPolicy;
+      const response = await readPolicy(name);
+      data = response?.data;
       message = `Vault policy '${name}' already exists and is ready to use`;
     } catch (checkError: any) {
       // Policy doesn't exist, create it
@@ -48,22 +39,16 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         throw checkError; // Re-throw if it's not a "not found" error
       }
 
+      const policyConfig = {
+        policy: policy,
+      };
+
       // Create the policy
-      await vaultApiRequest(
-        "PUT",
-        `sys/policies/acl/${name}`,
-        vaultConfig,
-        policyConfig
-      );
+      await createPolicy(name, policyConfig);
 
       // Get the policy details to return comprehensive info
-      const policyInfo = await vaultApiRequest(
-        "GET",
-        `sys/policies/acl/${name}`,
-        vaultConfig
-      );
-
-      data = policyInfo;
+      const response = await readPolicy(name);
+      data = response?.data;
       message = `Vault policy '${name}' created successfully`;
     }
 
@@ -74,12 +59,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       data, // Raw policy data from Vault API
       links: {
         manage: `${vaultWebUrl}/ui/vault/policies/acl/${name}`,
-        vault: vaultWebUrl
+        concept: "https://www.vaultproject.io/docs/concepts/policies",
+        apiDocs: "https://www.vaultproject.io/api/system/policies",
       },
       metadata: {
-        policyName: name,
-        hasRules: !!policy,
-        action: message.includes("already exists") ? "verified" : "created"
+        name,
       }
     });
 
@@ -91,6 +75,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
       },
       metadata: {
+        name,
         troubleshooting: [
           "Ensure VAULT_TOKEN environment variable is set with admin permissions",
           "Verify your token has sys/policies/acl/* write capabilities",

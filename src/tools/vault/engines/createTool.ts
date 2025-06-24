@@ -4,7 +4,8 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getVaultConfig,
-  vaultApiRequest,
+  readEngine,
+  createEngine,
   VAULT_ENGINE_TYPES,
 } from "../../../../lib/clients/vault/index.js";
 
@@ -27,25 +28,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault engine: ${enginePath}`);
 
-    // Load Vault configuration
     const vaultConfig = getVaultConfig();
-
-    // Prepare engine configuration
-    const engineConfig = {
-      type: engineType,
-      ...(description && { description }),
-      ...(options && { options })
-    };
 
     let data = null;
     let message = "";
 
     try {
-      const response = await vaultApiRequest(
-        "GET",
-        `sys/mounts/${enginePath}`,
-        vaultConfig
-      );
+      const response = await readEngine(enginePath);
       data = response?.data;
       message = `Vault engine '${enginePath}' already exists and is ready to use`;
     } catch (checkError: any) {
@@ -54,38 +43,31 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         throw checkError; // Re-throw if it's not a "not found" error
       }
 
+      const engineConfig = {
+        type: engineType,
+        ...(description && { description }),
+        ...(options && { options })
+      };
+
       // Create the secrets engine
-      await vaultApiRequest(
-        "POST",
-        `sys/mounts/${enginePath}`,
-        vaultConfig,
-        engineConfig
-      );
+      await createEngine(enginePath, engineConfig);
 
       // Get the engine details to return comprehensive info
-      const response = await vaultApiRequest(
-        "GET",
-        `sys/mounts/${enginePath}`,
-        vaultConfig
-      );
-
+      const response = await readEngine(enginePath);
       data = response?.data;
       message = `Vault engine '${enginePath}' created successfully`;
     }
-
-    const engineWebUrl = `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`;
 
     return toolResponse({
       message,
       data,
       links: {
-        manage: engineWebUrl,
-        browse_secrets: `${engineWebUrl}/list`,
-        create_secret: `${engineWebUrl}/create`,
-        configure: `${engineWebUrl}/configuration`,
-        docs: `https://developer.hashicorp.com/vault/docs/secrets/${engineType}`
+        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`,
+        concept: "https://www.vaultproject.io/docs/secrets",
+        apiDocs: "https://www.vaultproject.io/api/system/mounts",
       },
       metadata: {
+        name: enginePath,
         potentialActions: [
           "Use generateVaultSecret tool to create secrets in this engine",
           "Use createVaultPolicy tool to control access to this engine",
@@ -101,6 +83,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         support: "https://developer.hashicorp.com/vault/community"
       },
       metadata: {
+        name: enginePath,
         troubleshooting: [
           "Ensure VAULT_TOKEN environment variable is set with admin permissions",
           "Verify your token has sys/mounts/* write capabilities",
