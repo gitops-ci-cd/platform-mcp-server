@@ -27,7 +27,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
         ]
       },
       links: {
-        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realEngineName)}`,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realEngineName)}`,
         concept: "https://developer.hashicorp.com/vault/docs/secrets",
         apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
         cliDocs: "https://developer.hashicorp.com/vault/docs/commands/secrets",

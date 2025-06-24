@@ -45,7 +45,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
         totalCount: keys.length,
       },
       links: {
-        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realSecretMountPath)}`,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${encodeURIComponent(realSecretMountPath)}`,
         concept: "https://developer.hashicorp.com/vault/docs/secrets/kv",
         apiDocs: "https://developer.hashicorp.com/vault/api-docs/secret/kv/kv-v2",
       }

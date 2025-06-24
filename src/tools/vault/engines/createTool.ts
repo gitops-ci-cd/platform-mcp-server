@@ -62,7 +62,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       message,
       data,
       links: {
-        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/secrets/${enginePath}`,
         concept: "https://developer.hashicorp.com/vault/docs/secrets",
         apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
         cliDocs: "https://developer.hashicorp.com/vault/docs/commands/secrets",

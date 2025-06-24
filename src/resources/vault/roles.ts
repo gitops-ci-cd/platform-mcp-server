@@ -30,8 +30,6 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     const vaultConfig = getVaultConfig();
     const response = await readRole(authMethod, roleName);
 
-    const vaultWebUrl = vaultConfig.endpoint.replace("/v1", "");
-
     // Determine the auth type based on the response data
     let authType = authMethod.split("/")[0]; // Default to first segment of auth method path
     if (response?.data?.auth_type) {
@@ -43,7 +41,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       message: `Retrieved Vault role: ${roleName} from auth method: ${authMethod}`,
       data: response.data,
       links: {
-        vaultUI: `${vaultWebUrl}/ui/vault/access/${encodeURIComponent(authMethod)}/item/role/show/${roleName}`,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/access/${encodeURIComponent(authMethod)}/item/role/show/${roleName}`,
         concept: "https://developer.hashicorp.com/vault/docs/auth",
         apiDocs: `https://developer.hashicorp.com/vault/api-docs/auth/${authType}`,
       },

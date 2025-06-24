@@ -127,7 +127,7 @@ Return the complete ArgoCD project configuration as a standard Kubernetes resour
       message,
       data,
       links: {
-        manage: projectWebUrl,
+        ui: projectWebUrl,
         applications: `${argoWebUrl}/applications?proj=${name}`,
         settings: `${projectWebUrl}/summary`,
         roles: `${projectWebUrl}/roles`,

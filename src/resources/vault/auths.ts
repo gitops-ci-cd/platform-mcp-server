@@ -27,7 +27,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
         ]
       },
       links: {
-        vaultUI: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/access/${encodeURIComponent(realAuthPath)}`,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/access/${encodeURIComponent(realAuthPath)}`,
         concept: "https://developer.hashicorp.com/vault/docs/auth",
         apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/auth",
         cliDocs: "https://developer.hashicorp.com/vault/docs/commands/auth",

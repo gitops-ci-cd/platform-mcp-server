@@ -149,7 +149,7 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
       message,
       data,
       links: {
-        manage: appWebUrl,
+        ui: appWebUrl,
         sync: `${appWebUrl}?operation=sync`,
         logs: `${appWebUrl}?view=tree&logs=true`,
         events: `${appWebUrl}?view=events`,

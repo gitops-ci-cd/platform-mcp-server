@@ -100,7 +100,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         action: message.includes("already exists") ? "verified" : "created"
       },
       links: {
-        manage: `${artifactoryConfig.endpoint}/ui/repos/tree/General/${repositoryKey}`,
+        ui: `${artifactoryConfig.endpoint}/ui/repos/tree/General/${repositoryKey}`,
         endpoint: artifactoryConfig.endpoint
       }
     });
