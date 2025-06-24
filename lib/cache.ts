@@ -8,7 +8,7 @@ interface CacheEntry {
   ttl: number;
 }
 
-class CompletionCache {
+class ResourceCache {
   private cache = new Map<string, CacheEntry>();
 
   /**
@@ -77,9 +77,9 @@ class CompletionCache {
 }
 
 // Global completion cache instance
-export const completionCache = new CompletionCache();
+export const resourceCache = new ResourceCache();
 
 // Optional: Periodic cleanup (run every 5 minutes)
 setInterval(() => {
-  completionCache.cleanup();
+  resourceCache.cleanup();
 }, 5 * 60 * 1000);

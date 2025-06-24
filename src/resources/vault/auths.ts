@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
+import { getVaultConfig, readAuthMethod, listAuthMethods } from "../../../lib/clients/vault/index.js";
 
 // Read callback function for vault auth method resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -13,19 +13,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   const realAuthPath = authPath.replace(/--/g, "/");
 
   try {
-    // Load Vault configuration
     const vaultConfig = getVaultConfig();
-
-    // Get specific auth method details
-    const response = await vaultApiRequest(
-      "GET",
-      `sys/auth/${realAuthPath}`,
-      vaultConfig
-    );
-
-    if (!response?.data) {
-      throw new Error(`Auth method '${realAuthPath}' not found or no data returned`);
-    }
+    const response = await readAuthMethod(realAuthPath);
 
     return resourceResponse({
       message: `Retrieved Vault auth method: ${realAuthPath}`,
@@ -70,25 +59,12 @@ export const vaultAuthMethodsTemplate: ResourceTemplateDefinition = {
     {
       list: undefined,
       complete: {
-        authPath: async (_arg: string): Promise<string[]> => {
-          try {
-            const vaultConfig = getVaultConfig();
+        authPath: async (value: string): Promise<string[]> => {
+          const list = await listAuthMethods(value);
 
-            // List all auth methods for completion
-            const authResponse = await vaultApiRequest(
-              "GET",
-              "sys/auth",
-              vaultConfig
-            );
-
-            return Object.keys(authResponse.data)
-              .map(path => path.replace(/\/$/, "")) // Remove trailing slash
-              .map(path => path.replace(/\//g, "--")) // Replace / with -- for URI safety
-              .sort();
-          } catch {
-            console.warn("Could not fetch auth methods for completion");
-          }
-          return [];
+          return list
+            .map(path => path.replace(/\/$/, "")) // Remove trailing slash
+            .map(path => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
       }
     }

@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getKubernetesClient } from "../../clients/kubernetes/index.js";
+import { getKubernetesClient } from "../../../lib/clients/kubernetes/index.js";
 
 // Resource scope and API mapping for native resources
 const NATIVE_RESOURCE_CONFIG: Record<string, {

@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
+import { getVaultConfig, listEngines, readSecretMetadata } from "../../../lib/clients/vault/index.js";
 
 // Read callback function for vault secrets template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -13,17 +13,12 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   const realSecretMountPath = secretMountPath.replace(/--/g, "/");
 
   try {
-    // Load Vault configuration
     const vaultConfig = getVaultConfig();
 
     const keys: string[] = [];
 
     const extractKeys = async (path: string) => {
-      const response = await vaultApiRequest(
-        "LIST",
-        `${realSecretMountPath}/metadata/${path}`,
-        vaultConfig
-      );
+      const response = await readSecretMetadata(realSecretMountPath, path);
       const k = response?.data?.keys || [];
       const secrets = k.filter((key: string) => !key.endsWith("/"));
       const folders = k.filter((key: string) => key.endsWith("/"));
@@ -81,25 +76,12 @@ export const vaultSecretsTemplate: ResourceTemplateDefinition = {
     {
       list: undefined,
       complete: {
-        secretMountPath: async (_arg: string): Promise<string[]> => {
-          try {
-            const vaultConfig = getVaultConfig();
+        secretMountPath: async (value: string): Promise<string[]> => {
+          const list = await listEngines(value);
 
-            // List all mounted engines for completion
-            const mountsResponse = await vaultApiRequest(
-              "GET",
-              "sys/mounts",
-              vaultConfig
-            );
-
-            return Object.keys(mountsResponse.data)
-              .map(path => path.replace(/\/$/, "")) // Remove trailing slash
-              .map(path => path.replace(/\//g, "--")) // Replace / with -- for URI safety
-              .sort();
-          } catch {
-            console.warn("Could not fetch engines for completion");
-          }
-          return [];
+          return list
+            .map(path => path.replace(/\/$/, "")) // Remove trailing slash
+            .map(path => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
       }
     }

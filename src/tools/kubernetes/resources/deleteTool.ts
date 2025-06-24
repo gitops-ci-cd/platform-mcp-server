@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
-import { deleteResource, getResource, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
+import { deleteResource, getResource, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../../lib/clients/kubernetes/index.js";
 
 const inputSchema = z.object({
   kind: z.enum(SUPPORTED_RESOURCE_KINDS).describe("Kubernetes resource kind (e.g. Pod, Service, Deployment)"),

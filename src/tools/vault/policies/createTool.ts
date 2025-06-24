@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
   vaultApiRequest,
-} from "../../../clients/vault/index.js";
+} from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   name: z.string().describe("Policy name (must be unique and alphanumeric with dashes/underscores)"),

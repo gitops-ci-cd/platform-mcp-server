@@ -1,5 +1,5 @@
 import { ResourceDefinition, resourceResponse } from "../registry.js";
-import { getArgoCDConfig, argoCDApiRequest } from "../../clients/argocd/index.js";
+import { getArgoCDConfig, argoCDApiRequest } from "../../../lib/clients/argocd/index.js";
 
 // Read callback function for ArgoCD applications resource
 const readCallback: ResourceDefinition["readCallback"] = async (uri) => {

@@ -6,7 +6,7 @@ import {
   getVaultConfig,
   vaultApiRequest,
   VAULT_ENGINE_TYPES,
-} from "../../../clients/vault/index.js";
+} from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   enginePath: z.string().describe("Mount path for the secrets engine (e.g., 'secret', 'kv-v2', 'database')"),

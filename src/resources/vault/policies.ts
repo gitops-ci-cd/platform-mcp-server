@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
+import { getVaultConfig, readPolicy, listPolicies } from "../../../lib/clients/vault/index.js";
 
 // Read callback function for vault policy resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -13,19 +13,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   const realPolicyName = policyName.replace(/--/g, "/");
 
   try {
-    // Load Vault configuration
     const vaultConfig = getVaultConfig();
-
-    // Get specific policy details
-    const response = await vaultApiRequest(
-      "GET",
-      `sys/policies/acl/${realPolicyName}`,
-      vaultConfig
-    );
-
-    if (!response?.data?.policy) {
-      throw new Error(`Policy '${realPolicyName}' not found or no policy data returned`);
-    }
+    const response = await readPolicy(realPolicyName);
 
     return resourceResponse({
       message: `Retrieved Vault ACL policy: ${realPolicyName}`,
@@ -46,7 +35,6 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
         syntax: "https://www.vaultproject.io/docs/concepts/policies#policy-syntax"
       },
     }, uri);
-
   } catch (error: any) {
     return resourceResponse({
       message: `Failed to read Vault policy ${realPolicyName}: ${error.message}`,
@@ -74,22 +62,11 @@ export const vaultPoliciesTemplate: ResourceTemplateDefinition = {
     {
       list: undefined,
       complete: {
-        policyName: async (_arg: string): Promise<string[]> => {
-          try {
-            const vaultConfig = getVaultConfig();
+        policyName: async (value: string): Promise<string[]> => {
+          const list = await listPolicies(value);
 
-            // List all ACL policies for completion
-            const policiesResponse = await vaultApiRequest(
-              "LIST",
-              "sys/policies/acl",
-              vaultConfig
-            );
-
-            return policiesResponse.data.keys.sort();
-          } catch {
-            console.warn("Could not fetch policies for completion");
-          }
-          return [];
+          return list
+            .map((path: string) => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
       }
     }

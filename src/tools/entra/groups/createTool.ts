@@ -9,7 +9,7 @@ import {
   ENTRA_GROUP_TYPES,
   ENTRA_GROUP_VISIBILITY,
   type EntraGroupConfig
-} from "../../../clients/entra/index.js";
+} from "../../../../lib/clients/entra/index.js";
 
 const inputSchema = z.object({
   displayName: z.string().describe("Group display name (required)"),

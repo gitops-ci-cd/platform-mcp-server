@@ -1,5 +1,5 @@
 import { ResourceDefinition, resourceResponse } from "../registry.js";
-import { getGraphConfig, graphApiRequest } from "../../clients/entra/index.js";
+import { getGraphConfig, graphApiRequest } from "../../../lib/clients/entra/index.js";
 
 // Read callback function for Entra groups resource
 const readCallback: ResourceDefinition["readCallback"] = async (uri) => {

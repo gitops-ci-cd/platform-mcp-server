@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../../auth/index.js";
 import {
   getArgoCDConfig,
   argoCDApiRequest
-} from "../../../clients/argocd/index.js";
+} from "../../../../lib/clients/argocd/index.js";
 
 const inputSchema = z.object({
   name: z.string().describe("Project name"),

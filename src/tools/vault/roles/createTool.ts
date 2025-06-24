@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
   vaultApiRequest,
-} from "../../../clients/vault/index.js";
+} from "../../../../lib/clients/vault/index.js";
 
 // Common Vault auth method types that support roles
 const VAULT_AUTH_METHODS = [

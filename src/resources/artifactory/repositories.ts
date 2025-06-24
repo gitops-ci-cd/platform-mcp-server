@@ -1,5 +1,5 @@
 import { ResourceDefinition, resourceResponse } from "../registry.js";
-import { getArtifactoryConfig, artifactoryApiRequest } from "../../clients/artifactory/index.js";
+import { getArtifactoryConfig, artifactoryApiRequest } from "../../../lib/clients/artifactory/index.js";
 
 // Interface for filtering and sorting options
 interface RepositoryOptions {

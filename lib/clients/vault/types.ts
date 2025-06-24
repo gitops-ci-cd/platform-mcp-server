@@ -25,5 +25,3 @@ export const VAULT_ENGINE_TYPES = [
   "ad",
   "alicloud",
 ] as const;
-
-export type VaultEngineType = typeof VAULT_ENGINE_TYPES[number];

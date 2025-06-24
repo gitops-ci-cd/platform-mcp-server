@@ -8,7 +8,7 @@ import {
   applyPackageTypeDefaults,
   ARTIFACTORY_PACKAGE_TYPES,
   ARTIFACTORY_REPOSITORY_TYPES,
-} from "../../../clients/artifactory/index.js";
+} from "../../../../lib/clients/artifactory/index.js";
 
 const inputSchema = z.object({
   repositoryKey: z.string().describe("Unique repository key/name (e.g., 'docker-local', 'maven-central')"),

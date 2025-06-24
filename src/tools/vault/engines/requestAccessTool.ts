@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../auth/index.js";
-import { getVaultConfig } from "../../../clients/vault/index.js";
+import { getVaultConfig } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   enginePath: z.string().describe("The secrets engine path (e.g., 'secret', 'database', 'kv-v2')"),

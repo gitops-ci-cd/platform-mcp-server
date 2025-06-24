@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getVaultConfig, vaultApiRequest } from "../../clients/vault/index.js";
+import { getVaultConfig, listEngines, readEngine } from "../../../lib/clients/vault/index.js";
 
 // Read callback function for vault engine resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -13,19 +13,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   const realEngineName = engineName.replace(/--/g, "/");
 
   try {
-    // Load Vault configuration
     const vaultConfig = getVaultConfig();
-
-    // Get specific engine details
-    const response = await vaultApiRequest(
-      "GET",
-      `sys/mounts/${realEngineName}`,
-      vaultConfig
-    );
-
-    if (!response?.data) {
-      throw new Error(`Engine '${realEngineName}' not found or no data returned`);
-    }
+    const response = await readEngine(realEngineName);
 
     return resourceResponse({
       message: `Retrieved Vault secret engine: ${realEngineName}`,
@@ -70,25 +59,12 @@ export const vaultEnginesTemplate: ResourceTemplateDefinition = {
     {
       list: undefined,
       complete: {
-        engineName: async (_arg: string): Promise<string[]> => {
-          try {
-            const vaultConfig = getVaultConfig();
+        engineName: async (value: string): Promise<string[]> => {
+          const list = await listEngines(value);
 
-            // List all mounted engines for completion
-            const mountsResponse = await vaultApiRequest(
-              "GET",
-              "sys/mounts",
-              vaultConfig
-            );
-
-            return Object.keys(mountsResponse.data)
-              .map(path => path.replace(/\/$/, "")) // Remove trailing slash
-              .map(path => path.replace(/\//g, "--")) // Replace / with -- for URI safety
-              .sort();
-          } catch {
-            console.warn("Could not fetch engines for completion");
-          }
-          return [];
+          return list
+            .map(path => path.replace(/\/$/, "")) // Remove trailing slash
+            .map(path => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
       }
     }

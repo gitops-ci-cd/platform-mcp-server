@@ -5,7 +5,7 @@ import { getCurrentUser } from "../../../auth/index.js";
 import {
   getVaultConfig,
   vaultApiRequest,
-} from "../../../clients/vault/index.js";
+} from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   secretPath: z.string().describe("Path where secret will be stored (e.g., 'myapp/database')"),

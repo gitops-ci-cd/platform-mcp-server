@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
-import { getResource, getResourceEvents, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../clients/kubernetes/index.js";
+import { getResource, getResourceEvents, KubernetesError, SUPPORTED_RESOURCE_KINDS } from "../../../../lib/clients/kubernetes/index.js";
 
 const inputSchema = z.object({
   kind: z.enum(SUPPORTED_RESOURCE_KINDS).describe("Kubernetes resource kind to analyze"),

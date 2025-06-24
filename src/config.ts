@@ -1,4 +1,4 @@
-import { LOG_LEVEL } from "./logging/index.js";
+import { LOG_LEVEL } from "../lib/logging/index.js";
 
 export interface AppConfig {
   port: number;
