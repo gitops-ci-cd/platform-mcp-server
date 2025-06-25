@@ -65,14 +65,13 @@ export const listAuthMethods = async (name: string): Promise<string[]> => {
 
     const vaultConfig = getVaultConfig();
 
-    // List all auth methods for completion
-    const authResponse = await vaultApiRequest(
+    const response = await vaultApiRequest(
       "GET",
       "sys/auth",
       vaultConfig
     );
 
-    const sorted = Object.keys(authResponse.data).sort();
+    const sorted = Object.keys(response.data).sort();
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
@@ -115,14 +114,13 @@ export const listEngines = async (name: string): Promise<string[]> => {
 
     const vaultConfig = getVaultConfig();
 
-    // List all mounted engines for completion
-    const mountsResponse = await vaultApiRequest(
+    const response = await vaultApiRequest(
       "GET",
       "sys/mounts",
       vaultConfig
     );
 
-    const sorted = Object.keys(mountsResponse.data).sort();
+    const sorted = Object.keys(response.data).sort();
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
@@ -174,13 +172,13 @@ export const listPolicies = async (name: string): Promise<string[]> => {
 
     const vaultConfig = getVaultConfig();
 
-    const policiesResponse = await vaultApiRequest(
+    const response = await vaultApiRequest(
       "LIST",
       "sys/policies/acl",
       vaultConfig
     );
 
-    const sorted = policiesResponse.data.keys.sort();
+    const sorted = response.data.keys.sort();
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
@@ -259,17 +257,8 @@ export const listRoles = async (name: string): Promise<string[]> => {
             vaultConfig
           );
         } catch {
-          // If 'role' fails, try 'roles' (different auth methods use different endpoints)
-          try {
-            rolesResponse = await vaultApiRequest(
-              "LIST",
-              `auth/${cleanPath}/roles`,
-              vaultConfig
-            );
-          } catch {
-            // Skip auth methods that don't support roles or we can't access
-            continue;
-          }
+          // some auth types don't have roles
+          continue;
         }
 
         if (rolesResponse?.data?.keys) {
