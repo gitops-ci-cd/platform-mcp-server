@@ -74,7 +74,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         authMethod: authMethod,
       },
       links: {
-        vault: vaultConfig.endpoint,
+        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/access/${encodeURIComponent(authMethod)}/item/role/show/${roleName}`,
         concept: "https://developer.hashicorp.com/vault/docs/auth",
         apiDocs: `https://developer.hashicorp.com/vault/api-docs/auth/${authMethod}`,
       }

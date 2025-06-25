@@ -13,7 +13,7 @@ import { resourceCache } from "../../cache.js";
  * @returns Promise with API response
  * @throws Error if API request fails
  */
-export const vaultApiRequest = async (
+const vaultApiRequest = async (
   method: string,
   path: string,
   config: VaultConfig,
