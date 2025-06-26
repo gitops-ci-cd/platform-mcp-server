@@ -86,9 +86,9 @@ export const vaultRolesTemplate: ResourceTemplateDefinition = {
       list: undefined,
       complete: {
         rolePath: async (value: string): Promise<string[]> => {
-          const list = await listRoles(value);
+          const response = await listRoles(value);
 
-          return list
+          return response
             .map((path: string) => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
       }

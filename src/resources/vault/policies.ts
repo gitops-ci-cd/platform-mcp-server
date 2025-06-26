@@ -63,9 +63,9 @@ export const vaultPoliciesTemplate: ResourceTemplateDefinition = {
       list: undefined,
       complete: {
         policyName: async (value: string): Promise<string[]> => {
-          const list = await listPolicies(value);
+          const response = await listPolicies(value);
 
-          return list
+          return response
             .map((path: string) => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
       }

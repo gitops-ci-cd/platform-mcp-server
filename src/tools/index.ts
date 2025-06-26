@@ -4,8 +4,8 @@ export { registerToolsWithServer, toolResponse } from "./registry.js";
 import { registerTool } from "./registry.js";
 import { mcpExplainerTool } from "./mcp/explainerTool.js";
 import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
-import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
-import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
+// import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
+// import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
 import { generateManifestTool } from "./manifests/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
 import { generateAwsCdkTool } from "./awscdk/generateTool.js";
@@ -25,8 +25,8 @@ export const initializeTools = (): void => {
   registerTool(generateManifestTool);
   registerTool(generateTerraformTool);
 
-  registerTool(validateKubernetesResourceTool);
-  registerTool(deleteKubernetesResourceTool);
+  // registerTool(validateKubernetesResourceTool);
+  // registerTool(deleteKubernetesResourceTool);
 
   registerTool(generateAwsCdkTool);
 

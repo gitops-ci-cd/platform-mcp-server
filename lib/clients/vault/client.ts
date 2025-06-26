@@ -2,7 +2,7 @@
 import type { VaultConfig } from "./config.js";
 import { getVaultConfig } from "./config.js";
 import { VAULT_ENGINE_TYPES_WITH_ROLES } from "./types.js";
-import { resourceCache } from "../../cache.js";
+import { resourceCache, checkCache } from "../../cache.js";
 
 /**
  * Make HTTP request to Vault API with proper authentication
@@ -51,17 +51,9 @@ const vaultApiRequest = async (
 
 export const listAuthMethods = async (name: string): Promise<string[]> => {
   try {
-    // Check cache first
     const cacheKey = "vault-auth-methods";
-    const cachedResults = resourceCache.get(cacheKey);
-    if (cachedResults) {
-      // Filter based on user input (case-insensitive)
-      const filtered = name
-        ? cachedResults.filter(key => key.toLowerCase().includes(name.toLowerCase()))
-        : cachedResults;
-
-      return filtered;
-    }
+    const cache = checkCache(cacheKey, name);
+    if (cache.length > 0) return cache;
 
     const vaultConfig = getVaultConfig();
 
@@ -71,12 +63,8 @@ export const listAuthMethods = async (name: string): Promise<string[]> => {
       vaultConfig
     );
 
-    const sorted = Object.keys(response.data).sort();
-
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
-
-    return sorted;
+    return resourceCache.set(cacheKey, Object.keys(response.data).sort(), 30 * 60 * 1000);
   } catch {
     console.warn("Could not fetch auth methods");
   }
@@ -98,19 +86,9 @@ export const readAuthMethod = async (name: string): Promise<any> => {
 
 export const listEngines = async (name: string): Promise<string[]> => {
   try {
-    // Check cache first
     const cacheKey = "vault-engines";
-    const cachedResults = resourceCache.get(cacheKey);
-    if (cachedResults) {
-      // Filter based on user input (case-insensitive)
-      const filtered = name
-        ? cachedResults.filter(key =>
-          key.toLowerCase().includes(name.toLowerCase())
-        )
-        : cachedResults;
-
-      return filtered;
-    }
+    const cache = checkCache(cacheKey, name);
+    if (cache.length > 0) return cache;
 
     const vaultConfig = getVaultConfig();
 
@@ -120,12 +98,8 @@ export const listEngines = async (name: string): Promise<string[]> => {
       vaultConfig
     );
 
-    const sorted = Object.keys(response.data).sort();
-
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
-
-    return sorted;
+    return resourceCache.set(cacheKey, Object.keys(response.data).sort(), 30 * 60 * 1000);
   } catch {
     console.warn("Could not fetch engines");
   }
@@ -158,17 +132,9 @@ export const createEngine = async (path: string, engineConfig: any): Promise<any
 
 export const listPolicies = async (name: string): Promise<string[]> => {
   try {
-    // Check cache first
     const cacheKey = "vault-policies";
-    const cachedResults = resourceCache.get(cacheKey);
-    if (cachedResults) {
-      // Filter based on user input (case-insensitive)
-      const filtered = name
-        ? cachedResults.filter(key => key.toLowerCase().includes(name.toLowerCase()))
-        : cachedResults;
-
-      return filtered;
-    }
+    const cache = checkCache(cacheKey, name);
+    if (cache.length > 0) return cache;
 
     const vaultConfig = getVaultConfig();
 
@@ -178,12 +144,8 @@ export const listPolicies = async (name: string): Promise<string[]> => {
       vaultConfig
     );
 
-    const sorted = response.data.keys.sort();
-
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
-
-    return sorted;
+    return resourceCache.set(cacheKey, response.data.keys.sort(), 30 * 60 * 1000);
   } catch {
     console.warn("Could not fetch policies");
   }
@@ -216,19 +178,9 @@ export const createPolicy = async (name: string, engineConfig: any): Promise<any
 
 export const listRoles = async (name: string): Promise<string[]> => {
   try {
-    // Check cache first
     const cacheKey = "vault-roles";
-    const cachedResults = resourceCache.get(cacheKey);
-    if (cachedResults) {
-      // Filter based on user input (case-insensitive)
-      const filtered = name
-        ? cachedResults.filter(key =>
-          key.toLowerCase().includes(name.toLowerCase())
-        )
-        : cachedResults;
-
-      return filtered;
-    }
+    const cache = checkCache(cacheKey, name);
+    if (cache.length > 0) return cache;
 
     const vaultConfig = getVaultConfig();
 
@@ -270,12 +222,8 @@ export const listRoles = async (name: string): Promise<string[]> => {
       }
     }
 
-    const sorted = allRoles.sort();
-
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    resourceCache.set(cacheKey, sorted, 30 * 60 * 1000);
-
-    return sorted;
+    return resourceCache.set(cacheKey, allRoles.sort(), 30 * 60 * 1000);
   } catch {
     console.warn("Could not fetch roles");
   }

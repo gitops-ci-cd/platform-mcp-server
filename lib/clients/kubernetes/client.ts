@@ -1,297 +1,322 @@
-// Kubernetes client utilities
 import * as k8s from "@kubernetes/client-node";
-import type { KubernetesResource, KubernetesError, SupportedResourceKind, KubernetesConfig } from "./types.js";
+import { getKubernetesConfig } from "./config.js";
+import { resourceCache, checkCache } from "../../cache.js";
 
-// Resource kind mappings for API calls
-const RESOURCE_KIND_MAP: Record<SupportedResourceKind, {
-  apiGroup: "core" | "apps" | "networking";
-  isNamespaced: boolean;
-  aliases?: string[];
-  operations: {
-    read: (client: any, options: { name: string; namespace?: string }) => Promise<any>;
-    delete: (client: any, options: { name: string; namespace?: string; gracePeriodSeconds?: number }) => Promise<any>;
-    list: (client: any, options: { namespace?: string; labelSelector?: string; fieldSelector?: string; limit?: number }) => Promise<any>;
+// Get Kubernetes client with configured API clients
+const getKubernetesClient = (config: k8s.KubeConfig, context?: string): {
+  config: k8s.KubeConfig;
+  core: k8s.CoreV1Api;
+  apps: k8s.AppsV1Api;
+  batch: k8s.BatchV1Api;
+  networking: k8s.NetworkingV1Api;
+  rbac: k8s.RbacAuthorizationV1Api;
+  apiextensions: k8s.ApiextensionsV1Api;
+  kubernetesObject: k8s.KubernetesObjectApi;
+  customObjects: k8s.CustomObjectsApi;
+} => {
+  if (context) {
+    config.setCurrentContext(context);
+  }
+  const core = config.makeApiClient(k8s.CoreV1Api);
+  const apps = config.makeApiClient(k8s.AppsV1Api);
+  const batch = config.makeApiClient(k8s.BatchV1Api);
+  const networking = config.makeApiClient(k8s.NetworkingV1Api);
+  const rbac = config.makeApiClient(k8s.RbacAuthorizationV1Api);
+  const apiextensions = config.makeApiClient(k8s.ApiextensionsV1Api);
+  const kubernetesObject = config.makeApiClient(k8s.KubernetesObjectApi);
+  const customObjects = config.makeApiClient(k8s.CustomObjectsApi);
+
+  return {
+    config,
+    core,
+    apps,
+    batch,
+    networking,
+    rbac,
+    apiextensions,
+    kubernetesObject,
+    customObjects
   };
-}> = {
-  Pod: {
-    apiGroup: "core",
-    isNamespaced: true,
-    aliases: ["pod", "pods", "po"],
-    operations: {
-      read: (client, { name, namespace }) => client.coreV1Api.readNamespacedPod({ name, namespace }),
-      delete: (client, { name, namespace, gracePeriodSeconds }) => client.coreV1Api.deleteNamespacedPod({ name, namespace, gracePeriodSeconds }),
-      list: (client, options) => client.coreV1Api.listNamespacedPod(options)
+};
+
+export const isCustomResource = async (group: string, version: string): Promise<boolean> => {
+  const all = await listAvailableCustomResources();
+
+  return !!all.find(resource => resource.group === group && resource.version === version);
+};
+
+// Get resource using the Kubernetes API
+export const readResource = async (
+  version: string,
+  group: string,
+  plural: string,
+  kind: string,
+  name: string,
+  namespace?: string
+): Promise<k8s.KubernetesObject> => {
+  const config = getKubernetesConfig();
+  const client = getKubernetesClient(config);
+
+  if (await isCustomResource(group, version)) {
+    return await readCustomResource(version, group, plural, name, namespace);
+  }
+
+  return await client.kubernetesObject.read({
+    metadata: { name, namespace },
+    apiVersion: [group, version].filter(Boolean).join("/"),
+    kind
+  });
+};
+
+// Get custom resource using the Kubernetes API
+const readCustomResource = async (
+  version: string,
+  group: string,
+  plural: string,
+  name: string,
+  namespace?: string
+): Promise<k8s.KubernetesObject> => {
+  const config = getKubernetesConfig();
+  const client = getKubernetesClient(config);
+
+  let response: any;
+  if (namespace) {
+    response = await client.customObjects.getNamespacedCustomObject({
+      group,
+      version,
+      namespace,
+      plural,
+      name
+    });
+  } else {
+    response = await client.customObjects.getClusterCustomObject({
+      group,
+      version,
+      plural,
+      name
+    });
+  }
+
+  return response;
+};
+
+// List resources using the Kubernetes API
+export const listResources = async (
+  version: string,
+  group: string,
+  plural: string,
+  kind: string,
+  namespace?: string,
+): Promise<k8s.KubernetesObject[]> => {
+  const config = getKubernetesConfig();
+  const client = getKubernetesClient(config);
+
+  try {
+    if (await isCustomResource(group, version)) {
+      return await listCustomResources(version, group, plural, namespace);
     }
-  },
-  Service: {
-    apiGroup: "core",
-    isNamespaced: true,
-    aliases: ["service", "services", "svc"],
-    operations: {
-      read: (client, { name, namespace }) => client.coreV1Api.readNamespacedService({ name, namespace }),
-      delete: (client, { name, namespace }) => client.coreV1Api.deleteNamespacedService({ name, namespace }),
-      list: (client, options) => client.coreV1Api.listNamespacedService(options)
-    }
-  },
-  Deployment: {
-    apiGroup: "apps",
-    isNamespaced: true,
-    aliases: ["deployment", "deployments", "deploy"],
-    operations: {
-      read: (client, { name, namespace }) => client.appsV1Api.readNamespacedDeployment({ name, namespace }),
-      delete: (client, { name, namespace }) => client.appsV1Api.deleteNamespacedDeployment({ name, namespace }),
-      list: (client, options) => client.appsV1Api.listNamespacedDeployment(options)
-    }
-  },
-  ReplicaSet: {
-    apiGroup: "apps",
-    isNamespaced: true,
-    aliases: ["replicaset", "replicasets", "rs"],
-    operations: {
-      read: (client, { name, namespace }) => client.appsV1Api.readNamespacedReplicaSet({ name, namespace }),
-      delete: (client, { name, namespace }) => client.appsV1Api.deleteNamespacedReplicaSet({ name, namespace }),
-      list: (client, options) => client.appsV1Api.listNamespacedReplicaSet(options)
-    }
-  },
-  DaemonSet: {
-    apiGroup: "apps",
-    isNamespaced: true,
-    aliases: ["daemonset", "daemonsets", "ds"],
-    operations: {
-      read: (client, { name, namespace }) => client.appsV1Api.readNamespacedDaemonSet({ name, namespace }),
-      delete: (client, { name, namespace }) => client.appsV1Api.deleteNamespacedDaemonSet({ name, namespace }),
-      list: (client, options) => client.appsV1Api.listNamespacedDaemonSet(options)
-    }
-  },
-  StatefulSet: {
-    apiGroup: "apps",
-    isNamespaced: true,
-    aliases: ["statefulset", "statefulsets", "sts"],
-    operations: {
-      read: (client, { name, namespace }) => client.appsV1Api.readNamespacedStatefulSet({ name, namespace }),
-      delete: (client, { name, namespace }) => client.appsV1Api.deleteNamespacedStatefulSet({ name, namespace }),
-      list: (client, options) => client.appsV1Api.listNamespacedStatefulSet(options)
-    }
-  },
-  ConfigMap: {
-    apiGroup: "core",
-    isNamespaced: true,
-    aliases: ["configmap", "configmaps", "cm"],
-    operations: {
-      read: (client, { name, namespace }) => client.coreV1Api.readNamespacedConfigMap({ name, namespace }),
-      delete: (client, { name, namespace }) => client.coreV1Api.deleteNamespacedConfigMap({ name, namespace }),
-      list: (client, options) => client.coreV1Api.listNamespacedConfigMap(options)
-    }
-  },
-  Secret: {
-    apiGroup: "core",
-    isNamespaced: true,
-    aliases: ["secret", "secrets"],
-    operations: {
-      read: (client, { name, namespace }) => client.coreV1Api.readNamespacedSecret({ name, namespace }),
-      delete: (client, { name, namespace }) => client.coreV1Api.deleteNamespacedSecret({ name, namespace }),
-      list: (client, options) => client.coreV1Api.listNamespacedSecret(options)
-    }
-  },
-  Ingress: {
-    apiGroup: "networking",
-    isNamespaced: true,
-    aliases: ["ingress", "ingresses", "ing"],
-    operations: {
-      read: (client, { name, namespace }) => client.networkingV1Api.readNamespacedIngress({ name, namespace }),
-      delete: (client, { name, namespace }) => client.networkingV1Api.deleteNamespacedIngress({ name, namespace }),
-      list: (client, options) => client.networkingV1Api.listNamespacedIngress(options)
-    }
-  },
-  Namespace: {
-    apiGroup: "core",
-    isNamespaced: false,
-    aliases: ["namespace", "namespaces", "ns"],
-    operations: {
-      read: (client, { name }) => client.coreV1Api.readNamespace({ name }),
-      delete: (client, { name }) => client.coreV1Api.deleteNamespace({ name }),
-      list: (client, options) => client.coreV1Api.listNamespace(options)
-    }
-  },
-  Node: {
-    apiGroup: "core",
-    isNamespaced: false,
-    aliases: ["node", "nodes"],
-    operations: {
-      read: (client, { name }) => client.coreV1Api.readNode({ name }),
-      delete: () => { throw new Error("Node deletion is not supported for safety reasons"); },
-      list: (client, options) => client.coreV1Api.listNode(options)
-    }
+
+    const response = await client.kubernetesObject.list(
+      [group, version].filter(Boolean).join("/"),
+      kind,
+      namespace
+    );
+
+    return (response.items || []);
+  } catch (error: any) {
+    console.error(`Failed to list ${kind} resources: ${error.message}`);
+
+    return [];
   }
 };
 
-/**
- * Get Kubernetes client with automatic configuration detection
- * First tries provided config, then default kubeconfig locations, then in-cluster config
- */
-export function getKubernetesClient(config?: KubernetesConfig): {
-  kubeConfig: k8s.KubeConfig;
-  coreV1Api: k8s.CoreV1Api;
-  appsV1Api: k8s.AppsV1Api;
-  customObjectsApi: k8s.CustomObjectsApi;
-  networkingV1Api: k8s.NetworkingV1Api;
-  apiextensionsV1Api: k8s.ApiextensionsV1Api;
-} {
-  const kubeConfig = new k8s.KubeConfig();
+// List custom resources using the Kubernetes API
+const listCustomResources = async (
+  version: string,
+  group: string,
+  plural: string,
+  namespace?: string,
+): Promise<k8s.KubernetesObject[]> => {
+  const config = getKubernetesConfig();
+  const client = getKubernetesClient(config);
 
   try {
-    if (config?.kubeconfig) {
-      // Use explicitly provided kubeconfig path
-      kubeConfig.loadFromFile(config.kubeconfig);
-    } else if (process.env.KUBECONFIG) {
-      // Use KUBECONFIG environment variable (first file if multiple)
-      const delimiter = process.platform === "win32" ? ";" : ":";
-      const kubeconfigFiles = process.env.KUBECONFIG.split(delimiter).map(file => file.trim()).filter(Boolean);
-      kubeConfig.loadFromFile(kubeconfigFiles[0]);
-    } else if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
-      // We're running in a Kubernetes pod - use in-cluster configuration
-      kubeConfig.loadFromCluster();
+    let response: any;
+    if (namespace) {
+      response = await client.customObjects.listNamespacedCustomObject({
+        version,
+        group,
+        plural,
+        namespace,
+      });
     } else {
-      // Try to load from default kubeconfig location (~/.kube/config)
-      kubeConfig.loadFromDefault();
+      response = await client.customObjects.listClusterCustomObject({
+        version,
+        group,
+        plural,
+      });
     }
 
-    if (config?.context) {
-      kubeConfig.setCurrentContext(config.context);
-    }
-  } catch (error) {
-    throw new Error(`Failed to load Kubernetes configuration: ${error instanceof Error ? error.message : String(error)}`);
+    return (response.items || []);
+  } catch (error: any) {
+    console.error(`Failed to list custom resources ${group}/${version}/${plural}: ${error.message}`);
+
+    return [];
   }
+};
 
-  const coreV1Api = kubeConfig.makeApiClient(k8s.CoreV1Api);
-  const appsV1Api = kubeConfig.makeApiClient(k8s.AppsV1Api);
-  const customObjectsApi = kubeConfig.makeApiClient(k8s.CustomObjectsApi);
-  const networkingV1Api = kubeConfig.makeApiClient(k8s.NetworkingV1Api);
-  const apiextensionsV1Api = kubeConfig.makeApiClient(k8s.ApiextensionsV1Api);
+// List all clusters (contexts) in the kube config
+export const listClusters = (name?: string): string[] => {
+  const cacheKey = "k8s-clusters";
+  const cache = checkCache(cacheKey, name);
+  if (cache.length > 0) return cache;
 
-  return {
-    kubeConfig,
-    coreV1Api,
-    appsV1Api,
-    customObjectsApi,
-    networkingV1Api,
-    apiextensionsV1Api
-  };
-}
-
-export function getResourceConfig(kind: SupportedResourceKind) {
-  return RESOURCE_KIND_MAP[kind];
-}
-
-/**
- * Get resource using the Kubernetes API
- */
-export async function getResource(
-  kind: SupportedResourceKind,
-  name: string,
-  namespace?: string,
-  config?: KubernetesConfig
-): Promise<KubernetesResource> {
-  const client = getKubernetesClient(config);
-  const resourceConfig = getResourceConfig(kind);
-  const ns = namespace || config?.namespace || "default";
+  const config = getKubernetesConfig();
 
   try {
-    const options = resourceConfig.isNamespaced
-      ? { name, namespace: ns }
-      : { name };
-
-    const resource = await resourceConfig.operations.read(client, options);
-    return resource as KubernetesResource;
+    return resourceCache.set(cacheKey, config.getContexts().map(context => context.name), 30 * 60 * 1000);
   } catch (error: any) {
-    const k8sError = new Error(`Failed to get ${kind}/${name}: ${error.message}`) as KubernetesError;
-    k8sError.statusCode = error.statusCode;
-    k8sError.response = error.response;
-    throw k8sError;
-  }
-}
+    console.error(`Failed to list Kubernetes clusters: ${error.message}`);
 
-/**
- * List resources using the Kubernetes API
- */
-export async function listResources(
-  kind: SupportedResourceKind,
-  namespace?: string,
-  config?: KubernetesConfig,
-  labelSelector?: string,
-  fieldSelector?: string,
-  limit?: number
-): Promise<KubernetesResource[]> {
+    return [];
+  }
+};
+
+export const listAvailableResources = async (): Promise<k8s.V1APIResource[]> => {
+  const config = getKubernetesConfig();
   const client = getKubernetesClient(config);
-  const resourceConfig = getResourceConfig(kind);
-  const ns = namespace || config?.namespace || "default";
 
   try {
-    const options = resourceConfig.isNamespaced
-      ? { namespace: ns, labelSelector, fieldSelector, limit }
-      : { labelSelector, fieldSelector, limit };
+    const responses = await Promise.all([
+      client.core.getAPIResources(),
+      client.apps.getAPIResources(),
+      client.batch.getAPIResources(),
+      client.networking.getAPIResources(),
+      client.rbac.getAPIResources(),
+    ]);
 
-    const resources = await resourceConfig.operations.list(client, options);
-    return (resources.items || []) as KubernetesResource[];
+    const resources = responses.flatMap((response) => {
+      const [group, version] = response.groupVersion.split("/");
+
+      return response.resources.map((resource) => {
+        return {
+          ...resource,
+          group: resource.group || group,
+          version: resource.version || version,
+        };
+      });
+    });
+
+    const customResources = (await listAvailableCustomResources()).map(resource => ({
+      ...resource,
+      group: resource.group || "",
+      version: resource.version || "",
+    }));
+
+    return [...resources, ...customResources];
   } catch (error: any) {
-    const k8sError = new Error(`Failed to list ${kind}: ${error.message}`) as KubernetesError;
-    k8sError.statusCode = error.statusCode;
-    k8sError.response = error.response;
-    throw k8sError;
-  }
-}
+    console.error(`Failed to list native Kubernetes resources: ${error.message}`);
 
-/**
- * Delete resource using the Kubernetes API
- */
-export async function deleteResource(
-  kind: SupportedResourceKind,
-  name: string,
-  namespace?: string,
-  config?: KubernetesConfig,
-  gracePeriodSeconds?: number
-): Promise<void> {
+    return [];
+  }
+};
+
+const listAvailableCustomResources = async (): Promise<k8s.V1APIResource[]> => {
+  const cacheKey = "k8s-available-custom-resources";
+  const cache = checkCache(cacheKey);
+  if (cache.length > 0) return cache;
+
+  const config = getKubernetesConfig();
   const client = getKubernetesClient(config);
-  const resourceConfig = getResourceConfig(kind);
-  const ns = namespace || config?.namespace || "default";
 
   try {
-    const options = resourceConfig.isNamespaced
-      ? { name, namespace: ns, gracePeriodSeconds }
-      : { name, gracePeriodSeconds };
+    const response = await client.apiextensions.listCustomResourceDefinition();
 
-    await resourceConfig.operations.delete(client, options);
+    const list = response.items.map((crd) => {
+      const spec = crd.spec;
+      return {
+        name: spec.names.plural,
+        singularName: spec.names.singular || spec.names.kind.toLowerCase(),
+        kind: spec.names.kind,
+        group: crd.spec.group,
+        version: spec.versions[0].name, // Use the first version for simplicity
+        namespaced: spec.scope === "Namespaced",
+        shortNames: spec.names.shortNames || [],
+        verbs: spec.versions[0].served ? ["get", "list", "watch", "create", "update", "patch", "delete"] : [],
+      };
+    });
+
+    // Cache the results for 30 minutes (30 * 60 * 1000 ms)
+    return resourceCache.set(cacheKey, list, 30 * 60 * 1000);
   } catch (error: any) {
-    const k8sError = new Error(`Failed to delete ${kind}/${name}: ${error.message}`) as KubernetesError;
-    k8sError.statusCode = error.statusCode;
-    k8sError.response = error.response;
-    throw k8sError;
-  }
-}
+    console.error(`Failed to list custom resources: ${error.message}`);
 
-/**
- * Get events related to a resource
- */
-export async function getResourceEvents(
+    return [];
+  }
+};
+
+// List all namespaces in the Kubernetes cluster
+export const listNamespaces = async (name?: string): Promise<any> => {
+  const cacheKey = "k8s-namespaces";
+  const cache = checkCache(cacheKey, name);
+  if (cache.length > 0) return cache;
+
+  const config = getKubernetesConfig();
+  const client = getKubernetesClient(config);
+
+  try {
+    // const response = await client.core.listNamespace();
+    const response = await client.kubernetesObject.list("v1", "Namespace");
+
+    // Cache the results for 30 minutes (30 * 60 * 1000 ms)
+    return resourceCache.set(cacheKey, response.items.map((ns) => ns.metadata?.name), 30 * 60 * 1000);
+  } catch (error: any) {
+    console.error(`Failed to list Kubernetes namespaces: ${error.message}`);
+
+    return {};
+  }
+};
+
+// Delete resource using the Kubernetes API
+export const deleteResource = async (
   kind: string,
   name: string,
   namespace?: string,
-  config?: KubernetesConfig
-): Promise<k8s.CoreV1Event[]> {
+  gracePeriodSeconds?: number
+): Promise<void> => {
+  const config = getKubernetesConfig();
   const client = getKubernetesClient(config);
-  const ns = namespace || config?.namespace || "default";
+
+  await client.kubernetesObject.delete(
+    {
+      kind,
+      metadata: { name, namespace },
+    },
+    undefined, // pretty
+    undefined, // dryRun
+    gracePeriodSeconds
+  );
+};
+
+// Get events related to a resource
+export const readResourceEvents = async (
+  kind: string,
+  name: string,
+  namespace: string = "default",
+): Promise<k8s.CoreV1Event[]> => {
+  const config = getKubernetesConfig();
+  const client = getKubernetesClient(config);
 
   try {
-    const eventList = await client.coreV1Api.listNamespacedEvent({
-      namespace: ns,
+    const response = await client.core.listNamespacedEvent({
+      namespace,
       fieldSelector: `involvedObject.name=${name},involvedObject.kind=${kind}`
     });
 
-    return eventList.items || [];
+    return response.items || [];
   } catch (error: any) {
-    const k8sError = new Error(`Failed to get events for ${kind}/${name}: ${error.message}`) as KubernetesError;
-    k8sError.statusCode = error.statusCode;
-    k8sError.response = error.response;
-    throw k8sError;
+    console.error(`Failed to get events for ${kind}/${name} in namespace ${namespace}: ${error.message}`);
+
+    return [];
   }
-}
+};

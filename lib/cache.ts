@@ -3,7 +3,7 @@
 // https://github.com/modelcontextprotocol/typescript-sdk/issues/678
 
 interface CacheEntry {
-  results: string[];
+  results: any[];
   timestamp: number;
   ttl: number;
 }
@@ -33,12 +33,14 @@ class ResourceCache {
   /**
    * Set cached results with TTL in milliseconds
    */
-  set(key: string, results: string[], ttlMs: number = 30 * 60 * 1000): void {
+  set(key: string, results: any[], ttlMs: number = 30 * 60 * 1000): any[] {
     this.cache.set(key, {
       results,
       timestamp: Date.now(),
       ttl: ttlMs
     });
+
+    return results;
   }
 
   /**
@@ -78,6 +80,22 @@ class ResourceCache {
 
 // Global completion cache instance
 export const resourceCache = new ResourceCache();
+
+// Function to check cache for completion results
+export const checkCache = (key: string, name?: string): any[] => {
+  const cachedResults = resourceCache.get(key);
+  if (cachedResults) {
+    const filtered = name
+      ? cachedResults.filter(key =>
+        key.toLowerCase().includes(name.toLowerCase())
+      )
+      : cachedResults;
+
+    return filtered;
+  }
+
+  return [];
+};
 
 // Optional: Periodic cleanup (run every 5 minutes)
 setInterval(() => {

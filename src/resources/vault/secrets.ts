@@ -77,9 +77,9 @@ export const vaultSecretsTemplate: ResourceTemplateDefinition = {
       list: undefined,
       complete: {
         secretMountPath: async (value: string): Promise<string[]> => {
-          const list = await listEngines(value);
+          const response = await listEngines(value);
 
-          return list
+          return response
             .map(path => path.replace(/\/$/, "")) // Remove trailing slash
             .map(path => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }

@@ -61,9 +61,9 @@ export const vaultAuthMethodsTemplate: ResourceTemplateDefinition = {
       list: undefined,
       complete: {
         authPath: async (value: string): Promise<string[]> => {
-          const list = await listAuthMethods(value);
+          const response = await listAuthMethods(value);
 
-          return list
+          return response
             .map(path => path.replace(/\/$/, "")) // Remove trailing slash
             .map(path => path.replace(/\//g, "--")); // Replace / with -- for URI safety
         }
