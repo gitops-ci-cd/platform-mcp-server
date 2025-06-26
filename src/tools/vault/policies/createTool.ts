@@ -44,7 +44,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       };
 
       // Create the policy
-      await createPolicy(name, policyConfig);
+      await createPolicy({ name, data: policyConfig });
 
       // Get the policy details to return comprehensive info
       const response = await readPolicy(name);

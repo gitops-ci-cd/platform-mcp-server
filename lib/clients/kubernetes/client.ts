@@ -2,8 +2,14 @@ import * as k8s from "@kubernetes/client-node";
 import { getKubernetesConfig } from "./config.js";
 import { resourceCache, checkCache } from "../../cache.js";
 
+
+
+
 // Get Kubernetes client with configured API clients
-const getKubernetesClient = (config: k8s.KubeConfig, context?: string): {
+const getKubernetesClient = ({ config, context }: {
+  config: k8s.KubeConfig;
+  context?: string;
+}): {
   config: k8s.KubeConfig;
   core: k8s.CoreV1Api;
   apps: k8s.AppsV1Api;
@@ -39,26 +45,28 @@ const getKubernetesClient = (config: k8s.KubeConfig, context?: string): {
   };
 };
 
-export const isCustomResource = async (group: string, version: string): Promise<boolean> => {
+export const isCustomResource = async ({ group, version }: {
+  group: string, version: string
+}): Promise<boolean> => {
   const all = await listAvailableCustomResources();
 
   return !!all.find(resource => resource.group === group && resource.version === version);
 };
 
 // Get resource using the Kubernetes API
-export const readResource = async (
+export const readResource = async ({ version, group, plural, kind, name, namespace }: {
   version: string,
   group: string,
   plural: string,
   kind: string,
   name: string,
   namespace?: string
-): Promise<k8s.KubernetesObject> => {
+}): Promise<k8s.KubernetesObject> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
-  if (await isCustomResource(group, version)) {
-    return await readCustomResource(version, group, plural, name, namespace);
+  if (await isCustomResource({ group, version })) {
+    return await readCustomResource({ version, group, plural, name, namespace });
   }
 
   return await client.kubernetesObject.read({
@@ -69,15 +77,15 @@ export const readResource = async (
 };
 
 // Get custom resource using the Kubernetes API
-const readCustomResource = async (
+const readCustomResource = async ({ version, group, plural, name, namespace }: {
   version: string,
   group: string,
   plural: string,
   name: string,
   namespace?: string
-): Promise<k8s.KubernetesObject> => {
+}): Promise<k8s.KubernetesObject> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   let response: any;
   if (namespace) {
@@ -101,19 +109,19 @@ const readCustomResource = async (
 };
 
 // List resources using the Kubernetes API
-export const listResources = async (
+export const listResources = async ({ version, group, plural, kind, namespace }: {
   version: string,
   group: string,
   plural: string,
   kind: string,
   namespace?: string,
-): Promise<k8s.KubernetesObject[]> => {
+}): Promise<k8s.KubernetesObject[]> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   try {
-    if (await isCustomResource(group, version)) {
-      return await listCustomResources(version, group, plural, namespace);
+    if (await isCustomResource({ group, version })) {
+      return await listCustomResources({ version, group, plural, namespace });
     }
 
     const response = await client.kubernetesObject.list(
@@ -131,14 +139,14 @@ export const listResources = async (
 };
 
 // List custom resources using the Kubernetes API
-const listCustomResources = async (
+const listCustomResources = async ({ version, group, plural, namespace }: {
   version: string,
   group: string,
   plural: string,
   namespace?: string,
-): Promise<k8s.KubernetesObject[]> => {
+}): Promise<k8s.KubernetesObject[]> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   try {
     let response: any;
@@ -184,7 +192,7 @@ export const listClusters = (name?: string): string[] => {
 
 export const listAvailableResources = async (): Promise<k8s.V1APIResource[]> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   try {
     const responses = await Promise.all([
@@ -227,7 +235,7 @@ const listAvailableCustomResources = async (): Promise<k8s.V1APIResource[]> => {
   if (cache.length > 0) return cache;
 
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   try {
     const response = await client.apiextensions.listCustomResourceDefinition();
@@ -262,7 +270,7 @@ export const listNamespaces = async (name?: string): Promise<any> => {
   if (cache.length > 0) return cache;
 
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   try {
     // const response = await client.core.listNamespace();
@@ -278,14 +286,14 @@ export const listNamespaces = async (name?: string): Promise<any> => {
 };
 
 // Delete resource using the Kubernetes API
-export const deleteResource = async (
+export const deleteResource = async ({ kind, name, namespace, gracePeriodSeconds }: {
   kind: string,
   name: string,
   namespace?: string,
   gracePeriodSeconds?: number
-): Promise<void> => {
+}): Promise<void> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   await client.kubernetesObject.delete(
     {
@@ -299,13 +307,13 @@ export const deleteResource = async (
 };
 
 // Get events related to a resource
-export const readResourceEvents = async (
+export const readResourceEvents = async ({ kind, name, namespace = "default" }: {
   kind: string,
   name: string,
-  namespace: string = "default",
-): Promise<k8s.CoreV1Event[]> => {
+  namespace: string,
+}): Promise<k8s.CoreV1Event[]> => {
   const config = getKubernetesConfig();
-  const client = getKubernetesClient(config);
+  const client = getKubernetesClient({ config });
 
   try {
     const response = await client.core.listNamespacedEvent({

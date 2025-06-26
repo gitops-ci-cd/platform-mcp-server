@@ -50,7 +50,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       };
 
       // Create the secrets engine
-      await createEngine(enginePath, engineConfig);
+      await createEngine({ path: enginePath, data: engineConfig });
 
       // Get the engine details to return comprehensive info
       const response = await readEngine(enginePath);

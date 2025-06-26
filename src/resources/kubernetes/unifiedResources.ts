@@ -6,9 +6,9 @@ import { resourceCache, checkCache } from "../../../lib/cache.js";
 
 // Read callback function for unified kubernetes resources template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
-  const { resourceType, namespace } = variables as {
+  const { resourceType, ["namespace?"]: namespace } = variables as {
     resourceType: string;
-    namespace: string;
+    "namespace?": string;
   };
 
   // Extract group, version, kind, and plural from the resourceType
@@ -18,7 +18,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   }
 
   try {
-    const data = await listResources(version, group, plural, kind, namespace);
+    const data = await listResources({ version, group, plural, kind, namespace });
 
     return resourceResponse({
       message: `Successfully retrieved ${plural || kind} resources from group '${group}', version '${version}'${namespace ? ` in namespace '${namespace}'` : ""}`,
@@ -58,7 +58,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 export const kubernetesUnifiedResourcesTemplate: ResourceTemplateDefinition = {
   title: "Kubernetes Resources",
   resourceTemplate: new ResourceTemplate(
-    "kubernetes://resources/{resourceType}/{namespace}",
+    "kubernetes://resources/{resourceType}/{namespace?}", // empty namespace is not working https://github.com/modelcontextprotocol/typescript-sdk/issues/677
     {
       list: undefined,
       complete: {

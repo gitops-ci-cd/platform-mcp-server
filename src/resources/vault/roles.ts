@@ -28,7 +28,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 
   try {
     const vaultConfig = getVaultConfig();
-    const response = await readRole(authMethod, roleName);
+    const response = await readRole({ authMethod, name: roleName });
 
     // Determine the auth type based on the response data
     let authType = authMethod.split("/")[0]; // Default to first segment of auth method path

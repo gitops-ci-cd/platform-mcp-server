@@ -13,12 +13,12 @@ import { resourceCache, checkCache } from "../../cache.js";
  * @returns Promise with API response
  * @throws Error if API request fails
  */
-const vaultApiRequest = async (
+const vaultApiRequest = async ({ method, path, config, data }: {
   method: string,
   path: string,
   config: VaultConfig,
   data?: any
-): Promise<any> => {
+}): Promise<any> => {
   const url = `${config.endpoint}/v1/${path}`;
 
   const headers: Record<string, string> = {
@@ -49,19 +49,18 @@ const vaultApiRequest = async (
   return await response.json();
 };
 
-export const listAuthMethods = async (name: string): Promise<string[]> => {
+export const listAuthMethods = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-auth-methods";
     const cache = checkCache(cacheKey, name);
     if (cache.length > 0) return cache;
 
-    const vaultConfig = getVaultConfig();
-
-    const response = await vaultApiRequest(
-      "GET",
-      "sys/auth",
-      vaultConfig
-    );
+    const config = getVaultConfig();
+    const response = await vaultApiRequest({
+      method: "GET",
+      path: "sys/auth",
+      config
+    });
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     return resourceCache.set(cacheKey, Object.keys(response.data).sort(), 30 * 60 * 1000);
@@ -72,31 +71,31 @@ export const listAuthMethods = async (name: string): Promise<string[]> => {
   return [];
 };
 
-export const readAuthMethod = async (name: string): Promise<any> => {
-  const vaultConfig = getVaultConfig();
+export const readAuthMethod = async (name?: string): Promise<any> => {
+  const config = getVaultConfig();
 
-  const response = await vaultApiRequest(
-    "GET",
-    `sys/auth/${name}`,
-    vaultConfig
-  );
+  const response = await vaultApiRequest({
+    method: "GET",
+    path: `sys/auth/${name}`,
+    config
+  });
 
   return response;
 };
 
-export const listEngines = async (name: string): Promise<string[]> => {
+export const listEngines = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-engines";
     const cache = checkCache(cacheKey, name);
     if (cache.length > 0) return cache;
 
-    const vaultConfig = getVaultConfig();
+    const config = getVaultConfig();
 
-    const response = await vaultApiRequest(
-      "GET",
-      "sys/mounts",
-      vaultConfig
-    );
+    const response = await vaultApiRequest({
+      method: "GET",
+      path: "sys/mounts",
+      config
+    });
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     return resourceCache.set(cacheKey, Object.keys(response.data).sort(), 30 * 60 * 1000);
@@ -107,42 +106,42 @@ export const listEngines = async (name: string): Promise<string[]> => {
   return [];
 };
 
-export const readEngine = async (name: string): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  const response = await vaultApiRequest(
-    "GET",
-    `sys/mounts/${name}`,
-    vaultConfig
-  );
+export const readEngine = async (name?: string): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "GET",
+    path: `sys/mounts/${name}`,
+    config
+  });
 
   return response;
 };
 
-export const createEngine = async (path: string, engineConfig: any): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  await vaultApiRequest(
-    "POST",
-    `sys/mounts/${path}`,
-    vaultConfig,
-    engineConfig
-  );
+export const createEngine = async ({ path, data }: {
+  path: string,
+  data: any,
+}): Promise<any> => {
+  const config = getVaultConfig();
+  await vaultApiRequest({
+    method: "POST",
+    path: `sys/mounts/${path}`,
+    config,
+    data
+  });
 };
 
-export const listPolicies = async (name: string): Promise<string[]> => {
+export const listPolicies = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-policies";
     const cache = checkCache(cacheKey, name);
     if (cache.length > 0) return cache;
 
-    const vaultConfig = getVaultConfig();
-
-    const response = await vaultApiRequest(
-      "LIST",
-      "sys/policies/acl",
-      vaultConfig
-    );
+    const config = getVaultConfig();
+    const response = await vaultApiRequest({
+      method: "LIST",
+      path: "sys/policies/acl",
+      config
+    });
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     return resourceCache.set(cacheKey, response.data.keys.sort(), 30 * 60 * 1000);
@@ -153,48 +152,42 @@ export const listPolicies = async (name: string): Promise<string[]> => {
   return [];
 };
 
-export const readPolicy = async (name: string): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  const response = await vaultApiRequest(
-    "GET",
-    `sys/policies/acl/${name}`,
-    vaultConfig
-  );
+export const readPolicy = async (name?: string): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "GET",
+    path: `sys/policies/acl/${name}`,
+    config
+  });
 
   return response;
 };
 
-export const createPolicy = async (name: string, engineConfig: any): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  await vaultApiRequest(
-    "POST",
-    `sys/policies/acl/${name}`,
-    vaultConfig,
-    engineConfig
-  );
+export const createPolicy = async ({ name, data }: {
+  name: string,
+  data: any
+}): Promise<any> => {
+  const config = getVaultConfig();
+  await vaultApiRequest({
+    method: "POST",
+    path: `sys/policies/acl/${name}`,
+    config,
+    data
+  });
 };
 
-export const listRoles = async (name: string): Promise<string[]> => {
+export const listRoles = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-roles";
     const cache = checkCache(cacheKey, name);
     if (cache.length > 0) return cache;
 
-    const vaultConfig = getVaultConfig();
-
-    // List auth methods to find role-enabled backends
-    const authMethodsResponse = await vaultApiRequest(
-      "GET",
-      "sys/auth",
-      vaultConfig
-    );
+    const authMethodsResponse = await listAuthMethods(name);
 
     let allRoles: string[] = [];
 
     // Check each auth method for roles
-    for (const [path, authMethod] of Object.entries(authMethodsResponse.data)) {
+    for (const [path, authMethod] of Object.entries(authMethodsResponse)) {
       const cleanPath = path.replace(/\/$/, "");
       const authType = (authMethod as any).type;
 
@@ -203,11 +196,12 @@ export const listRoles = async (name: string): Promise<string[]> => {
         // For Kubernetes and other auth methods, try both 'role' and 'roles' endpoints
         let rolesResponse;
         try {
-          rolesResponse = await vaultApiRequest(
-            "LIST",
-            rolePath(cleanPath),
-            vaultConfig
-          );
+          const config = getVaultConfig();
+          rolesResponse = await vaultApiRequest({
+            method: "LIST",
+            path: rolePath(cleanPath),
+            config
+          });
         } catch {
           // some auth types don't have roles
           continue;
@@ -231,27 +225,32 @@ export const listRoles = async (name: string): Promise<string[]> => {
   return [];
 };
 
-export const readRole = async (authMethod: string, name: string): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  const response = await vaultApiRequest(
-    "GET",
-    `${rolePath(authMethod)}/${name}`,
-    vaultConfig
-  );
+export const readRole = async ({ authMethod, name }: {
+  authMethod: string,
+  name: string
+}): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "GET",
+    path: `${rolePath(authMethod)}/${name}`,
+    config
+  });
 
   return response;
 };
 
-export const createRole = async (authMethod: string, name: string, roleConfig: any): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  await vaultApiRequest(
-    "POST",
-    `${rolePath(authMethod)}/${name}`,
-    vaultConfig,
-    roleConfig
-  );
+export const createRole = async ({ authMethod, name, data }: {
+  authMethod: string,
+  name: string,
+  data: any
+}): Promise<any> => {
+  const config = getVaultConfig();
+  await vaultApiRequest({
+    method: "POST",
+    path: `${rolePath(authMethod)}/${name}`,
+    config,
+    data
+  });
 };
 
 const rolePath = (authMethod: string): string => {
@@ -296,14 +295,16 @@ const rolePath = (authMethod: string): string => {
   return rolePath;
 };
 
-export const readSecretMetadata = async (engineName: string,  path: string): Promise<any> => {
-  const vaultConfig = getVaultConfig();
-
-  const response = await vaultApiRequest(
-    "LIST",
-    `${engineName}/metadata/${path}`,
-    vaultConfig
-  );
+export const readSecretMetadata = async ({ engineName, path }: {
+  engineName: string,
+  path: string
+}): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "LIST",
+    path: `${engineName}/metadata/${path}`,
+    config
+  });
 
   return response;
 };

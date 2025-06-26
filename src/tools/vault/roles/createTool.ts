@@ -41,7 +41,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     try {
       // Check if role already exists
-      const response = await readRole(authMethod, roleName);
+      const response = await readRole({ authMethod, name: roleName });
 
       data = response?.data;
       message = `Vault role "${roleName}" already exists for ${authMethod} auth method`;
@@ -57,10 +57,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       }
 
       // Create the role
-      await createRole(authMethod, roleName, roleConfig);
+      await createRole({ authMethod, name: roleName, data: roleConfig });
 
       // Get the role details to return comprehensive info
-      const response = await readRole(authMethod, roleName);
+      const response = await readRole({ authMethod, name: roleName });
       // Some auth methods don't support GET on roles, that's okay
       data = response?.data || {};
       message = `Vault role "${roleName}" created successfully for ${authMethod} auth method`;
