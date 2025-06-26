@@ -39,9 +39,17 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 
     const data = response?.data || {};
 
-    data.token_policies = await Promise.all(
-      data.token_policies.map((name: string) => readPolicy(name))
-    );
+    if (data.policies) {
+      data.policies = await Promise.all(
+        data.policies.map((name: string) => readPolicy(name).then(policy => policy.data).catch(() => name))
+      );
+    }
+
+    if (data.token_policies) {
+      data.token_policies = await Promise.all(
+        data.token_policies.map((name: string) => readPolicy(name).then(policy => policy.data).catch(() => name))
+      );
+    }
 
     return resourceResponse({
       message: `Retrieved Vault role: ${roleName} from auth method: ${authMethod}`,
