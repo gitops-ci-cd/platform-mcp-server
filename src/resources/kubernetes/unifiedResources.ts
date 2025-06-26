@@ -66,7 +66,7 @@ export const kubernetesUnifiedResourcesTemplate: ResourceTemplateDefinition = {
           // Moving cache out of client to allow for caching the built up name (with --)
           // TODO: This could probably be improved once we have less items in the name
           const cacheKey = "k8s-available-resources";
-          const cache = checkCache(cacheKey, value);
+          const cache = checkCache({ cacheKey, value });
           if (cache.length > 0) return cache;
 
           const response = await listAvailableResources();

@@ -52,7 +52,7 @@ const vaultApiRequest = async ({ method, path, config, data }: {
 export const listAuthMethods = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-auth-methods";
-    const cache = checkCache(cacheKey, name);
+    const cache = checkCache({ cacheKey, value: name });
     if (cache.length > 0) return cache;
 
     const config = getVaultConfig();
@@ -86,7 +86,7 @@ export const readAuthMethod = async (name?: string): Promise<any> => {
 export const listEngines = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-engines";
-    const cache = checkCache(cacheKey, name);
+    const cache = checkCache({ cacheKey, value: name });
     if (cache.length > 0) return cache;
 
     const config = getVaultConfig();
@@ -133,7 +133,7 @@ export const createEngine = async ({ path, data }: {
 export const listPolicies = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-policies";
-    const cache = checkCache(cacheKey, name);
+    const cache = checkCache({ cacheKey, value: name });
     if (cache.length > 0) return cache;
 
     const config = getVaultConfig();
@@ -179,24 +179,28 @@ export const createPolicy = async ({ name, data }: {
 export const listRoles = async (name?: string): Promise<string[]> => {
   try {
     const cacheKey = "vault-roles";
-    const cache = checkCache(cacheKey, name);
+    const cache = checkCache({ cacheKey, value: name });
     if (cache.length > 0) return cache;
 
-    const authMethodsResponse = await listAuthMethods(name);
+    // List auth methods to find role-enabled backends
+    const config = getVaultConfig();
+    const authMethodsResponse = await vaultApiRequest({
+      method: "GET",
+      path: "sys/auth",
+      config
+    });
 
     let allRoles: string[] = [];
 
     // Check each auth method for roles
-    for (const [path, authMethod] of Object.entries(authMethodsResponse)) {
+    for (const [path, authMethod] of Object.entries(authMethodsResponse.data)) {
       const cleanPath = path.replace(/\/$/, "");
       const authType = (authMethod as any).type;
 
       // Only check auth methods that support roles
       if (VAULT_ENGINE_TYPES_WITH_ROLES.includes(authType)) {
-        // For Kubernetes and other auth methods, try both 'role' and 'roles' endpoints
         let rolesResponse;
         try {
-          const config = getVaultConfig();
           rolesResponse = await vaultApiRequest({
             method: "LIST",
             path: rolePath(cleanPath),

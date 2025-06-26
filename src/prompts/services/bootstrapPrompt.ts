@@ -33,7 +33,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
   - Verify with the user to see if they have a repo they'd like to use, otherwise use the GitHub template 'legalzoom/${language}-backend-template' to create 'legalzoom/${name}'.
   - Trigger repository_dispatch events to run cookiecutter in each new repo.
 - Use the Application Platform MCP Server to:
-  - Setup Vault with:
+  - Set up Vault with:
     - secrets engines:
       - '${name}-dev'
       - '${name}-qa'
@@ -47,9 +47,21 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
       - '${name}-usw2-dev' bound to
       - '${name}-usw2-qa'
       - '${name}-usw2-prd'
-  - Create an Artifactory repository for the service
-  - Create an ArgoCD application and project for the service
-  - Create an Entra (Azure AD) group for the service team
+  - Set up Artifactory with:
+    - repository:
+      TODO
+      - '${name}-dev'
+      - '${name}-qa'
+      - '${name}-prd'
+  - Set up ArgoCD with:
+    - projects:
+      - TODO
+    - applications:
+      - TODO
+  - Set up Entra (Azure AD) with:
+    - groups:
+      - TODO
+
 - Ensure all resource creation is idempotent and return links to all created resources.
 - If any step is not yet automated, output a clear TODO or manual instruction.
 - Reference the Backstage templates only for inspiration; do not use Backstage or Jenkins in the workflow.

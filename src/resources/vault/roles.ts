@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getVaultConfig, listRoles, readRole } from "../../../lib/clients/vault/index.js";
+import { getVaultConfig, listRoles, readRole, readPolicy } from "../../../lib/clients/vault/index.js";
 
 // Read callback function for vault role resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -37,9 +37,15 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       authType = response.data.auth_type === "iam" ? "aws" : response.data.auth_type;
     }
 
+    const data = response?.data || {};
+
+    data.token_policies = await Promise.all(
+      data.token_policies.map((name: string) => readPolicy(name))
+    );
+
     return resourceResponse({
       message: `Retrieved Vault role: ${roleName} from auth method: ${authMethod}`,
-      data: response.data,
+      data,
       links: {
         ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/access/${encodeURIComponent(authMethod)}/item/role/show/${roleName}`,
         concept: "https://developer.hashicorp.com/vault/docs/auth",

@@ -14,7 +14,7 @@ class ResourceCache {
   /**
    * Get cached results if they exist and haven't expired
    */
-  get(key: string): string[] | null {
+  get(key: string): any[] | null {
     const entry = this.cache.get(key);
     if (!entry) {
       return null;
@@ -82,19 +82,25 @@ class ResourceCache {
 export const resourceCache = new ResourceCache();
 
 // Function to check cache for completion results
-export const checkCache = (key: string, name?: string): any[] => {
-  const cachedResults = resourceCache.get(key);
-  if (cachedResults) {
-    const filtered = name
-      ? cachedResults.filter(key =>
-        key.toLowerCase().includes(name.toLowerCase())
-      )
-      : cachedResults;
+export const checkCache = ({ cacheKey, value, lookupKey }: {
+  cacheKey: string,
+  value?: string,
+  lookupKey?: string
+}): any[] => {
+  const cachedResults = resourceCache.get(cacheKey);
+  if (cachedResults && value) {
+    const filtered = cachedResults.filter(entry => {
+      if (lookupKey && typeof entry === "object") {
+        entry[lookupKey].toLowerCase().includes(value.toLowerCase());
+      } else {
+        return entry.toLowerCase().includes(value.toLowerCase());
+      }
+    });
 
     return filtered;
+  } else {
+    return cachedResults || [];
   }
-
-  return [];
 };
 
 // Optional: Periodic cleanup (run every 5 minutes)

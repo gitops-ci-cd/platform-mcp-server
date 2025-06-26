@@ -176,7 +176,7 @@ const listCustomResources = async ({ version, group, plural, namespace }: {
 // List all clusters (contexts) in the kube config
 export const listClusters = (name?: string): string[] => {
   const cacheKey = "k8s-clusters";
-  const cache = checkCache(cacheKey, name);
+  const cache = checkCache({ cacheKey, value: name });
   if (cache.length > 0) return cache;
 
   const config = getKubernetesConfig();
@@ -231,7 +231,7 @@ export const listAvailableResources = async (): Promise<k8s.V1APIResource[]> => 
 
 const listAvailableCustomResources = async (): Promise<k8s.V1APIResource[]> => {
   const cacheKey = "k8s-available-custom-resources";
-  const cache = checkCache(cacheKey);
+  const cache = checkCache({ cacheKey });
   if (cache.length > 0) return cache;
 
   const config = getKubernetesConfig();
@@ -266,7 +266,7 @@ const listAvailableCustomResources = async (): Promise<k8s.V1APIResource[]> => {
 // List all namespaces in the Kubernetes cluster
 export const listNamespaces = async (name?: string): Promise<any> => {
   const cacheKey = "k8s-namespaces";
-  const cache = checkCache(cacheKey, name);
+  const cache = checkCache({ cacheKey, value: name });
   if (cache.length > 0) return cache;
 
   const config = getKubernetesConfig();
