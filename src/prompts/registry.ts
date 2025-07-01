@@ -1,4 +1,5 @@
 import { McpServer, RegisteredPrompt } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { sanitizeString } from "../../lib/string.js";
 
 export interface PromptDefinition extends Pick<RegisteredPrompt, "title" | "description" | "argsSchema"> {
   callback: any;
@@ -10,7 +11,7 @@ const promptRegistry = new Map<string, PromptDefinition>();
 
 // Register a prompt in the registry
 export const registerPrompt = (promptDef: PromptDefinition): void => {
-  promptRegistry.set(titleToName(promptDef.title), promptDef);
+  promptRegistry.set(sanitizeString(promptDef.title), promptDef);
 };
 
 // Get prompts filtered by permissions
@@ -36,27 +37,17 @@ export const registerPromptsWithServer = (server: McpServer, userPermissions: st
     const { title, description, callback, argsSchema } = prompt;
     if (argsSchema) {
       server.prompt(
-        titleToName(title),
+        sanitizeString(title),
         description || "",
         argsSchema.shape,
         callback
       );
     } else {
       server.prompt(
-        titleToName(title),
+        sanitizeString(title),
         description || "",
         callback
       );
     }
   }
-};
-
-// Helper function to convert title to a valid tool name
-const titleToName = (title: string = "Unknown"): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except spaces and hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };

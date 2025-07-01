@@ -312,3 +312,69 @@ export const readSecretMetadata = async ({ engineName, path }: {
 
   return response;
 };
+
+export const markKubernetesRoleAdmin = async ({
+  cluster,
+  role
+}: {
+  cluster: string,
+  role: string
+}): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: `kubernetes-roles/${cluster}/${role}/admin`,
+    config,
+    data: { force: true }
+  });
+
+  return response;
+};
+
+export const createGroup = async ({
+  name,
+  policies,
+  type = "external"
+}: {
+  name: string,
+  policies: string[],
+  type?: string
+}): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: "identity/group",
+    config,
+    data: {
+      name,
+      type,
+      policies
+    }
+  });
+
+  return response;
+};
+
+export const createGroupAlias = async ({
+  name,
+  canonicalID,
+  mountAccessor
+}: {
+  name: string,
+  canonicalID: string,
+  mountAccessor: string
+}): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: "identity/group-alias",
+    config,
+    data: {
+      name,
+      canonical_id: canonicalID,
+      mount_accessor: mountAccessor
+    }
+  });
+
+  return response;
+};

@@ -2,8 +2,7 @@
 
 export interface ArtifactoryConfig {
   endpoint: string;
-  username: string;
-  password: string; // Or API key
+  apiKey: string;
 }
 
 /**

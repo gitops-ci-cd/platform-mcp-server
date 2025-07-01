@@ -8,12 +8,11 @@ import type { ArtifactoryConfig } from "./types.js";
  */
 export const getArtifactoryConfig = (): ArtifactoryConfig => {
   const endpoint = process.env.ARTIFACTORY_URL || "";
-  const username = process.env.ARTIFACTORY_USERNAME;
-  const password = process.env.ARTIFACTORY_PASSWORD || process.env.ARTIFACTORY_API_KEY;
+  const apiKey = process.env.ARTIFACTORY_API_KEY;
 
-  if (!username || !password) {
-    throw new Error("ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD (or ARTIFACTORY_API_KEY) environment variables are required");
+  if (!endpoint || !apiKey) {
+    throw new Error("ARTIFACTORY_URL and ARTIFACTORY_API_KEY environment variables are required");
   }
 
-  return { endpoint, username, password };
+  return { endpoint, apiKey };
 };

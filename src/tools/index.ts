@@ -13,6 +13,7 @@ import { createVaultEngineTool } from "./vault/engines/createTool.js";
 import { requestAccessTool } from "./vault/engines/requestAccessTool.js";
 import { createVaultPolicyTool } from "./vault/policies/createTool.js";
 import { createVaultRoleTool } from "./vault/roles/createTool.js";
+import { markK8sAdminTool } from "./vault/roles/markK8sRoleAdminTool.js";
 import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
 import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
 import { createArgoCDProjectTool } from "./argo/projects/createTool.js";
@@ -34,6 +35,7 @@ export const initializeTools = (): void => {
   registerTool(requestAccessTool);
   registerTool(createVaultPolicyTool);
   registerTool(createVaultRoleTool);
+  registerTool(markK8sAdminTool);
 
   registerTool(createArtifactoryRepositoryTool);
 

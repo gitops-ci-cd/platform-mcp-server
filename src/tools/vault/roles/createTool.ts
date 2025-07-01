@@ -6,11 +6,10 @@ import {
   getVaultConfig,
   readRole,
   createRole,
-  VAULT_ENGINE_TYPES_WITH_ROLES
 } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
-  authMethod: z.enum(VAULT_ENGINE_TYPES_WITH_ROLES).describe("Authentication method type (e.g., 'approle', 'kubernetes', 'aws')"),
+  authMethod: z.string().describe("Authentication method type (e.g., 'approle', 'kubernetes', 'aws')"),
   roleName: z.string().describe("Role name (must be unique within the auth method)"),
   policies: z.array(z.string()).optional().describe("List of policy names to associate with this role"),
   roleConfig: z.record(z.any()).optional().describe("Auth method-specific role configuration (e.g., bound_service_account_names for kubernetes, bound_iam_role_arn for aws)"),

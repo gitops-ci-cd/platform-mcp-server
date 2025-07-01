@@ -20,7 +20,7 @@ export const artifactoryApiRequest = async (
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "Authorization": `Basic ${Buffer.from(`${config.username}:${config.password}`).toString("base64")}`,
+    "X-JFrog-Art-Api": config.apiKey,
   };
 
   const response = await fetch(url, {

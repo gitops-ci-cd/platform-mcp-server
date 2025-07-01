@@ -7,6 +7,7 @@ import {
 import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { Variables } from "@modelcontextprotocol/sdk/shared/uriTemplate.js";
+import { sanitizeString } from "../../lib/string.js";
 
 // Resource definition interface
 export interface ResourceDefinition extends Pick<RegisteredResource, "title" | "metadata"> {
@@ -57,7 +58,7 @@ export const registerResource = (resourceDef: ResourceDefinition): void => {
 
 // Register a resource template in the registry
 export const registerResourceTemplate = (templateDef: ResourceTemplateDefinition): void => {
-  templateRegistry.set(titleToName(templateDef.title), templateDef);
+  templateRegistry.set(sanitizeString(templateDef.title), templateDef);
 };
 
 // Get resources filtered by permissions
@@ -98,7 +99,7 @@ export const registerResourcesWithServer = (
   for (const resource of authorizedResources) {
     const { title, uri, metadata, readCallback } = resource;
     server.resource(
-      titleToName(title),
+      sanitizeString(title),
       uri,
       metadata || {},
       readCallback
@@ -118,20 +119,10 @@ export const registerResourceTemplatesWithServer = (
   for (const template of authorizedTemplates) {
     const { title, resourceTemplate, metadata, readCallback } = template;
     server.resource(
-      titleToName(title),
+      sanitizeString(title),
       resourceTemplate,
       metadata || {},
       readCallback,
     );
   }
-};
-
-// Helper function to convert title to a valid tool name
-const titleToName = (title: string = "Unknown"): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except spaces and hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };

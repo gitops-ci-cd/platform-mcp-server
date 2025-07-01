@@ -2,6 +2,7 @@ import { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.
 import { z, ZodTypeAny } from "zod";
 import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import { sanitizeString } from "../../lib/string.js";
 
 export interface ToolDefinition extends Pick<RegisteredTool, "title" | "description" | "inputSchema" | "outputSchema" | "annotations"> {
   requiredPermissions?: string[];
@@ -40,7 +41,7 @@ const toolRegistry = new Map<string, ToolDefinition>();
 
 // Register a tool in the registry
 export const registerTool = (toolDef: ToolDefinition): void => {
-  toolRegistry.set(titleToName(toolDef.title), toolDef);
+  toolRegistry.set(sanitizeString(toolDef.title), toolDef);
 };
 
 // Get tools filtered by permissions
@@ -63,7 +64,7 @@ export const registerToolsWithServer = (server: McpServer, userPermissions: stri
   for (const tool of authorizedTools) {
     const { title, description, inputSchema, outputSchema, annotations, callback } = tool;;
     server.registerTool(
-      titleToName(title),
+      sanitizeString(title),
       {
         title,
         description,
@@ -74,14 +75,4 @@ export const registerToolsWithServer = (server: McpServer, userPermissions: stri
       callback
     );
   }
-};
-
-// Helper function to convert title to a valid tool name
-const titleToName = (title: string = "Unknown"): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except spaces and hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };
