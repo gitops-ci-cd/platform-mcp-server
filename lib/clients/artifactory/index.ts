@@ -1,6 +1,6 @@
 // JFrog Artifactory client exports
 export { getArtifactoryConfig } from "./config.js";
-export { artifactoryApiRequest, applyPackageTypeDefaults } from "./client.js";
+export { artifactoryApiRequest, applyPackageTypeDefaults, listRepositories, readRepository } from "./client.js";
 export {
   type ArtifactoryConfig,
   type ArtifactoryPackageType,

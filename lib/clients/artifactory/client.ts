@@ -1,5 +1,7 @@
 // JFrog Artifactory API client utilities
 import type { ArtifactoryConfig } from "./types.js";
+import { getArtifactoryConfig } from "./config.js";
+import { resourceCache, checkCache } from "../../cache.js";
 
 /**
  * Make HTTP request to Artifactory API with proper authentication
@@ -73,4 +75,90 @@ export const applyPackageTypeDefaults = (
   }
 
   return { ...defaults, ...properties };
+};
+
+export const listRepositories = async (name?: string): Promise<string[]> => {
+  try {
+    const cacheKey = "artifactory-repositories";
+    const cache = checkCache({ cacheKey, value: name });
+    if (cache.length > 0) return cache;
+
+    const config = getArtifactoryConfig();
+    const response = await artifactoryApiRequest(
+      "GET",
+      "repositories",
+      config
+    );
+
+    if (!Array.isArray(response)) {
+      throw new Error("No repositories data returned from Artifactory");
+    }
+
+    let allPaths: string[] = [];
+
+    // Get basic repository keys
+    const repositoryKeys = response.map((repo: any) => repo.key).sort();
+    allPaths.push(...repositoryKeys);
+
+    // For Docker repositories, also get service paths for specific folders we care about
+    const dockerRepos = response.filter((repo: any) =>
+      repo.packageType === "docker" || repo.key.includes("docker")
+    );
+
+    // Hardcoded folders we care about under docker repositories
+    const targetFolders = ["engineering", "devops", "legalzoom", "data-engineering", "data-sciences"];
+
+    for (const dockerRepo of dockerRepos) {
+      // Add the folder paths first
+      targetFolders.forEach(folder => {
+        allPaths.push(`${dockerRepo.key}/${folder}`);
+      });
+
+      // Then get services within each target folder
+      for (const folder of targetFolders) {
+        try {
+          // Get services within each folder
+          const folderResponse = await artifactoryApiRequest(
+            "GET",
+            `storage/${dockerRepo.key}/${folder}`,
+            config
+          );
+
+          if (folderResponse?.children && Array.isArray(folderResponse.children)) {
+            const services = folderResponse.children
+              .filter((child: any) => child.folder)
+              .map((child: any) => child.uri.replace("/", ""));
+
+            // Add service paths like "docker/engineering/authorization-service"
+            services.forEach((service: string) => {
+              allPaths.push(`${dockerRepo.key}/${folder}/${service}`);
+            });
+          }
+        } catch {
+          // If we can't access this folder, that's ok, we already added the folder path
+        }
+      }
+    }
+
+    // Remove duplicates and sort
+    const uniquePaths = [...new Set(allPaths)].sort();
+
+    // Cache the results for 30 minutes (30 * 60 * 1000 ms)
+    return resourceCache.set(cacheKey, uniquePaths, 30 * 60 * 1000);
+  } catch {
+    console.warn("Could not fetch repositories");
+  }
+
+  return [];
+};
+
+export const readRepository = async (repositoryKey: string): Promise<any> => {
+  const config = getArtifactoryConfig();
+  const response = await artifactoryApiRequest(
+    "GET",
+    `repositories/${repositoryKey}`,
+    config
+  );
+
+  return response;
 };

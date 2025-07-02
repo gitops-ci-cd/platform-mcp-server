@@ -14,7 +14,7 @@ import { vaultSecretsTemplate } from "./vault/secrets.js";
 import { argoCDApplicationsResource } from "./argocd/applications.js";
 import { argoCDProjectsResource } from "./argocd/projects.js";
 import { entraGroupsResource } from "./entra/groups.js";
-import { artifactoryRepositoriesResource } from "./artifactory/repositories.js";
+import { artifactoryRepositoriesTemplate } from "./artifactory/repositories.js";
 import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unifiedResources.js";
 
 export const initializeResources = (): void => {
@@ -26,10 +26,10 @@ export const initializeResources = (): void => {
   registerResourceTemplate(vaultEnginesTemplate);
   registerResourceTemplate(vaultRolesTemplate);
   registerResourceTemplate(kubernetesUnifiedResourcesTemplate);
+  registerResourceTemplate(artifactoryRepositoriesTemplate);
 
   // Register direct resources
   registerResource(argoCDApplicationsResource);
   registerResource(argoCDProjectsResource);
   registerResource(entraGroupsResource);
-  registerResource(artifactoryRepositoriesResource);
 };

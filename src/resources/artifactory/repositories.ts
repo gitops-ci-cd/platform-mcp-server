@@ -1,193 +1,115 @@
-import { ResourceDefinition, resourceResponse } from "../registry.js";
-import { getArtifactoryConfig, artifactoryApiRequest } from "../../../lib/clients/artifactory/index.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-// Interface for filtering and sorting options
-interface RepositoryOptions {
-  repoType?: string;
-  packageType?: string;
-  namePattern?: string;
-  includeStats?: boolean;
-  sortBy?: string;
-  limit?: number;
-}
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
+import { getArtifactoryConfig, readRepository, listRepositories, artifactoryApiRequest } from "../../../lib/clients/artifactory/index.js";
 
-// Function to fetch and process repositories with filtering and sorting
-export async function getArtifactoryRepositories(options: RepositoryOptions = {}) {
-  const { repoType, packageType, namePattern, includeStats, sortBy, limit } = options;
+// Read callback function for individual repository resource template
+const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
+  const { repositoryKey } = variables as {
+    repositoryKey: string
+  };
 
-  // Load Artifactory configuration
-  const artifactoryConfig = getArtifactoryConfig();
+  // Convert the flattened repository key back to the real path (replace -- with /)
+  const realRepositoryPath = repositoryKey.replace(/--/g, "/");
+  const pathParts = realRepositoryPath.split("/");
+  const baseRepositoryKey = pathParts[0]; // e.g., "docker"
 
-  // List all repositories
-  const repositoriesResponse = await artifactoryApiRequest(
-    "GET",
-    "repositories",
-    artifactoryConfig
-  );
+  try {
+    const artifactoryConfig = getArtifactoryConfig();
 
-  if (!Array.isArray(repositoriesResponse)) {
-    throw new Error("No repositories data returned from Artifactory");
-  }
+    // Get the base repository info
+    const repository = await readRepository(baseRepositoryKey);
 
-  const artifactoryWebUrl = artifactoryConfig.endpoint.replace("/artifactory/api", "");
+    const artifactoryWebUrl = artifactoryConfig.endpoint.replace("/artifactory/api", "");
+    const repoWebUrl = `${artifactoryWebUrl}/ui/repos/tree/General/${realRepositoryPath}`;
 
-  // Filter repositories based on criteria
-  let repositories = repositoriesResponse.filter((repo: any) => {
-    if (repoType && repoType !== "all" && repo.type !== repoType) return false;
-    if (packageType && repo.packageType !== packageType) return false;
-    if (namePattern && !repo.key.includes(namePattern)) return false;
-    return true;
-  });
+    // Get recent artifacts/versions for this repository or service path
+    let recentArtifacts = [];
+    try {
+      // This is a specific service path like "docker/engineering/authorization-service"
+      const storageResponse = await artifactoryApiRequest(
+        "GET",
+        `storage/${realRepositoryPath}`,
+        artifactoryConfig
+      );
 
-  // Transform repository data
-  let repoList = await Promise.all(repositories.map(async (repo: any) => {
-    const repoKey = repo.key;
-    const repoWebUrl = `${artifactoryWebUrl}/ui/repos/tree/General/${repoKey}`;
+      if (storageResponse?.children && Array.isArray(storageResponse.children)) {
+        // Get recent versions/tags for this specific service
+        const versions = storageResponse.children
+          .filter((child: any) => child.folder)
+          .sort((a: any, b: any) => new Date(b.lastModified || 0).getTime() - new Date(a.lastModified || 0).getTime())
+          .slice(0, 10); // Most recent 10 versions
 
-    let basicRepo: any = {
-      key: repoKey,
-      type: repo.type,
-      packageType: repo.packageType,
-      description: repo.description || "",
-      url: repo.url,
-      local: repo.local || false,
-      actions: {
-        browse: repoWebUrl,
-        artifacts: `${artifactoryWebUrl}/ui/repos/tree/General/${repoKey}`,
-        settings: `${artifactoryWebUrl}/ui/admin/repositories/${repo.type.toLowerCase()}/${repoKey}`,
-        upload: `${artifactoryWebUrl}/ui/repos/tree/General/${repoKey}?action=upload`,
-      },
-      management_info: {
-        web_ui: repoWebUrl,
-        api_path: `${artifactoryConfig.endpoint}/repositories/${repoKey}`,
-        storage_path: `${artifactoryConfig.endpoint}/storage/${repoKey}`,
-        type: repo.type,
-        created_at: repo.created,
+        recentArtifacts = versions.map((v: any) => v.uri.replace("/", ""));
       }
-    };
-
-    if (includeStats) {
-      try {
-        // Get repository statistics if requested
-        const statsResponse = await artifactoryApiRequest(
-          "GET",
-          `storage/${repoKey}?stats`,
-          artifactoryConfig
-        );
-
-        basicRepo.stats = {
-          size: statsResponse?.size || "0",
-          files: statsResponse?.filesCount || 0,
-          folders: statsResponse?.foldersCount || 0,
-          lastModified: statsResponse?.lastModified,
-          lastUpdated: statsResponse?.lastUpdated,
-        };
-      } catch {
-        // If stats fail, continue without them
-        basicRepo.stats = { error: "Unable to fetch statistics" };
-      }
+    } catch {
+      // If we can't get artifacts, that's ok
     }
 
-    return basicRepo;
-  }));
-
-  // Apply sorting
-  if (sortBy) {
-    repoList.sort((a: any, b: any) => {
-      switch (sortBy) {
-        case "name":
-          return a.key.localeCompare(b.key);
-        case "type":
-          return a.type.localeCompare(b.type);
-        case "size":
-          if (a.stats?.size && b.stats?.size) {
-            return parseInt(a.stats.size) - parseInt(b.stats.size);
-          }
-          return 0;
-        case "lastActivity":
-          if (a.stats?.lastModified && b.stats?.lastModified) {
-            return new Date(a.stats.lastModified).getTime() - new Date(b.stats.lastModified).getTime();
-          }
-          return 0;
-        default:
-          return 0;
-      }
-    });
-  }
-
-  // Apply limit
-  if (limit && limit > 0) {
-    repoList = repoList.slice(0, limit);
-  }
-
-  return {
-    repositories: repoList,
-    summary: {
-      total_count: repoList.length,
-      by_type: repoList.reduce((acc: any, repo: any) => {
-        acc[repo.type] = (acc[repo.type] || 0) + 1;
-        return acc;
-      }, {}),
-      by_package_type: repoList.reduce((acc: any, repo: any) => {
-        acc[repo.packageType] = (acc[repo.packageType] || 0) + 1;
-        return acc;
-      }, {}),
-      local_repositories: repoList.filter((r: any) => r.type === "local").length,
-      remote_repositories: repoList.filter((r: any) => r.type === "remote").length,
-      virtual_repositories: repoList.filter((r: any) => r.type === "virtual").length,
-    },
-    artifactory_info: {
-      endpoint: artifactoryConfig.endpoint,
-      web_ui: artifactoryWebUrl,
-      docs: "https://www.jfrog.com/confluence/display/JFROG/Repository+Management",
-    },
-  };
-}
-
-// Read callback function for Artifactory repositories resource
-const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
-  try {
-    // Use the shared function with default options (no filtering)
-    const resourceData = await getArtifactoryRepositories();
-
     return resourceResponse({
-      message: "Successfully retrieved Artifactory repositories",
-      data: resourceData,
+      message: `Retrieved Artifactory repository: ${realRepositoryPath}`,
+      data: repository,
       metadata: {
-        totalCount: resourceData.repositories.length,
-        byType: resourceData.summary.by_type,
-        byPackageType: resourceData.summary.by_package_type,
+        name: realRepositoryPath,
+        description: repository.description || "",
+        type: repository.rclass,
+        packageType: repository.packageType,
+        recentArtifacts,
+        potentialActions: [
+          "Browse repository contents via web UI",
+          "Upload artifacts via web UI or API",
+          "Configure repository settings",
+          ...(recentArtifacts.length > 0 ? ["View recent artifacts and versions"] : [])
+        ]
       },
       links: {
-        "Artifactory Web UI": resourceData.artifactory_info.web_ui,
-        "Repository Management Documentation": "https://www.jfrog.com/confluence/display/JFROG/Repository+Management",
-        "Artifactory REST API": "https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API",
-      }
+        ui: repoWebUrl,
+        artifacts: `${artifactoryWebUrl}/ui/repos/tree/General/${realRepositoryPath}`,
+        settings: `${artifactoryWebUrl}/ui/admin/repositories/${repository.rclass?.toLowerCase() || "local"}/${baseRepositoryKey}`,
+        api: `${artifactoryConfig.endpoint}/repositories/${baseRepositoryKey}`,
+        storage: `${artifactoryConfig.endpoint}/storage/${realRepositoryPath}`,
+        docs: "https://www.jfrog.com/confluence/display/JFROG/Repository+Management"
+      },
     }, uri);
-
   } catch (error: any) {
     return resourceResponse({
-      message: `Failed to read Artifactory repositories: ${error.message}`,
+      message: `Failed to read Artifactory repository ${realRepositoryPath}: ${error.message}`,
+      links: {
+        docs: "https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API",
+        troubleshooting: "https://www.jfrog.com/confluence/display/JFROG/Troubleshooting+Artifactory"
+      },
       metadata: {
         troubleshooting: [
-          "Ensure ARTIFACTORY_URL and ARTIFACTORY_TOKEN environment variables are set",
-          "Verify your Artifactory token has repository read permissions",
-        ],
-      },
-      links: {
-        "Artifactory REST API Documentation": "https://www.jfrog.com/confluence/display/JFROG/Artifactory+REST+API",
+          "Ensure ARTIFACTORY_URL and ARTIFACTORY_API_KEY environment variables are set",
+          "Verify your Artifactory API key has repository read permissions",
+          `Check that the repository '${realRepositoryPath}' exists and is accessible`,
+          "Check Artifactory server connectivity and accessibility"
+        ]
       }
     }, uri);
   }
 };
 
-// Resource definition for Artifactory repositories
-export const artifactoryRepositoriesResource: ResourceDefinition = {
-  uri: "artifactory://repositories",
+// Resource template definition for Artifactory repositories
+export const artifactoryRepositoriesTemplate: ResourceTemplateDefinition = {
   title: "Artifactory Repositories",
+  resourceTemplate: new ResourceTemplate(
+    "artifactory://repositories/{repositoryKey}",
+    {
+      list: undefined,
+      complete: {
+        repositoryKey: async (value: string): Promise<string[]> => {
+          const response = await listRepositories(value);
+
+          return response
+            .map((path: string) => path.replace(/\//g, "--")); // Replace / with -- for URI safety
+        }
+      }
+    }
+  ),
   metadata: {
-    description: "List of all Artifactory repositories with management links and storage details",
+    description: "Access specific Artifactory repositories by key. Provides repository details, statistics, and management actions",
   },
-  requiredPermissions: ["artifactory:read", "artifactory:repositories:list", "admin"],
+  requiredPermissions: ["artifactory:read", "artifactory:repositories:read", "admin"],
   readCallback,
 };
