@@ -20,9 +20,6 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     // Get the base repository info
     const repository = await readRepository(baseRepositoryKey);
 
-    const artifactoryWebUrl = artifactoryConfig.endpoint.replace("/artifactory/api", "");
-    const repoWebUrl = `${artifactoryWebUrl}/ui/repos/tree/General/${realRepositoryPath}`;
-
     // Get recent artifacts/versions for this repository or service path
     let recentArtifacts = [];
     try {
@@ -34,13 +31,14 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
       );
 
       if (storageResponse?.children && Array.isArray(storageResponse.children)) {
-        // Get recent versions/tags for this specific service
         const versions = storageResponse.children
-          .filter((child: any) => child.folder)
           .sort((a: any, b: any) => new Date(b.lastModified || 0).getTime() - new Date(a.lastModified || 0).getTime())
           .slice(0, 10); // Most recent 10 versions
-
-        recentArtifacts = versions.map((v: any) => v.uri.replace("/", ""));
+        if (pathParts.length > 1) {
+          recentArtifacts = versions.filter((v: any) => v.folder).map((v: any) => v.uri.replace("/", ""));
+        } else {
+          recentArtifacts = versions.map((v: any) => v.uri.replace("/", ""));
+        }
       }
     } catch {
       // If we can't get artifacts, that's ok
@@ -63,11 +61,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
         ]
       },
       links: {
-        ui: repoWebUrl,
-        artifacts: `${artifactoryWebUrl}/ui/repos/tree/General/${realRepositoryPath}`,
-        settings: `${artifactoryWebUrl}/ui/admin/repositories/${repository.rclass?.toLowerCase() || "local"}/${baseRepositoryKey}`,
-        api: `${artifactoryConfig.endpoint}/repositories/${baseRepositoryKey}`,
-        storage: `${artifactoryConfig.endpoint}/storage/${realRepositoryPath}`,
+        ui: `${artifactoryConfig.endpoint.replace("/artifactory/api", "")}/ui/repos/tree/General/${realRepositoryPath}`,
         docs: "https://www.jfrog.com/confluence/display/JFROG/Repository+Management"
       },
     }, uri);
