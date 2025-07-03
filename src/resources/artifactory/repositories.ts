@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { getArtifactoryConfig, readRepository, listRepositories, artifactoryApiRequest } from "../../../lib/clients/artifactory/index.js";
+import { getArtifactoryConfig, readRepository, listRepositories, listRepositoryContents } from "../../../lib/clients/artifactory/index.js";
 
 // Read callback function for individual repository resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -18,40 +18,19 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     const artifactoryConfig = getArtifactoryConfig();
 
     // Get the base repository info
-    const repository = await readRepository(baseRepositoryKey);
+    const response = await readRepository(baseRepositoryKey);
 
-    // Get recent artifacts/versions for this repository or service path
-    let recentArtifacts = [];
-    try {
-      // This is a specific service path like "docker/engineering/authorization-service"
-      const storageResponse = await artifactoryApiRequest(
-        "GET",
-        `storage/${realRepositoryPath}`,
-        artifactoryConfig
-      );
-
-      if (storageResponse?.children && Array.isArray(storageResponse.children)) {
-        const versions = storageResponse.children
-          .sort((a: any, b: any) => new Date(b.lastModified || 0).getTime() - new Date(a.lastModified || 0).getTime())
-          .slice(0, 10); // Most recent 10 versions
-        if (pathParts.length > 1) {
-          recentArtifacts = versions.filter((v: any) => v.folder).map((v: any) => v.uri.replace("/", ""));
-        } else {
-          recentArtifacts = versions.map((v: any) => v.uri.replace("/", ""));
-        }
-      }
-    } catch {
-      // If we can't get artifacts, that's ok
-    }
+    const contents = await listRepositoryContents(realRepositoryPath);
+    const recentArtifacts = contents.slice(0, 10); // Most recent 10 versions
 
     return resourceResponse({
       message: `Retrieved Artifactory repository: ${realRepositoryPath}`,
-      data: repository,
+      data: response,
       metadata: {
         name: realRepositoryPath,
-        description: repository.description || "",
-        type: repository.rclass,
-        packageType: repository.packageType,
+        description: response.description || "",
+        type: response.rclass,
+        packageType: response.packageType,
         recentArtifacts,
         potentialActions: [
           "Browse repository contents via web UI",

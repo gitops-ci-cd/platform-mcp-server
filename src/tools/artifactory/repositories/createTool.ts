@@ -4,8 +4,9 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArtifactoryConfig,
-  artifactoryApiRequest,
   applyPackageTypeDefaults,
+  readRepository,
+  createRepository,
   ARTIFACTORY_PACKAGE_TYPES,
   ARTIFACTORY_REPOSITORY_TYPES,
 } from "../../../../lib/clients/artifactory/index.js";
@@ -33,6 +34,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     // Load Artifactory configuration
     const artifactoryConfig = getArtifactoryConfig();
+    const artifactoryWebUrl = artifactoryConfig.endpoint.replace("/artifactory/api", "");
 
     // Prepare repository configuration based on type
     const repoConfig: any = {
@@ -46,24 +48,18 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     }
 
     // Add type-specific properties
-    if (properties) {
-      Object.assign(repoConfig, applyPackageTypeDefaults(packageType, properties));
-    } else {
-      Object.assign(repoConfig, applyPackageTypeDefaults(packageType));
-    }
+    Object.assign(repoConfig, applyPackageTypeDefaults({ packageType, properties }));
 
     let data = null;
     let message = "";
+    let action = "";
 
     try {
-      // Check if repository already exists
-      const existingRepo = await artifactoryApiRequest(
-        "GET",
-        `repositories/${repositoryKey}`,
-        artifactoryConfig
-      );
+      // Check if repository already exists using the helper
+      const existingRepo = await readRepository(repositoryKey);
       data = existingRepo;
       message = `Artifactory repository "${repositoryKey}" already exists and is ready to use`;
+      action = "verified";
     } catch (checkError: any) {
       // Repository doesn't exist, create it
       if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
@@ -71,22 +67,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       }
 
       // Create the repository
-      await artifactoryApiRequest(
-        "PUT",
-        `repositories/${repositoryKey}`,
-        artifactoryConfig,
-        repoConfig
-      );
+      await createRepository(repoConfig);
 
       // Get the repository details to return comprehensive info
-      const repoInfo = await artifactoryApiRequest(
-        "GET",
-        `repositories/${repositoryKey}`,
-        artifactoryConfig
-      );
-
+      const repoInfo = await readRepository(repositoryKey);
       data = repoInfo;
       message = `Artifactory repository "${repositoryKey}" created successfully`;
+      action = "created";
     }
 
     return toolResponse({
@@ -97,10 +84,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         package_type: packageType,
         repository_type: repositoryType,
         description: description || "",
-        action: message.includes("already exists") ? "verified" : "created"
+        action
       },
       links: {
-        ui: `${artifactoryConfig.endpoint}/ui/repos/tree/General/${repositoryKey}`,
+        ui: `${artifactoryWebUrl}/ui/repos/tree/General/${repositoryKey}`,
+        browse: `${artifactoryWebUrl}/ui/repos/tree/General/${repositoryKey}`,
+        settings: `${artifactoryWebUrl}/ui/admin/repositories/${repositoryType.toLowerCase()}/${repositoryKey}`,
+        api: `${artifactoryConfig.endpoint}/repositories/${repositoryKey}`,
         endpoint: artifactoryConfig.endpoint
       }
     });

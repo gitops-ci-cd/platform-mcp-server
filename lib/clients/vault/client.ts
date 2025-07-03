@@ -50,11 +50,11 @@ const vaultApiRequest = async ({ method, path, config, data }: {
 };
 
 export const listAuthMethods = async (name?: string): Promise<string[]> => {
-  try {
-    const cacheKey = "vault-auth-methods";
-    const cache = checkCache({ cacheKey, value: name });
-    if (cache.length > 0) return cache;
+  const cacheKey = "vault-auth-methods";
+  const cache = checkCache({ cacheKey, value: name });
+  if (cache.length > 0) return cache;
 
+  try {
     const config = getVaultConfig();
     const response = await vaultApiRequest({
       method: "GET",
@@ -84,11 +84,11 @@ export const readAuthMethod = async (name?: string): Promise<any> => {
 };
 
 export const listEngines = async (name?: string): Promise<string[]> => {
-  try {
-    const cacheKey = "vault-engines";
-    const cache = checkCache({ cacheKey, value: name });
-    if (cache.length > 0) return cache;
+  const cacheKey = "vault-engines";
+  const cache = checkCache({ cacheKey, value: name });
+  if (cache.length > 0) return cache;
 
+  try {
     const config = getVaultConfig();
 
     const response = await vaultApiRequest({
@@ -131,11 +131,11 @@ export const createEngine = async ({ path, data }: {
 };
 
 export const listPolicies = async (name?: string): Promise<string[]> => {
-  try {
-    const cacheKey = "vault-policies";
-    const cache = checkCache({ cacheKey, value: name });
-    if (cache.length > 0) return cache;
+  const cacheKey = "vault-policies";
+  const cache = checkCache({ cacheKey, value: name });
+  if (cache.length > 0) return cache;
 
+  try {
     const config = getVaultConfig();
     const response = await vaultApiRequest({
       method: "LIST",
@@ -177,11 +177,11 @@ export const createPolicy = async ({ name, data }: {
 };
 
 export const listRoles = async (name?: string): Promise<string[]> => {
-  try {
-    const cacheKey = "vault-roles";
-    const cache = checkCache({ cacheKey, value: name });
-    if (cache.length > 0) return cache;
+  const cacheKey = "vault-roles";
+  const cache = checkCache({ cacheKey, value: name });
+  if (cache.length > 0) return cache;
 
+  try {
     // List auth methods to find role-enabled backends
     const config = getVaultConfig();
     const authMethodsResponse = await vaultApiRequest({
@@ -331,6 +331,19 @@ export const markKubernetesRoleAdmin = async ({
   return response;
 };
 
+/**
+ * Create a new identity group in HashiCorp Vault
+ * Groups provide a way to manage policies and access control for multiple entities.
+ * External groups can be associated with external identity providers via group aliases.
+ *
+ * This operation is idempotent when used with consistent parameters.
+ *
+ * @param name Unique name for the group
+ * @param policies Array of policy names to associate with this group
+ * @param type Group type - "external" for external identity providers, "internal" for Vault-managed
+ * @returns Group creation response with group ID and metadata
+ * @throws Error if group creation fails or configuration is invalid
+ */
 export const createGroup = async ({
   name,
   policies,
@@ -355,6 +368,17 @@ export const createGroup = async ({
   return response;
 };
 
+/**
+ * Create an alias for an identity group to link it with an external identity provider
+ * Group aliases enable external groups (from LDAP, OIDC, etc.) to be mapped to Vault groups,
+ * allowing external identity provider group memberships to grant Vault policies.
+ *
+ * @param name Name of the group in the external identity provider
+ * @param canonicalID The ID of the Vault group to create an alias for
+ * @param mountAccessor The accessor of the auth method mount (e.g., LDAP, OIDC mount)
+ * @returns Group alias creation response with alias ID and metadata
+ * @throws Error if alias creation fails or parameters are invalid
+ */
 export const createGroupAlias = async ({
   name,
   canonicalID,
