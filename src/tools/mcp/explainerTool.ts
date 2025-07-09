@@ -1,19 +1,15 @@
 import { z } from "zod";
-import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import { ServerRequest, CreateMessageResultSchema, ElicitResultSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { ToolDefinition, toolResponse } from "../registry.js";
 
 const inputSchema = z.object({
-  concept: z.enum(["resources", "tools", "prompts", "sampling", "architecture", "transports", "all"])
-    .describe("Which MCP concept to explain"),
-  audience: z.enum(["beginner", "developer", "architect"]).optional().default("beginner")
-    .describe("Target audience for the explanation"),
-  includeExample: z.boolean().optional().default(true)
-    .describe("Whether to include practical examples in the explanation")
+  concept: z.enum(["resources", "tools", "prompts", "sampling", "elicitation", "architecture", "transports", "all"])
+    .describe("Which MCP concept to explain")
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
-  const { concept, audience, includeExample } = args;
+  const { concept } = args;
   let isError = false;
 
   // Build the explanation prompt based on the concept
@@ -22,6 +18,7 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
     tools: "Explain MCP Tools: what they are, how they work, when to use them, and how they differ from resources and prompts.",
     prompts: "Explain MCP Prompts: what they are, how they work, when to use them, and how they differ from resources and tools.",
     sampling: "Explain MCP Sampling: what it is, how servers can request LLM completions through clients, and why this is useful.",
+    elicitation: "Explain MCP Elicitation: how it works, its purpose, and its role in the overall MCP framework.",
     architecture: "Explain MCP Architecture: the client-server model, JSON-RPC communication, and how different components work together.",
     transports: "Explain MCP Transports: how clients and servers communicate, different transport types, and connection patterns.",
     all: "Provide a comprehensive overview of MCP (Model Context Protocol): its purpose, core concepts (resources, tools, prompts, sampling), and architecture."
@@ -36,23 +33,44 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
     architect: "Emphasize system design, integration patterns, scalability, and architectural decisions."
   };
 
-  const audienceInstruction = audienceInstructions[audience as keyof typeof audienceInstructions] || audienceInstructions.beginner;
-
-  const exampleInstruction = includeExample
-    ? "Include a practical, concrete example showing how this concept works in practice."
-    : "Focus on the conceptual explanation without detailed examples.";
-
   const fullPrompt = `${basePrompt}
 
-${audienceInstruction}
-
-${exampleInstruction}
+Include a practical, concrete example showing how this concept works in practice.
 
 Structure your response with clear sections and make it engaging and informative.`;
 
+  let audience: string = "";
   let explanation: string = "Sampling capability is not available in this environment.";
 
   try {
+    const elicitation = await extra.sendRequest(
+      {
+        method: "elicitation/create",
+        params: {
+          message: "How would you like to explain this MCP concept?",
+          requestedSchema: {
+            type: "object",
+            properties: {
+              audience: {
+                type: "string",
+                title: "Audience",
+                enum: Object.keys(audienceInstructions),
+                enumNames: Object.keys(audienceInstructions).map(key => key.charAt(0).toUpperCase() + key.slice(1)),
+              }
+            },
+            required: ["audience"]
+          }
+        }
+      },
+      ElicitResultSchema.extend({
+        content: z.object({
+          audience: z.enum(Object.keys(audienceInstructions) as [keyof typeof audienceInstructions, ...Array<keyof typeof audienceInstructions>]).default("beginner")
+        })
+      })
+    );
+
+    audience = elicitation.content.audience;
+
     // Use MCP sampling to generate the explanation
     const response = await extra.sendRequest(
       {
@@ -63,7 +81,7 @@ Structure your response with clear sections and make it engaging and informative
               role: "user",
               content: {
                 type: "text",
-                text: fullPrompt
+                text: fullPrompt + `\n\n${audienceInstructions[elicitation.content.audience]}`
               }
             }
           ],
@@ -72,18 +90,12 @@ Structure your response with clear sections and make it engaging and informative
           topP: 0.9
         }
       } as ServerRequest,
-      z.object({
-        model: z.string(),
-        stopReason: z.string().optional(),
-        role: z.string(),
-        content: z.object({
-          type: z.string(),
-          text: z.string()
-        })
-      })
+      CreateMessageResultSchema
     );
 
-    explanation = response.content.text;
+    explanation = response.content.type === "text"
+      ? response.content.text
+      : "Expected text response but received different content type";
   } catch (error: any) {
     isError = true;
     console.error("Error in MCP explainer tool:", error.message);
@@ -100,9 +112,7 @@ Structure your response with clear sections and make it engaging and informative
     metadata: {
       concept,
       audience,
-      include_example: includeExample,
       generated: new Date().toISOString(),
-      used_sampling: explanation !== "Sampling capability is not available in this environment.",
       word_count: explanation.split(/\s+/).length
     }
   }, isError);

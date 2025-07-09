@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ServerRequest, CreateMessageResultSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
@@ -33,6 +34,24 @@ const resultSchema = z.object({
       namespace: z.string().optional()
     }).passthrough())
   }).passthrough()
+});
+const CreateMessageWithValidatedResultSchema = CreateMessageResultSchema.extend({
+  content: z.discriminatedUnion("type", [
+    z.object({
+      type: z.literal("text"),
+      text: z.preprocess((val) => {
+        if (typeof val === "string") {
+          try {
+            return JSON.parse(val);
+          } catch {
+            return val; // Let validation fail naturally
+          }
+        }
+        return val;
+      }, resultSchema),
+      annotations: z.any().optional()
+    }),
+  ])
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
@@ -99,14 +118,16 @@ Return the complete ArgoCD project configuration as a standard Kubernetes resour
 - apiVersion: current ArgoCD API version (e.g., argoproj.io/v1alpha1)
 - kind: AppProject
 - metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.email})
-- spec: complete ArgoCD project specification`
+- spec: complete ArgoCD project specification
+
+Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`
                 }
               }
             ],
             maxTokens: 3072
           }
-        },
-        resultSchema
+        } as ServerRequest,
+        CreateMessageWithValidatedResultSchema
       );
 
       // Create the project
@@ -114,7 +135,7 @@ Return the complete ArgoCD project configuration as a standard Kubernetes resour
         "POST",
         "projects",
         argoCDConfig,
-        response
+        response.content.text
       );
 
       message = `ArgoCD project '${name}' created successfully`;

@@ -6,7 +6,7 @@ import { mcpExplainerTool } from "./mcp/explainerTool.js";
 import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
 // import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
 // import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
-import { generateManifestTool } from "./manifests/generateTool.js";
+import { generateKubernetesManifestTool } from "./kubernetes/resources/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
 import { generateAwsCdkTool } from "./awscdk/generateTool.js";
 import { createVaultEngineTool } from "./vault/engines/createTool.js";
@@ -23,9 +23,9 @@ export const initializeTools = (): void => {
   registerTool(mcpExplainerTool);
   registerTool(mcpHealthCheckTool);
 
-  registerTool(generateManifestTool);
   registerTool(generateTerraformTool);
 
+  registerTool(generateKubernetesManifestTool);
   // registerTool(validateKubernetesResourceTool);
   // registerTool(deleteKubernetesResourceTool);
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import { ServerRequest, CreateMessageResultSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { ToolDefinition, toolResponse } from "../registry.js";
 
@@ -201,14 +201,7 @@ Generate complete CDK TypeScript code:`;
           temperature: 0.1
         }
       } as ServerRequest,
-      z.object({
-        model: z.string(),
-        role: z.string(),
-        content: z.object({
-          type: z.string(),
-          text: z.string()
-        })
-      })
+      CreateMessageResultSchema
     );
 
     return toolResponse({

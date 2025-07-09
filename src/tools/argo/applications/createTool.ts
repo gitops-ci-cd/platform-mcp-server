@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ServerRequest, CreateMessageResultSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
@@ -48,6 +49,24 @@ const resultSchema = z.object({
     }).passthrough()
   ])
 });
+const CreateMessageWithValidatedResultSchema = CreateMessageResultSchema.extend({
+  content: z.discriminatedUnion("type", [
+    z.object({
+      type: z.literal("text"),
+      text: z.preprocess((val) => {
+        if (typeof val === "string") {
+          try {
+            return JSON.parse(val);
+          } catch {
+            return val; // Let validation fail naturally
+          }
+        }
+        return val;
+      }, resultSchema),
+      annotations: z.any().optional()
+    }),
+  ])
+});
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
   const { name, repoURL, destinationNamespace, parameters } = args as {
@@ -81,7 +100,7 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
         throw checkError; // Re-throw if it's not a "not found" error
       }
       // Use sampling to generate the ArgoCD application configuration
-      const rawResponse = await extra.sendRequest(
+      const response = await extra.sendRequest(
         {
           method: "sampling/createMessage",
           params: {
@@ -119,25 +138,16 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
             ],
             maxTokens: 2048
           }
-        },
-        z.object({
-          content: z.object({
-            type: z.literal("text"),
-            text: z.string()
-          })
-        })
+        } as ServerRequest,
+        CreateMessageWithValidatedResultSchema
       );
-
-      // Parse and validate the JSON response
-      const response = JSON.parse(rawResponse.content.text);
-      const validatedResponse = resultSchema.parse(response);
 
       // Create the application
       data = await argoCDApiRequest(
         "POST",
         "applications",
         argoCDConfig,
-        validatedResponse
+        response.content.text
       );
       message = `ArgoCD application '${name}' created successfully`;
     }
