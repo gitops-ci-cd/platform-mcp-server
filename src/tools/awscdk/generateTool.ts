@@ -247,6 +247,9 @@ Generate complete CDK TypeScript code:`;
 
 export const generateAwsCdkTool: ToolDefinition = {
   title: "Generate AWS CDK",
+  annotations: {
+    openWorldHint: true,
+  },
   description: "Generate AWS CDK TypeScript constructs with best practices, security configurations, and proper resource management.",
   inputSchema,
   callback

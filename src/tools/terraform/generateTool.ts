@@ -130,6 +130,9 @@ Generate complete Terraform configuration:`;
 
 export const generateTerraformTool: ToolDefinition = {
   title: "Generate Terraform",
+  annotations: {
+    openWorldHint: true,
+  },
   description: "Generate Terraform configurations for various cloud resources and services using AI sampling with best practices and examples.",
   inputSchema,
   callback

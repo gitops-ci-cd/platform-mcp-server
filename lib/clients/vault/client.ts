@@ -332,6 +332,25 @@ export const markKubernetesRoleAdmin = async ({
 };
 
 /**
+ * Read an identity group from HashiCorp Vault
+ * Retrieves details about an existing identity group including its policies and metadata.
+ *
+ * @param name Name of the group to read
+ * @returns Group details including ID, policies, and metadata
+ * @throws Error if group does not exist or API request fails
+ */
+export const readGroup = async (name: string): Promise<any> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "GET",
+    path: `identity/group/name/${name}`,
+    config
+  });
+
+  return response;
+};
+
+/**
  * Create a new identity group in HashiCorp Vault
  * Groups provide a way to manage policies and access control for multiple entities.
  * External groups can be associated with external identity providers via group aliases.

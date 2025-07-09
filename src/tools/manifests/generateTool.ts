@@ -194,6 +194,9 @@ Generate complete YAML manifest:`;
 
 export const generateManifestTool: ToolDefinition = {
   title: "Generate Manifest",
+  annotations: {
+    openWorldHint: true,
+  },
   description: "Generate YAML manifests (Kubernetes, ArgoCD, Datadog, etc.) using AI sampling with reference templates and best practices.",
   inputSchema,
   callback

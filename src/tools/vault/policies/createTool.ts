@@ -87,7 +87,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createVaultPolicyTool: ToolDefinition = {
   title: "Create Vault Policy",
-  description: "Create or verify a new ACL policy in HashiCorp Vault via direct API call. Idempotent operation that checks if the policy exists first. Policies define access permissions for authentication methods and users.",
+  annotations: {
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  description: "Create or verify a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:policies:create", "admin"],
   callback

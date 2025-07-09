@@ -5,6 +5,6 @@ export {
   listEngines, readEngine, createEngine,
   listPolicies, readPolicy, createPolicy,
   listRoles, readRole, createRole,
-  readSecretMetadata
+  readSecretMetadata, readGroup, createGroup, createGroupAlias
 } from "./client.js";
 export { VAULT_ENGINE_TYPES, VAULT_ENGINE_TYPES_WITH_ROLES } from "./types.js";

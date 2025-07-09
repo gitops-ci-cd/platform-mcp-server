@@ -34,6 +34,9 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
 
 export const syncArgoApplicationTool: ToolDefinition = {
   title: "Sync ArgoCD Application",
+  annotations: {
+    openWorldHint: true,
+  },
   description: "Trigger ArgoCD application sync via direct API",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:sync", "admin"],

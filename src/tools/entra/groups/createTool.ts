@@ -142,7 +142,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createEntraGroupTool: ToolDefinition = {
   title: "Create Entra Group",
-  description: "Create or verify a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Idempotent operation that checks if a group with the same display name exists first. Supports security groups, Microsoft 365 groups, and distribution lists.",
+  annotations: {
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  description: "Create or verify a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
   inputSchema,
   requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],
   callback

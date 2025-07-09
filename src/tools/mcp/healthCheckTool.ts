@@ -94,6 +94,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const mcpHealthCheckTool: ToolDefinition = {
   title: "Check MCP Server Health",
+  annotations: {
+    openWorldHint: true,
+  },
   description: "Check the health status of the MCP server by calling its health endpoint. Returns raw JSON data for the AI to parse.",
   inputSchema,
   callback

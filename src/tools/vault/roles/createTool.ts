@@ -102,7 +102,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createVaultRoleTool: ToolDefinition = {
   title: "Create Vault Role",
-  description: "Create or verify a new role for a specific authentication method in HashiCorp Vault via direct API call. Idempotent operation that checks if the role exists first. Roles define authentication constraints and associated policies.",
+  annotations: {
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  description: "Create or verify a new role for a specific authentication method in HashiCorp Vault via direct API call. Roles define authentication constraints and associated policies.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:roles:create", "admin"],
   callback

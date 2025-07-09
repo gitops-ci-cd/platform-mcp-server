@@ -4,6 +4,7 @@ import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/typ
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { sanitizeString } from "../../lib/string.js";
 
+// https://modelcontextprotocol.io/docs/concepts/tools#tool-definition-structure
 export interface ToolDefinition extends Pick<RegisteredTool, "title" | "description" | "inputSchema" | "outputSchema" | "annotations"> {
   requiredPermissions?: string[];
   callback: (args: z.objectOutputType<any, ZodTypeAny>, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => Promise<ReturnType<typeof toolResponse>>;

@@ -29,6 +29,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const markK8sAdminTool: ToolDefinition = {
   title: "Mark Kubernetes Role Admin",
+  annotations: {
+    openWorldHint: true,
+    idempotentHint: true,
+  },
   description: "Mark a Vault Kubernetes role as admin in the kubernetes-roles plugin.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:kubernetes-roles:admin"],

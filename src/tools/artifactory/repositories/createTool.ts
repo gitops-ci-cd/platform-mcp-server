@@ -117,7 +117,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
 export const createArtifactoryRepositoryTool: ToolDefinition = {
   title: "Create Artifactory Repository",
-  description: "Create or verify a new repository in JFrog Artifactory via direct API call. Idempotent operation that checks if the repository exists first. Supports Docker, Maven, NPM, Gradle, and other package types.",
+  annotations: {
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  description: "Create or verify a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
   inputSchema,
   requiredPermissions: ["artifactory:admin", "artifactory:repos:create", "admin"],
   callback

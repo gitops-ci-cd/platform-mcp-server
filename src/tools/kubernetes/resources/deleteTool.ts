@@ -74,6 +74,10 @@
 
 // export const deleteKubernetesResourceTool: ToolDefinition = {
 //   title: "Delete Kubernetes Resource",
+//   annotations: {
+//     openWorldHint: true,
+//     destructiveHint: true,
+//   },
 //   description: "Delete a Kubernetes resource by kind and name. Supports dry-run mode and graceful deletion.",
 //   inputSchema,
 //   requiredPermissions: ["k8s:admin", "k8s:delete", "admin"],

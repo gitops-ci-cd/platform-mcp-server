@@ -185,7 +185,11 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
 
 export const createArgoCDApplicationTool: ToolDefinition = {
   title: "Create ArgoCD Application",
-  description: "Create or verify an ArgoCD application using AI to generate optimal configuration. Idempotent operation that checks if the application exists first.",
+  annotations: {
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  description: "Create or verify an ArgoCD application using AI to generate optimal configuration.",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:applications:create", "admin"],
   callback
