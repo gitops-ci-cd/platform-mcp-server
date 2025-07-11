@@ -1,32 +1,29 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { listResources, listNamespaces, listAvailableResources } from "../../../lib/clients/kubernetes/index.js";
-import { resourceCache, checkCache } from "../../../lib/cache.js";
+import { listResources, listNamespaces, listAvailableResourcesInNamespace, listAvailableClusterResources } from "../../../lib/clients/kubernetes/index.js";
 
 // Read callback function for unified kubernetes resources template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
-  const { resourceType, ["namespace?"]: namespace } = variables as {
-    resourceType: string;
-    "namespace?": string;
+  let { plural, namespace } = variables as {
+    plural: string;
+    namespace: string;
   };
 
-  // Extract group, version, kind, and plural from the resourceType
-  let [group, version, kind, plural] = resourceType.split("--");
-  if (group === "core") {
-    group = ""; // Core resources do not have a group
+  // This is a workaround for the "none" namespace, which should be treated as an empty string
+  // This is necessary because the MCP client does not handle empty parameters correctly
+  // https://github.com/modelcontextprotocol/typescript-sdk/issues/677
+  if (namespace === "none") {
+    namespace = "";
   }
 
   try {
-    const data = await listResources({ version, group, plural, kind, namespace });
+    const data = await listResources({ plural, namespace });
 
     return resourceResponse({
-      message: `Successfully retrieved ${plural || kind} resources from group '${group}', version '${version}'${namespace ? ` in namespace '${namespace}'` : ""}`,
+      message: `Successfully retrieved ${plural} resources from namespace '${namespace}'`,
       data,
       metadata: {
-        group,
-        version,
-        kind,
         plural,
         namespace,
       },
@@ -40,9 +37,6 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     return resourceResponse({
       message: `Failed to read Kubernetes resources: ${error.message}`,
       metadata: {
-        group,
-        version,
-        kind,
         plural,
         namespace,
       },
@@ -58,45 +52,35 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 export const kubernetesUnifiedResourcesTemplate: ResourceTemplateDefinition = {
   title: "Kubernetes Resources",
   resourceTemplate: new ResourceTemplate(
-    "kubernetes://resources/{resourceType}/{namespace?}", // empty namespace is not working https://github.com/modelcontextprotocol/typescript-sdk/issues/677
+    "kubernetes://resources/{namespace}/{plural}",
+    // "kubernetes://resources/{resourceType}{/namespace?}", // empty namespace is not working https://github.com/modelcontextprotocol/typescript-sdk/issues/677
     {
       list: undefined,
       complete: {
-        resourceType: async (value: string): Promise<string[]> => {
-          // Moving cache out of client to allow for caching the built up name (with --)
-          // TODO: This could probably be improved once we have less items in the name
-          const cacheKey = "k8s-available-resources";
-          const cache = checkCache({ cacheKey, value });
-          if (cache.length > 0) return cache;
-
-          const response = await listAvailableResources();
-
-          // Convert resource kinds to the format used in the URI
-          const list = response.map(resource => {
-            let { group, version, kind, name } = resource;
-            if (!version) {
-              [group, version] = ["core", group];
-            }
-            return `${group}--${version}--${kind}--${name}`;
-          });
-
-          return resourceCache.set(cacheKey, list, 30 * 60 * 1000);
-        },
-        namespace: async (value: string, _context?: { arguments?: Record<string, string>; }): Promise<string[]> => {
-          // TODO: When context is available, we could check if the selected resource type
-          // is cluster-scoped and return an empty array to skip namespace selection
-
-          // console.log(context);
-
+        namespace: async (value?: string): Promise<string[]> => {
           try {
             const response = await listNamespaces(value);
-
-            return response.sort();
+            return ["none", ...response.sort()];
           } catch {
-            return ["default", "kube-system"];
+            return ["none", "default", "kube-system"];
           }
-        }
-      }
+        },
+        plural: async (value: string, context?: { arguments?: Record<string, string>; }): Promise<string[]> => {
+          let namespace = context?.arguments?.namespace;
+          if (namespace === "none") {
+            namespace = "";
+          }
+
+          if (namespace) {
+            // If namespace is provided, only show resource types that have instances in that namespace
+            const response = await listAvailableResourcesInNamespace(namespace, value);
+            return response.sort();
+          } else {
+            const response = await listAvailableClusterResources(value);
+            return response.sort();
+          }
+        },
+      },
     }
   ),
   metadata: {

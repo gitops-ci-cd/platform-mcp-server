@@ -1,4 +1,7 @@
+import { validate as validUUID } from "uuid";
+
 import type { EntraGroupConfig, GraphConfig } from "./types.js";
+import { resourceCache, checkCache } from "../../cache.js";
 
 /**
  * Get access token for Microsoft Graph API using client credentials flow
@@ -139,4 +142,90 @@ export const buildGroupConfig = (config: EntraGroupConfig): any => {
   }
 
   return groupConfig;
+};
+
+/**
+ * List all group names from Entra ID with caching
+ * @param name Optional filter string for group names
+ * @returns Promise with array of group display names
+ */
+export const listGroups = async (name?: string): Promise<string[]> => {
+  const cacheKey = "entra-groups";
+  const cache = checkCache({ cacheKey, value: name });
+  if (cache.length > 0) return cache;
+
+  try {
+    const config = await import("./config.js").then(m => m.getGraphConfig());
+
+    // Get all groups with minimal fields for caching
+    const queryParams = new URLSearchParams({
+      "$select": "displayName",
+      "$top": "999" // Get as many as possible for caching
+    });
+
+    const response = await graphApiRequest("GET", `groups?${queryParams.toString()}`, config);
+
+    if (!response?.value) {
+      return [];
+    }
+
+    // Extract just the display names and cache them for 30 minutes
+    const groupNames = response.value.map((group: any) => group.displayName).sort();
+    return resourceCache.set(cacheKey, groupNames, 30 * 60 * 1000);
+
+  } catch (error) {
+    console.warn("Could not fetch Entra groups:", error);
+  }
+
+  return [];
+};
+
+/**
+ * Get a specific group by name or ID with detailed information
+ * @param groupNameOrId The group display name or ID
+ * @param config Graph API configuration
+ * @param includeMembers Whether to include group members (default: true)
+ * @returns Promise with group data including members
+ */
+export const readGroup = async (groupNameOrId: string, config: GraphConfig, includeMembers: boolean = true): Promise<any> => {
+  const selectFields = "id,displayName,description,groupTypes,securityEnabled,mailEnabled,mail,visibility,createdDateTime";
+
+  let group;
+
+  if (validUUID(groupNameOrId)) {
+    // Direct lookup by ID
+    group = await graphApiRequest("GET", `groups/${groupNameOrId}?$select=${selectFields}`, config);
+  } else {
+    // Search by display name
+    const filter = `displayName eq '${groupNameOrId.replace(/'/g, "''")}'`; // Escape single quotes
+    const searchResponse = await graphApiRequest(
+      "GET",
+      `groups?$filter=${encodeURIComponent(filter)}&$select=${selectFields}`,
+      config
+    );
+
+    if (!searchResponse?.value || searchResponse.value.length === 0) {
+      throw new Error(`Group not found: ${groupNameOrId}`);
+    }
+
+    if (searchResponse.value.length > 1) {
+      throw new Error(`Multiple groups found with name: ${groupNameOrId}. Please use the group ID instead.`);
+    }
+
+    group = searchResponse.value[0];
+  }
+
+  if (includeMembers) {
+    // Get group members
+    const membersResponse = await graphApiRequest(
+      "GET",
+      `groups/${group.id}/members?$select=id,displayName,userPrincipalName,userType`,
+      config
+    );
+
+    group.members = membersResponse?.value || [];
+    group.memberCount = group.members.length;
+  }
+
+  return group;
 };

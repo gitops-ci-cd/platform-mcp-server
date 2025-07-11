@@ -1,104 +1,50 @@
-import { ResourceDefinition, resourceResponse } from "../registry.js";
-import { getGraphConfig, graphApiRequest } from "../../../lib/clients/entra/index.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-// Read callback function for Entra groups resource
-const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
+import { getGraphConfig, readGroup, listGroups } from "../../../lib/clients/entra/index.js";
+
+// Read callback function for Entra group resource template
+const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
+  const { groupName } = variables as { groupName: string };
+
+  if (!groupName) {
+    throw new Error("Group name is required");
+  }
+
   try {
-    // Load Graph API configuration
     const graphConfig = getGraphConfig();
 
-    // Query parameters for groups
-    const selectFields = "id,displayName,description,groupTypes,securityEnabled,mailEnabled,mail,visibility,createdDateTime";
-    const queryParams = `$select=${selectFields}&$top=100`;
-
-    // List groups from Microsoft Graph
-    const groupsResponse = await graphApiRequest(
-      "GET",
-      `groups?${queryParams}`,
-      graphConfig
-    );
-
-    if (!groupsResponse?.value) {
-      throw new Error("No groups data returned from Microsoft Graph");
-    }
-
-    // Transform groups data with action-oriented information
-    const groups = groupsResponse.value.map((group: any) => {
-      const groupType = group.groupTypes?.includes("Unified") ? "Microsoft 365" :
-        group.securityEnabled && !group.mailEnabled ? "Security" :
-          !group.securityEnabled && group.mailEnabled ? "Distribution" :
-            "Unknown";
-
-      const azurePortalUrl = `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Overview/groupId/${group.id}`;
-
-      return {
-        id: group.id,
-        displayName: group.displayName,
-        description: group.description || "",
-        type: groupType,
-        securityEnabled: group.securityEnabled,
-        mailEnabled: group.mailEnabled,
-        mail: group.mail,
-        visibility: group.visibility,
-        createdDateTime: group.createdDateTime,
-        actions: {
-          view: azurePortalUrl,
-          members: `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Members/groupId/${group.id}`,
-          owners: `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Owners/groupId/${group.id}`,
-          settings: `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Properties/groupId/${group.id}`,
-        },
-        management_info: {
-          portal_url: azurePortalUrl,
-          graph_api_url: `${graphConfig.endpoint}/v1.0/groups/${group.id}`,
-          created_at: group.createdDateTime,
-        }
-      };
-    });
+    // Use client function to get group with members (accepts name or ID)
+    const data = await readGroup(groupName, graphConfig, true);
 
     return resourceResponse({
-      message: `Found ${groups.length} Entra ID groups`,
-      data: {
-        groups,
-        summary: {
-          total_count: groups.length,
-          by_type: groups.reduce((acc: any, group: any) => {
-            acc[group.type] = (acc[group.type] || 0) + 1;
-            return acc;
-          }, {}),
-          security_enabled: groups.filter((g: any) => g.securityEnabled).length,
-          mail_enabled: groups.filter((g: any) => g.mailEnabled).length,
-          with_mail: groups.filter((g: any) => g.mail).length,
-        },
-        entra_info: {
-          endpoint: graphConfig.endpoint,
-          portal_url: "https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupsManagementMenuBlade/AllGroups",
-          docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
-        }
-      },
+      message: `Entra ID group: ${data.displayName}`,
+      data,
       links: {
-        portal: "https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupsManagementMenuBlade/AllGroups",
-        docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
-        api_docs: "https://docs.microsoft.com/en-us/graph/api/group-list"
+        ui: `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Overview/groupId/${data.id}`,
+        docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
+        api_docs: "https://docs.microsoft.com/en-us/graph/api/group-get"
       },
       metadata: {
         potentialActions: [
-          "Use createEntraGroup tool to add a new group",
-          "Click 'members' links to manage group membership",
-          "Visit Azure Portal to manage groups via web interface",
-          "Visit the Microsoft Graph documentation for group management guides"
+          "Use createEntraGroup tool to create similar groups",
+          "Click 'members' link to manage group membership",
+          "Visit Azure Portal to manage this group",
+          "Check group permissions and access rights"
         ]
       }
     }, uri);
 
   } catch (error: any) {
     return resourceResponse({
-      message: `Failed to read Entra groups: ${error.message}`,
+      message: `Failed to read Entra group: ${error.message}`,
       links: {
-        docs: "https://docs.microsoft.com/en-us/graph/api/group-list",
+        docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
         troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting"
       },
       metadata: {
         troubleshooting: [
+          "Verify the group ID exists",
           "Ensure ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, and ENTRA_TENANT_ID environment variables are set",
           "Verify your app registration has Group.Read.All permissions",
           "Check Microsoft Graph API connectivity and service status"
@@ -108,13 +54,28 @@ const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
   }
 };
 
-// Resource definition for Entra groups
-export const entraGroupsResource: ResourceDefinition = {
-  uri: "entra://groups",
-  title: "Entra ID Groups",
+// Resource template definition for Entra groups
+export const entraGroupsTemplate: ResourceTemplateDefinition = {
+  title: "Entra Groups",
+  resourceTemplate: new ResourceTemplate(
+    "entra://groups/{groupName}",
+    {
+      list: undefined,
+      complete: {
+        groupName: async (value: string): Promise<string[]> => {
+          try {
+            return await listGroups(value);
+          } catch (error) {
+            console.error("Error in group autocomplete:", error);
+            return [];
+          }
+        }
+      }
+    }
+  ),
   metadata: {
-    description: "List of all Entra ID (Azure AD) groups with management links and member details",
+    description: "Access specific Entra ID (Azure AD) groups by name or ID. Provides group details, member list, and management actions",
   },
-  requiredPermissions: ["entra:read", "entra:groups:list", "admin"],
+  requiredPermissions: ["entra:read", "entra:groups:read", "admin"],
   readCallback,
 };

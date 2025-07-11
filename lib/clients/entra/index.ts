@@ -5,7 +5,9 @@ export {
   graphApiRequest,
   generateMailNickname,
   createUserReferences,
-  buildGroupConfig
+  buildGroupConfig,
+  listGroups,
+  readGroup
 } from "./client.js";
 export {
   type EntraGroupConfig,

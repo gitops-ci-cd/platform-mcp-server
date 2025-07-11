@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "jwks-client": "^2.0.5",
     "node-fetch": "^3.3.2",
+    "uuid": "^11.1.0",
     "zod": "^3.25.65"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^18.15.11",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.33.0",
     "@typescript-eslint/parser": "^8.33.0",
     "eslint": "^9.28.0",

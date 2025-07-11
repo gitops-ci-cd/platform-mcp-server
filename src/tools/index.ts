@@ -4,8 +4,6 @@ export { registerToolsWithServer, toolResponse } from "./registry.js";
 import { registerTool } from "./registry.js";
 import { mcpExplainerTool } from "./mcp/explainerTool.js";
 import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
-// import { validateKubernetesResourceTool } from "./kubernetes/resources/validateTool.js";
-// import { deleteKubernetesResourceTool } from "./kubernetes/resources/deleteTool.js";
 import { generateKubernetesManifestTool } from "./kubernetes/resources/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
 import { generateAwsCdkTool } from "./awscdk/generateTool.js";
@@ -26,8 +24,6 @@ export const initializeTools = (): void => {
   registerTool(generateTerraformTool);
 
   registerTool(generateKubernetesManifestTool);
-  // registerTool(validateKubernetesResourceTool);
-  // registerTool(deleteKubernetesResourceTool);
 
   registerTool(generateAwsCdkTool);
 
@@ -37,7 +33,9 @@ export const initializeTools = (): void => {
   registerTool(createVaultRoleTool);
   registerTool(markK8sAdminTool);
 
-  registerTool(createArtifactoryRepositoryTool);
+  // This is for creating repositories in Artifactory, which we don't really need since we primarily
+  // use it for Docker images which all live within the docker repository.
+  // registerTool(createArtifactoryRepositoryTool);
 
   registerTool(createArgoCDApplicationTool);
   registerTool(createArgoCDProjectTool);

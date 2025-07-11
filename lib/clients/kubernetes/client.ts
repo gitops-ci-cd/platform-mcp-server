@@ -2,9 +2,6 @@ import * as k8s from "@kubernetes/client-node";
 import { getKubernetesConfig } from "./config.js";
 import { resourceCache, checkCache } from "../../cache.js";
 
-
-
-
 // Get Kubernetes client with configured API clients
 const getKubernetesClient = ({ config, context }: {
   config: k8s.KubeConfig;
@@ -45,12 +42,16 @@ const getKubernetesClient = ({ config, context }: {
   };
 };
 
-export const isCustomResource = async ({ group, version }: {
-  group: string, version: string
-}): Promise<boolean> => {
+export const isCustomResource = async (name: string): Promise<boolean> => {
   const all = await listAvailableCustomResources();
 
-  return !!all.find(resource => resource.group === group && resource.version === version);
+  return !!all.find(resource => resource.name === name);
+};
+
+export const findResourceByName = async (name: string): Promise<k8s.V1APIResource | undefined> => {
+  const resources = await listAvailableResources(name);
+
+  return resources.find(resource => resource.name === name);
 };
 
 // Get resource using the Kubernetes API
@@ -65,7 +66,7 @@ export const readResource = async ({ version, group, plural, kind, name, namespa
   const config = getKubernetesConfig();
   const client = getKubernetesClient({ config });
 
-  if (await isCustomResource({ group, version })) {
+  if (await isCustomResource(plural)) {
     return await readCustomResource({ version, group, plural, name, namespace });
   }
 
@@ -109,30 +110,35 @@ const readCustomResource = async ({ version, group, plural, name, namespace }: {
 };
 
 // List resources using the Kubernetes API
-export const listResources = async ({ version, group, plural, kind, namespace }: {
-  version: string,
-  group: string,
+export const listResources = async ({ plural, namespace }: {
   plural: string,
-  kind: string,
   namespace?: string,
 }): Promise<k8s.KubernetesObject[]> => {
   const config = getKubernetesConfig();
   const client = getKubernetesClient({ config });
+  const resource = await findResourceByName(plural);
+
+  if (!resource) {
+    console.error(`Resource ${plural} not found in available resources.`);
+    return [];
+  } else if (!resource.verbs?.includes("list")) {
+    return [];
+  }
 
   try {
-    if (await isCustomResource({ group, version })) {
-      return await listCustomResources({ version, group, plural, namespace });
+    if (await isCustomResource(plural)) {
+      return await listCustomResources({ version: resource.version!, group: resource.group!, plural, namespace });
     }
 
     const response = await client.kubernetesObject.list(
-      [group, version].filter(Boolean).join("/"),
-      kind,
+      [resource.group, resource.version].filter(Boolean).join("/"),
+      resource.kind,
       namespace
     );
 
     return (response.items || []);
   } catch (error: any) {
-    console.error(`Failed to list ${kind} resources: ${error.message}`);
+    console.error(`Failed to list ${resource.kind} resources: ${error.message}`);
 
     return [];
   }
@@ -190,7 +196,11 @@ export const listClusters = (name?: string): string[] => {
   }
 };
 
-export const listAvailableResources = async (): Promise<k8s.V1APIResource[]> => {
+export const listAvailableResources = async (value?: string): Promise<k8s.V1APIResource[]> => {
+  const cacheKey = "k8s-available-resources";
+  const cache = checkCache({ cacheKey, value, lookupKey: "name" });
+  if (cache.length > 0) return cache;
+
   const config = getKubernetesConfig();
   const client = getKubernetesClient({ config });
 
@@ -221,7 +231,12 @@ export const listAvailableResources = async (): Promise<k8s.V1APIResource[]> => 
       version: resource.version || "",
     }));
 
-    return [...resources, ...customResources];
+    const sanitizedResources = [...resources, ...customResources].filter(resource => {
+      return !resource.name.includes("/");
+    });
+
+    // Cache the results for 30 minutes (30 * 60 * 1000 ms)
+    return resourceCache.set(cacheKey, sanitizedResources, 30 * 60 * 1000);
   } catch (error: any) {
     console.error(`Failed to list native Kubernetes resources: ${error.message}`);
 
@@ -324,6 +339,88 @@ export const readResourceEvents = async ({ kind, name, namespace = "default" }: 
     return response.items || [];
   } catch (error: any) {
     console.error(`Failed to get events for ${kind}/${name} in namespace ${namespace}: ${error.message}`);
+
+    return [];
+  }
+};
+
+export const listAvailableClusterResources = async (value?: string): Promise<string[]> => {
+  const cacheKey = "k8s-available-cluster-resources";
+  const cache = checkCache({ cacheKey, value });
+  if (cache.length > 0) return cache;
+
+  try {
+    const allResources = await listAvailableResources();
+    const clusterResources = allResources.filter(resource => !resource.namespaced).map(resource => resource.name);
+
+    // Cache the results for 30 minutes (30 * 60 * 1000 ms)
+    return resourceCache.set(cacheKey, clusterResources, 30 * 60 * 1000);
+  } catch (error: any) {
+    console.error(`Failed to list available cluster resources: ${error.message}`);
+
+    return [];
+  }
+};
+
+// List only resource types that have instances in the given namespace
+export const listAvailableResourcesInNamespace = async (namespace: string, value?: string): Promise<string[]> => {
+  const cacheKey = `k8s-available-resources-${namespace}`;
+  const cache = checkCache({ cacheKey, value});
+  if (cache.length > 0) return cache;
+
+  try {
+    // Get all available resource types
+    const allResources = await listAvailableResources();
+    const namespacedResources = allResources.filter(resource => resource.namespaced);
+
+    // Filter to only resources that have instances
+    const resourcesWithInstances: string[] = [];
+
+    // Process resources in smaller batches to avoid overwhelming the API
+    const batchSize = 10;
+    for (let i = 0; i < namespacedResources.length; i += batchSize) {
+      const batch = namespacedResources.slice(i, i + batchSize);
+
+      const results = await Promise.allSettled(
+        batch.map(async (resource) => {
+          try {
+            // Try to list instances of this resource type in the namespace
+            const response = await listResources({
+              plural: resource.name,
+              namespace
+            });
+
+            // If we get results, include this resource type
+            if (response && response.length > 0) {
+              return resource.name;
+            }
+            return null;
+          } catch (error: any) {
+            // Only log errors for resources we expect to work
+            if (!error.message.includes("404") && !error.message.includes("not found")) {
+              console.error(`Failed to list instances for resource ${resource.name} in namespace ${namespace}: ${error.message}`);
+            }
+            return null;
+          }
+        })
+      );
+
+      // Collect successful results from this batch
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value) {
+          resourcesWithInstances.push(result.value);
+        }
+      });
+
+      // Add a small delay between batches to avoid overwhelming the API
+      if (i + batchSize < namespacedResources.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    return resourceCache.set(cacheKey, resourcesWithInstances, 10 * 60 * 1000); // Cache for 10 minutes
+  } catch (error: any) {
+    console.error(`Failed to list available resources in namespace ${namespace}: ${error.message}`);
 
     return [];
   }
