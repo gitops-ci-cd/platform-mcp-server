@@ -4,7 +4,7 @@ import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
  * Static development AuthInfo for local testing
  */
 const DEV_AUTH_INFO: AuthInfo = {
-  token: "dev-token",
+  token: process.env.ENTRA_TOKEN || "dev-token", // Use real token if provided
   clientId: "dev-client",
   scopes: ["openid", "profile"],
   expiresAt: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours from now
@@ -47,6 +47,7 @@ const getUserFromAuthInfo = (authInfo: AuthInfo) => {
     name: extra.name as string,
     roles: extra.roles as string[],
     permissions: extra.permissions as string[],
+    token: authInfo.token, // Include original JWT token for delegated API calls
   };
 };
 

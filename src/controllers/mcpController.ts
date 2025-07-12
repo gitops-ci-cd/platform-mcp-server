@@ -11,7 +11,7 @@ import { getCurrentUser } from "../../lib/auth/index.js";
 
 import pkg from "../../package.json" with { type: "json" };
 
-const { name, version } = pkg;
+const { name, version, description, displayName } = pkg;
 
 // Initialize all available capabilities
 initializeTools();
@@ -46,7 +46,12 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
       }
     };
 
-    const server = new McpServer({ name, version });
+    const server = new McpServer({
+      name,
+      version,
+      title: displayName,
+      description,
+    });
 
     const user = getCurrentUser("accessing MCP server");
     const userPermissions = user.permissions || [];

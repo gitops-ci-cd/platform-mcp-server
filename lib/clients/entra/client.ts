@@ -1,40 +1,8 @@
 import { validate as validUUID } from "uuid";
 
-import type { EntraGroupConfig, GraphConfig } from "./types.js";
 import { resourceCache, checkCache } from "../../cache.js";
-
-/**
- * Get access token for Microsoft Graph API using client credentials flow
- * @param config Graph API configuration
- * @returns Access token string
- * @throws Error if token acquisition fails
- */
-export const getGraphAccessToken = async (config: GraphConfig): Promise<string> => {
-  const tokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
-
-  const tokenData = new URLSearchParams({
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
-    scope: "https://graph.microsoft.com/.default",
-    grant_type: "client_credentials",
-  });
-
-  const response = await fetch(tokenUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: tokenData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to get access token: ${response.status} ${errorText}`);
-  }
-
-  const tokenResponse = await response.json();
-  return tokenResponse.access_token;
-};
+import { getGraphConfig, buildGroupConfig, getGraphAccessToken } from "./config.js";
+import { EntraGroupConfig } from "./types.js";
 
 /**
  * Make HTTP request to Microsoft Graph API with proper authentication
@@ -42,16 +10,18 @@ export const getGraphAccessToken = async (config: GraphConfig): Promise<string> 
  * @param path API path (without /v1.0/ prefix)
  * @param config Graph API configuration
  * @param data Optional request body data
+ * @param userToken Optional user token for on-behalf-of flow
  * @returns Promise with API response
  * @throws Error if API request fails
  */
-export const graphApiRequest = async (
-  method: string,
-  path: string,
-  config: GraphConfig,
-  data?: any
-): Promise<any> => {
-  const accessToken = await getGraphAccessToken(config);
+export const graphApiRequest = async ({ method = "GET", path, config, data, userToken }: {
+  method?: string;
+  path: string;
+  config: any; // Keep it flexible like vault client
+  data?: any;
+  userToken?: string;
+}): Promise<any> => {
+  const accessToken = await getGraphAccessToken({ userToken, config });
   const url = `${config.endpoint}/${path}`;
 
   const headers: Record<string, string> = {
@@ -74,96 +44,33 @@ export const graphApiRequest = async (
 };
 
 /**
- * Generate a safe mail nickname from display name
- * @param displayName The group display name
- * @returns A safe mail nickname (lowercase, alphanumeric, max 64 chars)
- */
-export const generateMailNickname = (displayName: string): string => {
-  return displayName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .substring(0, 64);
-};
-
-/**
- * Create user reference URLs for Graph API operations
- * @param userIds Array of user object IDs
- * @returns Array of Graph API user reference URLs
- */
-export const createUserReferences = (userIds: string[]): string[] => {
-  return userIds.map(
-    (userId) => `https://graph.microsoft.com/v1.0/users/${userId}`
-  );
-};
-
-/**
- * Build a complete group configuration object with defaults
- * @param config Partial group configuration
- * @returns Complete group configuration with defaults applied
- */
-export const buildGroupConfig = (config: EntraGroupConfig): any => {
-  const groupConfig: any = {
-    displayName: config.displayName,
-    mailEnabled: config.mailEnabled !== false, // Default to true
-    securityEnabled: config.securityEnabled !== false, // Default to true
-  };
-
-  if (config.description) {
-    groupConfig.description = config.description;
-  }
-
-  // Set mail nickname
-  if (config.mailNickname) {
-    groupConfig.mailNickname = config.mailNickname;
-  } else {
-    groupConfig.mailNickname = generateMailNickname(config.displayName);
-  }
-
-  // Set group types
-  if (config.groupTypes && config.groupTypes.length > 0) {
-    groupConfig.groupTypes = config.groupTypes;
-  } else {
-    groupConfig.groupTypes = []; // Regular group
-  }
-
-  // Set visibility
-  if (config.visibility) {
-    groupConfig.visibility = config.visibility;
-  }
-
-  // Add owners if provided
-  if (config.owners && config.owners.length > 0) {
-    groupConfig["owners@odata.bind"] = createUserReferences(config.owners);
-  }
-
-  // Add members if provided
-  if (config.members && config.members.length > 0) {
-    groupConfig["members@odata.bind"] = createUserReferences(config.members);
-  }
-
-  return groupConfig;
-};
-
-/**
  * List all group names from Entra ID with caching
  * @param name Optional filter string for group names
+ * @param userToken Optional user token for delegated permissions
  * @returns Promise with array of group display names
  */
-export const listGroups = async (name?: string): Promise<string[]> => {
-  const cacheKey = "entra-groups";
+export const listGroups = async ({ name, userToken }: {
+  name?: string;
+  userToken?: string
+}): Promise<string[]> => {
+  const cacheKey = userToken ? `entra-groups-${userToken.slice(-8)}` : "entra-groups";
   const cache = checkCache({ cacheKey, value: name });
   if (cache.length > 0) return cache;
 
   try {
-    const config = await import("./config.js").then(m => m.getGraphConfig());
+    const config = getGraphConfig();
 
     // Get all groups with minimal fields for caching
     const queryParams = new URLSearchParams({
       "$select": "displayName",
-      "$top": "999" // Get as many as possible for caching
+      "$top": "999"
     });
 
-    const response = await graphApiRequest("GET", `groups?${queryParams.toString()}`, config);
+    const response = await graphApiRequest({
+      path: `groups?${queryParams.toString()}`,
+      config,
+      userToken
+    });
 
     if (!response?.value) {
       return [];
@@ -183,26 +90,35 @@ export const listGroups = async (name?: string): Promise<string[]> => {
 /**
  * Get a specific group by name or ID with detailed information
  * @param groupNameOrId The group display name or ID
- * @param config Graph API configuration
  * @param includeMembers Whether to include group members (default: true)
+ * @param userToken Optional user token for delegated permissions
  * @returns Promise with group data including members
  */
-export const readGroup = async (groupNameOrId: string, config: GraphConfig, includeMembers: boolean = true): Promise<any> => {
+export const readGroup = async ({ groupNameOrId, includeMembers = true, userToken }: {
+  groupNameOrId: string;
+  includeMembers?: boolean;
+  userToken?: string;
+}): Promise<any> => {
+  const config = getGraphConfig();
   const selectFields = "id,displayName,description,groupTypes,securityEnabled,mailEnabled,mail,visibility,createdDateTime";
 
   let group;
 
   if (validUUID(groupNameOrId)) {
     // Direct lookup by ID
-    group = await graphApiRequest("GET", `groups/${groupNameOrId}?$select=${selectFields}`, config);
+    group = await graphApiRequest({
+      path: `groups/${groupNameOrId}?$select=${selectFields}`,
+      config,
+      userToken
+    });
   } else {
     // Search by display name
-    const filter = `displayName eq '${groupNameOrId.replace(/'/g, "''")}'`; // Escape single quotes
-    const searchResponse = await graphApiRequest(
-      "GET",
-      `groups?$filter=${encodeURIComponent(filter)}&$select=${selectFields}`,
-      config
-    );
+    const filter = `displayName eq '${groupNameOrId.replace(/'/g, "''")}'`;
+    const searchResponse = await graphApiRequest({
+      path: `groups?$filter=${encodeURIComponent(filter)}&$select=${selectFields}`,
+      config,
+      userToken
+    });
 
     if (!searchResponse?.value || searchResponse.value.length === 0) {
       throw new Error(`Group not found: ${groupNameOrId}`);
@@ -217,15 +133,37 @@ export const readGroup = async (groupNameOrId: string, config: GraphConfig, incl
 
   if (includeMembers) {
     // Get group members
-    const membersResponse = await graphApiRequest(
-      "GET",
-      `groups/${group.id}/members?$select=id,displayName,userPrincipalName,userType`,
-      config
-    );
+    const membersResponse = await graphApiRequest({
+      path: `groups/${group.id}/members?$select=id,displayName,userPrincipalName,userType`,
+      config,
+      userToken
+    });
 
     group.members = membersResponse?.value || [];
     group.memberCount = group.members.length;
   }
 
   return group;
+};
+
+/**
+ * Create a new group in Entra ID with the provided configuration
+ * @param options Group creation options
+ * @param userToken Optional user token for delegated permissions
+ * @returns Promise with created group data
+ */
+export const createGroup = async ({ options, userToken }: {
+  options: EntraGroupConfig;
+  userToken?: string
+}): Promise<any> => {
+  const config = getGraphConfig();
+  const groupConfig = buildGroupConfig(options);
+
+  return await graphApiRequest({
+    path: "groups",
+    method: "POST",
+    data: groupConfig,
+    config,
+    userToken
+  });
 };

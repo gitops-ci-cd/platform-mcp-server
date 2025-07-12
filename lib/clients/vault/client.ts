@@ -13,8 +13,8 @@ import { resourceCache, checkCache } from "../../cache.js";
  * @returns Promise with API response
  * @throws Error if API request fails
  */
-const vaultApiRequest = async ({ method, path, config, data }: {
-  method: string,
+const vaultApiRequest = async ({ method = "GET", path, config, data }: {
+  method?: string,
   path: string,
   config: VaultConfig,
   data?: any
@@ -57,7 +57,6 @@ export const listAuthMethods = async (name?: string): Promise<string[]> => {
   try {
     const config = getVaultConfig();
     const response = await vaultApiRequest({
-      method: "GET",
       path: "sys/auth",
       config
     });
@@ -75,7 +74,6 @@ export const readAuthMethod = async (name?: string): Promise<any> => {
   const config = getVaultConfig();
 
   const response = await vaultApiRequest({
-    method: "GET",
     path: `sys/auth/${name}`,
     config
   });
@@ -92,7 +90,6 @@ export const listEngines = async (name?: string): Promise<string[]> => {
     const config = getVaultConfig();
 
     const response = await vaultApiRequest({
-      method: "GET",
       path: "sys/mounts",
       config
     });
@@ -109,7 +106,6 @@ export const listEngines = async (name?: string): Promise<string[]> => {
 export const readEngine = async (name?: string): Promise<any> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
-    method: "GET",
     path: `sys/mounts/${name}`,
     config
   });
@@ -155,7 +151,6 @@ export const listPolicies = async (name?: string): Promise<string[]> => {
 export const readPolicy = async (name?: string): Promise<any> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
-    method: "GET",
     path: `sys/policies/acl/${name}`,
     config
   });
@@ -185,7 +180,6 @@ export const listRoles = async (name?: string): Promise<string[]> => {
     // List auth methods to find role-enabled backends
     const config = getVaultConfig();
     const authMethodsResponse = await vaultApiRequest({
-      method: "GET",
       path: "sys/auth",
       config
     });
@@ -235,7 +229,6 @@ export const readRole = async ({ authMethod, name }: {
 }): Promise<any> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
-    method: "GET",
     path: `${rolePath(authMethod)}/${name}`,
     config
   });
@@ -342,7 +335,6 @@ export const markKubernetesRoleAdmin = async ({
 export const readGroup = async (name: string): Promise<any> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
-    method: "GET",
     path: `identity/group/name/${name}`,
     config
   });

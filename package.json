@@ -1,7 +1,8 @@
 {
   "name": "platform-mcp-server",
+  "displayName": "Platform MCP Server",
   "version": "1.0.0",
-  "description": "MCP server with Kubernetes tools",
+  "description": "Enterprise tools for infrastructure management, Kubernetes operations, cloud resources, and development workflows",
   "type": "module",
   "main": "dist/src/index.js",
   "scripts": {

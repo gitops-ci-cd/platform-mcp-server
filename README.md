@@ -2,6 +2,21 @@
 
 A [Model Context Protocol (MCP) server](https://modelcontextprotocol.io/introduction) with tools for Kubernetes, Infrastructure as Code (IaC), interacting with our databases, and other platform-related tasks.
 
+## Quick Start
+
+Start the server locally using Docker:
+
+```sh
+cp .env.example .env
+docker compose up -d
+```
+
+This will start the MCP server on `http://localhost:8080`.
+
+- Check it's running by visiting [/health](http://localhost:8080/health) in your browser.
+- Interact with the server directly using the [MCP Inspector](http://localhost:6274/?serverUrl=http://app:8080/execute).
+- Add the server to your MCP client configuration (e.g., VS Code, Claude Desktop, Cursor) to start using it.
+
 ## Features
 
 - **🔐 MCP SDK Authentication**: Native MCP authentication using Microsoft Entra ID (previously Azure AD)

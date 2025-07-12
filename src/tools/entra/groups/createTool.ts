@@ -37,8 +37,8 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   } = args as EntraGroupConfig;
 
   try {
-    // Get authenticated user for audit logging
-    getCurrentUser(`creating Entra group: ${displayName}`);
+    // Get authenticated user for audit logging and token access
+    const user = getCurrentUser(`creating Entra group: ${displayName}`);
 
     // Load Graph API configuration
     const graphConfig = getGraphConfig();
@@ -61,11 +61,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     try {
       // Check if group with same display name already exists
-      const existingGroups = await graphApiRequest(
-        "GET",
-        `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
-        graphConfig
-      );
+      const existingGroups = await graphApiRequest({
+        path: `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
+        config: graphConfig,
+        userToken: user.token // Use user's token for delegated permissions
+      });
 
       if (existingGroups.value && existingGroups.value.length > 0) {
         data = existingGroups.value[0];
@@ -76,22 +76,23 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     } catch {
       // Group doesn't exist, create it
       try {
-        data = await graphApiRequest(
-          "POST",
-          "groups",
-          graphConfig,
-          groupConfig
-        );
+        data = await graphApiRequest({
+          method: "POST",
+          path: "groups",
+          config: graphConfig,
+          data: groupConfig,
+          userToken: user.token // Use user's token for delegated permissions
+        });
         message = `Entra group "${displayName}" created successfully`;
       } catch (createError: any) {
         // Handle common conflicts
         if (createError.message.includes("already exists") || createError.message.includes("conflict")) {
           // Try to find the existing group
-          const conflictGroups = await graphApiRequest(
-            "GET",
-            `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
-            graphConfig
-          );
+          const conflictGroups = await graphApiRequest({
+            path: `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
+            config: graphConfig,
+            userToken: user.token // Use user's token for delegated permissions
+          });
           if (conflictGroups.value && conflictGroups.value.length > 0) {
             data = conflictGroups.value[0];
             message = `Entra group "${displayName}" already exists (detected after creation attempt)`;
