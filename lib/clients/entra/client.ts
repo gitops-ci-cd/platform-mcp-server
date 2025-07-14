@@ -53,33 +53,47 @@ export const listGroups = async ({ name, userToken }: {
   name?: string;
   userToken?: string
 }): Promise<string[]> => {
-  const cacheKey = userToken ? `entra-groups-${userToken.slice(-8)}` : "entra-groups";
+  const cacheKey = "entra-groups";
   const cache = checkCache({ cacheKey, value: name });
   if (cache.length > 0) return cache;
 
   try {
     const config = getGraphConfig();
+    let allGroups: any[] = [];
+    let nextLink: string | undefined;
 
-    // Get all groups with minimal fields for caching
+    // Get all groups with pagination
     const queryParams = new URLSearchParams({
       "$select": "displayName",
-      "$top": "999"
+      "$top": "999" // Max per page
     });
 
-    const response = await graphApiRequest({
-      path: `groups?${queryParams.toString()}`,
-      config,
-      userToken
-    });
+    let currentPath = `groups?${queryParams.toString()}`;
 
-    if (!response?.value) {
-      return [];
-    }
+    do {
+      const response = await graphApiRequest({
+        path: currentPath,
+        config,
+        userToken
+      });
+
+      if (response?.value) {
+        allGroups.push(...response.value);
+      }
+
+      // Check for next page
+      nextLink = response?.["@odata.nextLink"];
+      if (nextLink) {
+        // Extract just the query portion from the nextLink URL
+        const url = new URL(nextLink);
+        currentPath = `groups${url.search}`;
+      }
+    } while (nextLink);
 
     // Extract just the display names and cache them for 30 minutes
-    const groupNames = response.value.map((group: any) => group.displayName).sort();
-    return resourceCache.set(cacheKey, groupNames, 30 * 60 * 1000);
+    const groupNames = allGroups.map((group: any) => group.displayName).sort();
 
+    return resourceCache.set(cacheKey, groupNames, 30 * 60 * 1000);
   } catch (error) {
     console.warn("Could not fetch Entra groups:", error);
   }

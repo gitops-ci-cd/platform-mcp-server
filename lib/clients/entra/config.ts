@@ -28,6 +28,9 @@ export const getGraphAccessToken = async ({ config, userToken }: {
   config: GraphConfig;
   userToken?: string
 }): Promise<string> => {
+  // If token provided, bypass on-behalf-of flow and use token directly
+  if (process.env.MS_ENTRA_TOKEN) return process.env.MS_ENTRA_TOKEN;
+
   const tokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
 
   let tokenData: URLSearchParams;
