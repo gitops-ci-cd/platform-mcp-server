@@ -19,18 +19,6 @@ export const getGraphConfig = (): GraphConfig => {
 };
 
 /**
- * Generate a safe mail nickname from display name
- * @param displayName The group display name
- * @returns A safe mail nickname (lowercase, alphanumeric, max 64 chars)
- */
-export const generateMailNickname = (displayName: string): string => {
-  return displayName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .substring(0, 64);
-};
-
-/**
  * Get access token for Microsoft Graph API using on-behalf-of flow
  * @param userToken Optional user JWT token for delegated permissions
  * @returns Access token string for Graph API calls
@@ -82,17 +70,6 @@ export const getGraphAccessToken = async ({ config, userToken }: {
 };
 
 /**
- * Create user reference URLs for Graph API operations
- * @param userIds Array of user object IDs
- * @returns Array of Graph API user reference URLs
- */
-export const createUserReferences = (userIds: string[]): string[] => {
-  return userIds.map(
-    (userId) => `https://graph.microsoft.com/v1.0/users/${userId}`
-  );
-};
-
-/**
  * Build a complete group configuration object with defaults
  * @param config Partial group configuration
  * @returns Complete group configuration with defaults applied
@@ -138,4 +115,17 @@ export const buildGroupConfig = (config: EntraGroupConfig): any => {
   }
 
   return groupConfig;
+};
+
+const generateMailNickname = (displayName: string): string => {
+  return displayName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .substring(0, 64);
+};
+
+const createUserReferences = (userIds: string[]): string[] => {
+  return userIds.map(
+    (userId) => `https://graph.microsoft.com/v1.0/users/${userId}`
+  );
 };

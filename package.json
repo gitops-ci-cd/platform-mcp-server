@@ -1,6 +1,6 @@
 {
-  "name": "platform-mcp-server",
-  "displayName": "Platform MCP Server",
+  "name": "devex-mcp-server",
+  "displayName": "DevEx MCP Server",
   "version": "1.0.0",
   "description": "Enterprise tools for infrastructure management, Kubernetes operations, cloud resources, and development workflows",
   "type": "module",

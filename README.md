@@ -1,6 +1,6 @@
-# Platform MCP Server
+# DevEx MCP Server
 
-A [Model Context Protocol (MCP) server](https://modelcontextprotocol.io/introduction) with tools for Kubernetes, Infrastructure as Code (IaC), interacting with our databases, and other platform-related tasks.
+A [Model Context Protocol (MCP) server](https://modelcontextprotocol.io/introduction) with support for various enterprise tools and services.
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ TODO: Update the URL once deployed to production.
 {
   "mcp": {
     "servers": {
-      "platform-mcp-server": {
+      "devex-mcp-server": {
         "url": "http://localhost:8080/execute",
         "type": "http",
       }

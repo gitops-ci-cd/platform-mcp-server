@@ -3,9 +3,8 @@ import { z } from "zod";
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
-  getGraphConfig,
-  graphApiRequest,
-  buildGroupConfig,
+  createGroup,
+  readGroup,
   ENTRA_GROUP_TYPES,
   ENTRA_GROUP_VISIBILITY,
   type EntraGroupConfig
@@ -40,63 +39,46 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Get authenticated user for audit logging and token access
     const user = getCurrentUser(`creating Entra group: ${displayName}`);
 
-    // Load Graph API configuration
-    const graphConfig = getGraphConfig();
-
-    // Prepare group configuration using utils
-    const groupConfig = buildGroupConfig({
-      displayName,
-      description,
-      mailNickname,
-      groupTypes,
-      securityEnabled,
-      mailEnabled,
-      visibility,
-      owners,
-      members
-    });
-
     let data = null;
     let message = "";
 
     try {
       // Check if group with same display name already exists
-      const existingGroups = await graphApiRequest({
-        path: `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
-        config: graphConfig,
-        userToken: user.token // Use user's token for delegated permissions
+      data = await readGroup({
+        groupNameOrId: displayName,
+        includeMembers: true,
+        userToken: user.token
       });
-
-      if (existingGroups.value && existingGroups.value.length > 0) {
-        data = existingGroups.value[0];
-        message = `Entra group "${displayName}" already exists and is ready to use`;
-      } else {
-        throw new Error("Group not found"); // Force creation
-      }
+      message = `Entra group "${displayName}" already exists and is ready to use`;
     } catch {
       // Group doesn't exist, create it
       try {
-        data = await graphApiRequest({
-          method: "POST",
-          path: "groups",
-          config: graphConfig,
-          data: groupConfig,
-          userToken: user.token // Use user's token for delegated permissions
+        data = await createGroup({
+          options: {
+            displayName,
+            description,
+            mailNickname,
+            groupTypes,
+            securityEnabled,
+            mailEnabled,
+            visibility,
+            owners,
+            members
+          },
+          userToken: user.token
         });
         message = `Entra group "${displayName}" created successfully`;
       } catch (createError: any) {
-        // Handle common conflicts
+        // Handle common conflicts - try to read the group again
         if (createError.message.includes("already exists") || createError.message.includes("conflict")) {
-          // Try to find the existing group
-          const conflictGroups = await graphApiRequest({
-            path: `groups?$filter=displayName eq '${displayName.replace(/'/g, "''")}'`,
-            config: graphConfig,
-            userToken: user.token // Use user's token for delegated permissions
-          });
-          if (conflictGroups.value && conflictGroups.value.length > 0) {
-            data = conflictGroups.value[0];
+          try {
+            data = await readGroup({
+              groupNameOrId: displayName,
+              includeMembers: true,
+              userToken: user.token
+            });
             message = `Entra group "${displayName}" already exists (detected after creation attempt)`;
-          } else {
+          } catch {
             throw createError;
           }
         } else {
@@ -109,12 +91,8 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       data,
       message,
       metadata: {
+        name: displayName,
         group_id: data.id,
-        display_name: displayName,
-        security_enabled: securityEnabled,
-        mail_enabled: mailEnabled,
-        tenant_id: graphConfig.tenantId,
-        action: message.includes("already exists") ? "verified" : "created"
       },
       links: {
         portal: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`
@@ -129,7 +107,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting"
       },
       metadata: {
-        display_name: displayName,
+        name: displayName,
         troubleshooting: [
           "Check that you have Group.ReadWrite.All permissions",
           "Verify the display name is unique",

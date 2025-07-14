@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { PromptDefinition } from "../registry.js";
 import { listClusters } from "../../../lib/clients/kubernetes/index.js";
-import { markKubernetesRoleAdmin } from "../../../lib/clients/vault/client.js";
 
 const argsSchema = z.object({
   name: z.string().describe("Name of the service to bootstrap (e.g., 'my-service')"),
@@ -177,7 +176,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
   - Use the GitHub template 'legalzoom/k8s-deployment-template' to create 'legalzoom/${name}-deployment'.
   - Verify with the user to see if they have a repo they'd like to use, otherwise use the GitHub template 'legalzoom/${language}-backend-template' to create 'legalzoom/${name}'.
   - Trigger repository_dispatch events to run cookiecutter in each new repo.
-- Use the Application Platform MCP Server to:
+- Use the DevEx MCP Server to:
   - Set up Vault with ${JSON.stringify(vaultSetup, null, 2)}.
 
   - Set up Artifactory with:

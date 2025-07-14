@@ -1,13 +1,9 @@
 // Entra ID client exports
-export { getGraphConfig } from "./config.js";
+export { getGraphConfig, buildGroupConfig } from "./config.js";
 export {
-  getGraphAccessToken,
-  graphApiRequest,
-  generateMailNickname,
-  createUserReferences,
-  buildGroupConfig,
   listGroups,
-  readGroup
+  readGroup,
+  createGroup
 } from "./client.js";
 export {
   type EntraGroupConfig,

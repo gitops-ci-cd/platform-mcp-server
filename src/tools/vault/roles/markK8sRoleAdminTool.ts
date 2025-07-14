@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
-import { markKubernetesRoleAdmin } from "../../../../lib/clients/vault/client.js";
+import { markKubernetesRoleAdmin } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   cluster: z.string().describe("The Kubernetes cluster name (e.g., 'usw2')"),
