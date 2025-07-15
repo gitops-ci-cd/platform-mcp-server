@@ -30,6 +30,8 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      - MS_ENTRA_TOKEN
     tty: true
     stdin_open: true
     build:
