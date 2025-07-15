@@ -45,9 +45,26 @@ TODO: Update the URL once deployed to production.
 
 ## Development
 
+```sh
+# Install dependencies
+brew bundle
+```
+
 ### Authentication
 
 This server implements **JWT-based authentication** using the **[MCP SDK's native authentication system](https://modelcontextprotocol.io/)** with Microsoft Entra ID integration. The server acts as a **Resource Server** that validates JWT tokens from Microsoft Entra ID using the MCP SDK's `ProxyOAuthServerProvider` and `requireBearerAuth` middleware.
+
+For local testing you'll likely want to set various environment variables.
+
+```sh
+vault login -method=oidc
+
+az login --allow-no-subscriptions
+export MS_ENTRA_TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+
+argocd login argo.devops.prd.aws-01.legalzoom.com --sso
+export ARGOCD_TOKEN=$(yq '.users[] | select(.name == "argo.devops.prd.aws-01.legalzoom.com") | .auth-token' ~/.config/argocd/config)
+```
 
 #### Quick Setup
 
@@ -76,7 +93,7 @@ Configure these roles in your Entra app registration and assign them to users.
 
 ```sh
 cp .env.example .env
-docker compose watch
+docker compose up -d
 ```
 
 If you have node installed locally, you can use:

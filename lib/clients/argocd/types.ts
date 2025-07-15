@@ -1,4 +1,7 @@
-// ArgoCD type definitions
+export interface ArgoCDConfig {
+  endpoint: string;
+  token: string;
+}
 
 /**
  * Common ArgoCD application source types

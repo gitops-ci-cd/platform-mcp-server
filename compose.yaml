@@ -32,6 +32,7 @@ services:
         required: false
     environment:
       - MS_ENTRA_TOKEN
+      - ARGOCD_TOKEN
     tty: true
     stdin_open: true
     build:

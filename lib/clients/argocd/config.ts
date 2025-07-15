@@ -1,9 +1,4 @@
-// ArgoCD configuration utilities
-
-export interface ArgoCDConfig {
-  endpoint: string;
-  token: string;
-}
+import { ArgoCDConfig } from "./types.js";
 
 /**
  * Load ArgoCD configuration from environment variables

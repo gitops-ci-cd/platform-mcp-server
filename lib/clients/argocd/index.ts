@@ -1,6 +1,6 @@
 // ArgoCD client exports
-export { getArgoCDConfig, type ArgoCDConfig } from "./config.js";
-export { argoCDApiRequest } from "./client.js";
+export { getArgoCDConfig } from "./config.js";
+export { listProjects, readProject, listApplications, readApplication, createApplication, createProject } from "./client.js";
 export {
   type ArgoCDSource,
   type ArgoCDDestination,

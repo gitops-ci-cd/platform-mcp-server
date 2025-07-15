@@ -11,8 +11,8 @@ import { vaultPoliciesTemplate } from "./vault/policies.js";
 import { vaultRolesTemplate } from "./vault/roles.js";
 import { vaultAuthMethodsTemplate } from "./vault/auths.js";
 import { vaultSecretsTemplate } from "./vault/secrets.js";
-import { argoCDApplicationsResource } from "./argocd/applications.js";
-import { argoCDProjectsResource } from "./argocd/projects.js";
+import { argoCDApplicationsTemplate } from "./argocd/applications.js";
+import { argoCDProjectsTemplate } from "./argocd/projects.js";
 import { entraGroupsTemplate } from "./entra/groups.js";
 import { artifactoryRepositoriesTemplate } from "./artifactory/repositories.js";
 import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unifiedResources.js";
@@ -20,16 +20,19 @@ import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unifiedResource
 export const initializeResources = (): void => {
   // Register templates
   registerResourceTemplate(mcpConceptsTemplate);
+
   registerResourceTemplate(vaultSecretsTemplate);
   registerResourceTemplate(vaultPoliciesTemplate);
   registerResourceTemplate(vaultAuthMethodsTemplate);
   registerResourceTemplate(vaultEnginesTemplate);
   registerResourceTemplate(vaultRolesTemplate);
+
   registerResourceTemplate(kubernetesUnifiedResourcesTemplate);
+
   registerResourceTemplate(artifactoryRepositoriesTemplate);
+
   registerResourceTemplate(entraGroupsTemplate);
 
-  // Register direct resources
-  registerResource(argoCDApplicationsResource);
-  registerResource(argoCDProjectsResource);
+  registerResourceTemplate(argoCDApplicationsTemplate);
+  registerResourceTemplate(argoCDProjectsTemplate);
 };

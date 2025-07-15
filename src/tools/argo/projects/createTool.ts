@@ -5,7 +5,8 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArgoCDConfig,
-  argoCDApiRequest
+  readProject,
+  createProject
 } from "../../../../lib/clients/argocd/index.js";
 
 const inputSchema = z.object({
@@ -77,11 +78,7 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
     let message = "";
 
     try {
-      const existingProject = await argoCDApiRequest(
-        "GET",
-        `projects/${name}`,
-        argoCDConfig
-      );
+      const existingProject = await readProject(name);
       data = existingProject;
       message = `ArgoCD project '${name}' already exists and is ready to use`;
     } catch (checkError: any) {
@@ -131,12 +128,7 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
       );
 
       // Create the project
-      data = await argoCDApiRequest(
-        "POST",
-        "projects",
-        argoCDConfig,
-        response.content.text
-      );
+      data = await createProject(response.content.text);
 
       message = `ArgoCD project '${name}' created successfully`;
     }

@@ -1,125 +1,79 @@
-import { ResourceDefinition, resourceResponse } from "../registry.js";
-import { getArgoCDConfig, argoCDApiRequest } from "../../../lib/clients/argocd/index.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-// Read callback function for ArgoCD applications resource
-const readCallback: ResourceDefinition["readCallback"] = async (uri) => {
+import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
+import { getArgoCDConfig, readApplication, listApplications as getApplications } from "../../../lib/clients/argocd/index.js";
+
+// Read callback function for ArgoCD application resource template
+const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables, _extra) => {
+  const { applicationName } = variables as { applicationName: string };
+
   try {
-    // Load ArgoCD configuration
+    // Load ArgoCD configuration for URL building
     const argoCDConfig = getArgoCDConfig();
 
-    // List all applications
-    const applicationsResponse = await argoCDApiRequest(
-      "GET",
-      "applications",
-      argoCDConfig
-    );
-
-    if (!applicationsResponse?.items) {
-      throw new Error("No applications data returned from ArgoCD");
-    }
+    // Get specific application using convenience method (returns raw response)
+    const data = await readApplication(applicationName);
 
     const argoCDWebUrl = argoCDConfig.endpoint;
-
-    // Transform applications data with action-oriented information
-    const applications = applicationsResponse.items.map((app: any) => {
-      const appName = app.metadata?.name || "unknown";
-      const appWebUrl = `${argoCDWebUrl}/applications/${appName}`;
-      const syncStatus = app.status?.sync?.status || "Unknown";
-      const healthStatus = app.status?.health?.status || "Unknown";
-
-      return {
-        name: appName,
-        namespace: app.metadata?.namespace || "argocd",
-        project: app.spec?.project || "default",
-        sync_status: syncStatus,
-        health_status: healthStatus,
-        source: {
-          repo_url: app.spec?.source?.repoURL || "",
-          path: app.spec?.source?.path || "",
-          target_revision: app.spec?.source?.targetRevision || "HEAD",
-        },
-        destination: {
-          server: app.spec?.destination?.server || "",
-          namespace: app.spec?.destination?.namespace || "",
-        },
-        actions: {
-          view: appWebUrl,
-          sync: `${appWebUrl}?action=sync`,
-          refresh: `${appWebUrl}?action=refresh`,
-          logs: `${appWebUrl}/logs`,
-          events: `${appWebUrl}/events`,
-          manifest: `${appWebUrl}/manifest`,
-        },
-        management_info: {
-          web_ui: appWebUrl,
-          api_path: `${argoCDConfig.endpoint}/api/v1/applications/${appName}`,
-        }
-      };
-    });
-
-    const resourceData = {
-      applications,
-      summary: {
-        total_count: applications.length,
-        by_sync_status: applications.reduce((acc: any, app: any) => {
-          acc[app.sync_status] = (acc[app.sync_status] || 0) + 1;
-          return acc;
-        }, {}),
-        by_health_status: applications.reduce((acc: any, app: any) => {
-          acc[app.health_status] = (acc[app.health_status] || 0) + 1;
-          return acc;
-        }, {}),
-        by_project: applications.reduce((acc: any, app: any) => {
-          acc[app.project] = (acc[app.project] || 0) + 1;
-          return acc;
-        }, {}),
-      },
-      argocd_info: {
-        endpoint: argoCDConfig.endpoint,
-        web_ui: argoCDWebUrl,
-        docs: "https://argo-cd.readthedocs.io/en/stable/",
-      },
-    };
+    const appWebUrl = `${argoCDWebUrl}/applications/${applicationName}`;
 
     return resourceResponse({
-      message: "Successfully retrieved ArgoCD applications",
-      data: resourceData,
-      metadata: {
-        totalCount: applications.length,
-        bySyncStatus: resourceData.summary.by_sync_status,
-        byHealthStatus: resourceData.summary.by_health_status,
-        byProject: resourceData.summary.by_project,
-      },
+      message: `Retrieved ArgoCD Application: ${data.metadata?.name || applicationName}`,
+      data,
       links: {
-        "ArgoCD Web UI": argoCDWebUrl,
-        "ArgoCD Documentation": "https://argo-cd.readthedocs.io/en/stable/",
-        "ArgoCD API Documentation": "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/",
+        ui: appWebUrl,
+        api: `${argoCDWebUrl}/api/v1/applications/${applicationName}`,
+        docs: "https://argo-cd.readthedocs.io/en/stable/"
+      },
+      metadata: {
+        name: data.metadata?.name || applicationName,
+        potentialActions: [
+          "Use syncArgoCDApplication tool to sync this application",
+          "Click 'ui' link to view in ArgoCD Web UI",
+          "Check sync_status and health_status for application state",
+          "Review resources array for deployed Kubernetes resources"
+        ]
       }
     }, uri);
 
   } catch (error: any) {
     return resourceResponse({
-      message: `Failed to read ArgoCD applications: ${error.message}`,
+      message: `Failed to read ArgoCD application: ${error.message}`,
+      links: {
+        docs: "https://argo-cd.readthedocs.io/en/stable/",
+        troubleshooting: "https://argo-cd.readthedocs.io/en/stable/faq/"
+      },
       metadata: {
         troubleshooting: [
+          "Verify the application name exists in ArgoCD",
           "Ensure ARGOCD_TOKEN environment variable is set",
-          "Verify your ArgoCD token has 'applications' list permissions",
-        ],
-      },
-      links: {
-        "ArgoCD API Documentation": "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/",
+          "Verify your ArgoCD token has 'applications' read permissions",
+          "Check ArgoCD API connectivity and service status"
+        ]
       }
     }, uri);
   }
 };
 
-// Resource definition for ArgoCD applications
-export const argoCDApplicationsResource: ResourceDefinition = {
-  uri: "argocd://applications",
+// Resource template definition for ArgoCD applications
+export const argoCDApplicationsTemplate: ResourceTemplateDefinition = {
   title: "ArgoCD Applications",
+  resourceTemplate: new ResourceTemplate(
+    "argocd://applications/{applicationName}",
+    {
+      list: undefined,
+      complete: {
+        applicationName: async (value: string): Promise<string[]> => {
+          const response = await getApplications(value);
+
+          return response;
+        }
+      }
+    }
+  ),
   metadata: {
-    description: "List of all ArgoCD applications with management links and sync status",
+    description: "Access specific ArgoCD applications by name. Provides application details, sync status, and management actions",
   },
-  requiredPermissions: ["argocd:read", "argocd:applications:list", "admin"],
+  requiredPermissions: ["argocd:read", "argocd:applications:read", "admin"],
   readCallback,
 };

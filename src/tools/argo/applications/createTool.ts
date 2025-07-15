@@ -5,7 +5,8 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArgoCDConfig,
-  argoCDApiRequest
+  readApplication,
+  createApplication
 } from "../../../../lib/clients/argocd/index.js";
 
 const inputSchema = z.object({
@@ -87,11 +88,7 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
     let message = "";
 
     try {
-      const existingApp = await argoCDApiRequest(
-        "GET",
-        `applications/${name}`,
-        argoCDConfig
-      );
+      const existingApp = await readApplication(name);
       data = existingApp;
       message = `ArgoCD application '${name}' already exists and is ready to use`;
     } catch (checkError: any) {
@@ -143,12 +140,7 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
       );
 
       // Create the application
-      data = await argoCDApiRequest(
-        "POST",
-        "applications",
-        argoCDConfig,
-        response.content.text
-      );
+      data = await createApplication(response.content.text);
       message = `ArgoCD application '${name}' created successfully`;
     }
 
