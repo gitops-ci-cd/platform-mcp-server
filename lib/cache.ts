@@ -1,6 +1,8 @@
-// Simple global cache for completion results with TTL
+// Simple session-scoped cache for completion results with TTL
 // TODO: Remove this once resources have proper lookback support
 // https://github.com/modelcontextprotocol/typescript-sdk/issues/678
+
+import { getCurrentSessionId } from "./auth/context.js";
 
 interface CacheEntry {
   results: any[];
@@ -9,13 +11,32 @@ interface CacheEntry {
 }
 
 class ResourceCache {
-  private cache = new Map<string, CacheEntry>();
+  private cache = new Map<string, Map<string, CacheEntry>>();
+
+  /**
+   * Get the session ID and key for cache operations
+   */
+  private getSessionAndKey(key: string): { sessionId: string; cacheKey: string } {
+    try {
+      const sessionId = getCurrentSessionId();
+      return { sessionId, cacheKey: key };
+    } catch {
+      // Fallback for when no session context is available (e.g., during tests)
+      return { sessionId: "global", cacheKey: key };
+    }
+  }
 
   /**
    * Get cached results if they exist and haven't expired
    */
   get(key: string): any[] | null {
-    const entry = this.cache.get(key);
+    const { sessionId, cacheKey } = this.getSessionAndKey(key);
+    const sessionCache = this.cache.get(sessionId);
+    if (!sessionCache) {
+      return null;
+    }
+
+    const entry = sessionCache.get(cacheKey);
     if (!entry) {
       return null;
     }
@@ -23,7 +44,11 @@ class ResourceCache {
     const now = Date.now();
     if (now - entry.timestamp > entry.ttl) {
       // Expired, remove from cache
-      this.cache.delete(key);
+      sessionCache.delete(cacheKey);
+      // Clean up empty session cache
+      if (sessionCache.size === 0) {
+        this.cache.delete(sessionId);
+      }
       return null;
     }
 
@@ -34,7 +59,16 @@ class ResourceCache {
    * Set cached results with TTL in milliseconds
    */
   set(key: string, results: any[], ttlMs: number = 30 * 60 * 1000): any[] {
-    this.cache.set(key, {
+    const { sessionId, cacheKey } = this.getSessionAndKey(key);
+
+    // Get or create session cache
+    let sessionCache = this.cache.get(sessionId);
+    if (!sessionCache) {
+      sessionCache = new Map<string, CacheEntry>();
+      this.cache.set(sessionId, sessionCache);
+    }
+
+    sessionCache.set(cacheKey, {
       results,
       timestamp: Date.now(),
       ttl: ttlMs
@@ -51,13 +85,26 @@ class ResourceCache {
   }
 
   /**
+   * Clear cache entries for a specific session only
+   */
+  clearSession(sessionId: string): void {
+    this.cache.delete(sessionId);
+  }
+
+  /**
    * Clear expired entries
    */
   cleanup(): void {
     const now = Date.now();
-    for (const [key, entry] of this.cache.entries()) {
-      if (now - entry.timestamp > entry.ttl) {
-        this.cache.delete(key);
+    for (const [sessionId, sessionCache] of this.cache.entries()) {
+      for (const [key, entry] of sessionCache.entries()) {
+        if (now - entry.timestamp > entry.ttl) {
+          sessionCache.delete(key);
+        }
+      }
+      // Clean up empty session caches
+      if (sessionCache.size === 0) {
+        this.cache.delete(sessionId);
       }
     }
   }
@@ -65,15 +112,39 @@ class ResourceCache {
   /**
    * Get cache stats for debugging
    */
-  getStats(): { size: number; entries: Array<{ key: string; age: number; ttl: number }> } {
+  getStats(): {
+    size: number;
+    sessionId: string | null;
+    entries: Array<{ key: string; age: number; ttl: number; sessionScoped: boolean }>
+    } {
     const now = Date.now();
+    let currentSessionId: string | null = null;
+
+    try {
+      currentSessionId = getCurrentSessionId();
+    } catch {
+      // No session context
+    }
+
+    const allEntries: Array<{ key: string; age: number; ttl: number; sessionScoped: boolean }> = [];
+    let totalSize = 0;
+
+    for (const [sessionId, sessionCache] of this.cache.entries()) {
+      for (const [key, entry] of sessionCache.entries()) {
+        totalSize++;
+        allEntries.push({
+          key: `${sessionId}:${key}`,
+          age: now - entry.timestamp,
+          ttl: entry.ttl,
+          sessionScoped: sessionId !== "global"
+        });
+      }
+    }
+
     return {
-      size: this.cache.size,
-      entries: Array.from(this.cache.entries()).map(([key, entry]) => ({
-        key,
-        age: now - entry.timestamp,
-        ttl: entry.ttl
-      }))
+      size: totalSize,
+      sessionId: currentSessionId,
+      entries: allEntries
     };
   }
 }
@@ -91,7 +162,7 @@ export const checkCache = ({ cacheKey, value, lookupKey }: {
   if (cachedResults && value) {
     const filtered = cachedResults.filter(entry => {
       if (lookupKey && typeof entry === "object") {
-        entry[lookupKey].toLowerCase().includes(value.toLowerCase());
+        return entry[lookupKey].toLowerCase().includes(value.toLowerCase());
       } else {
         return entry.toLowerCase().includes(value.toLowerCase());
       }
@@ -103,7 +174,7 @@ export const checkCache = ({ cacheKey, value, lookupKey }: {
   }
 };
 
-// Optional: Periodic cleanup (run every 5 minutes)
+// Periodic cleanup (run every 5 minutes)
 setInterval(() => {
   resourceCache.cleanup();
 }, 5 * 60 * 1000);

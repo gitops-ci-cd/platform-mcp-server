@@ -3,7 +3,7 @@ import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 
 import { getUserInfo } from "./user.js";
-import { setUserContext } from "./context.js";
+import { setRequestContext } from "./context.js";
 import { EntraTokenVerifier } from "./tokenVerifier.js";
 
 // Extend Request type to include MCP auth info
@@ -33,7 +33,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
 export const userContextMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const user = getUserInfo(req.auth);
-  setUserContext(user);
+  const sessionId = req.headers["mcp-session-id"] as string | undefined;
+  setRequestContext({ user, sessionId });
 
   next();
 };

@@ -1,15 +1,20 @@
 import { AsyncLocalStorage } from "async_hooks";
 import type { AuthenticatedUser } from "./user.js";
 
-// AsyncLocalStorage to maintain user context across async operations
-const userContext = new AsyncLocalStorage<AuthenticatedUser>();
+interface RequestContext {
+  user: AuthenticatedUser;
+  sessionId?: string;
+}
+
+// AsyncLocalStorage to maintain request context across async operations
+const requestContext = new AsyncLocalStorage<RequestContext>();
 
 /**
- * Set the authenticated user context for the current async execution
+ * Set the authenticated user and session context for the current async execution
  * This should be called at the beginning of each request
  */
-export const setUserContext = (user: AuthenticatedUser): void => {
-  userContext.enterWith(user);
+export const setRequestContext = ({ user, sessionId }: RequestContext): void => {
+  requestContext.enterWith({ user, sessionId });
 };
 
 /**
@@ -32,9 +37,24 @@ export const getCurrentUser = (operation: string): AuthenticatedUser => {
  * @returns The authenticated user
  */
 export const getCurrentUserSilent = (): AuthenticatedUser => {
-  const user = userContext.getStore();
-  if (!user) {
-    throw new Error("No user context available. This should only be called within an authenticated request.");
+  const context = requestContext.getStore();
+  if (!context) {
+    throw new Error("No request context available. This should only be called within an authenticated request.");
   }
-  return user;
+  return context.user;
+};
+
+/**
+ * Get the current session ID from async context
+ * @returns The session ID, or throws if no context or session available
+ */
+export const getCurrentSessionId = (): string => {
+  const context = requestContext.getStore();
+  if (!context) {
+    throw new Error("No request context available. This should only be called within an authenticated request.");
+  }
+  if (!context.sessionId) {
+    throw new Error("No session ID available. This is expected only during initial connection before session is established.");
+  }
+  return context.sessionId;
 };

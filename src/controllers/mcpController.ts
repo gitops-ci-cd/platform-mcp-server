@@ -7,7 +7,8 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { registerToolsWithServer, initializeTools } from "../tools/index.js";
 import { registerResourcesWithServer, registerResourceTemplatesWithServer, initializeResources } from "../resources/index.js";
 import { registerPromptsWithServer, initializePrompts } from "../prompts/index.js";
-import { getCurrentUser } from "../../lib/auth/index.js";
+import { getCurrentUser, getCurrentSessionId } from "../../lib/auth/index.js";
+import { resourceCache } from "../../lib/cache.js";
 
 import pkg from "../../package.json" with { type: "json" };
 
@@ -22,8 +23,15 @@ initializePrompts();
 const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
 export const mcpController = async (req: Request, res: Response, _next: NextFunction) => {
-  // Check for existing session ID
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
+  // Get session ID from context (set by middleware)
+  let sessionId: string | undefined;
+  try {
+    sessionId = getCurrentSessionId();
+  } catch {
+    // No session context available
+    sessionId = undefined;
+  }
+
   let transport: StreamableHTTPServerTransport;
 
   if (sessionId && transports[sessionId]) {
@@ -43,6 +51,9 @@ export const mcpController = async (req: Request, res: Response, _next: NextFunc
     transport.onclose = () => {
       if (transport.sessionId) {
         delete transports[transport.sessionId];
+
+        // Clear session-specific cache entries
+        resourceCache.clearSession(transport.sessionId);
       }
     };
 
