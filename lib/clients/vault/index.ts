@@ -1,5 +1,5 @@
 // Vault client exports
-export { getVaultConfig } from "./config.js";
+export { getVaultConfig, getVaultAccessToken } from "./config.js";
 export {
   listAuthMethods, readAuthMethod,
   listEngines, readEngine, createEngine,

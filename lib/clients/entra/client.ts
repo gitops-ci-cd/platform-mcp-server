@@ -2,7 +2,7 @@ import { validate as validUUID } from "uuid";
 
 import { resourceCache, checkCache } from "../../cache.js";
 import { getGraphConfig, buildGroupConfig, getGraphAccessToken } from "./config.js";
-import { EntraGroupConfig } from "./types.js";
+import { EntraGroupConfig, GraphConfig } from "./types.js";
 
 /**
  * Make HTTP request to Microsoft Graph API with proper authentication
@@ -10,18 +10,16 @@ import { EntraGroupConfig } from "./types.js";
  * @param path API path (without /v1.0/ prefix)
  * @param config Graph API configuration
  * @param data Optional request body data
- * @param userToken Optional user token for on-behalf-of flow
  * @returns Promise with API response
  * @throws Error if API request fails
  */
-export const graphApiRequest = async ({ method = "GET", path, config, data, userToken }: {
+export const graphApiRequest = async ({ method = "GET", path, config, data }: {
   method?: string;
   path: string;
-  config: any; // Keep it flexible like vault client
+  config: GraphConfig;
   data?: any;
-  userToken?: string;
 }): Promise<any> => {
-  const accessToken = await getGraphAccessToken({ userToken, config });
+  const accessToken = await getGraphAccessToken({ config });
   const url = `${config.endpoint}/${path}`;
 
   const headers: Record<string, string> = {
@@ -46,13 +44,9 @@ export const graphApiRequest = async ({ method = "GET", path, config, data, user
 /**
  * List all group names from Entra ID with caching
  * @param name Optional filter string for group names
- * @param userToken Optional user token for delegated permissions
  * @returns Promise with array of group display names
  */
-export const listGroups = async ({ name, userToken }: {
-  name?: string;
-  userToken?: string
-}): Promise<string[]> => {
+export const listGroups = async (name?: string): Promise<string[]> => {
   const cacheKey = "entra-groups";
   const cache = checkCache({ cacheKey, value: name });
   if (cache.length > 0) return cache;
@@ -73,8 +67,7 @@ export const listGroups = async ({ name, userToken }: {
     do {
       const response = await graphApiRequest({
         path: currentPath,
-        config,
-        userToken
+        config
       });
 
       if (response?.value) {
@@ -105,13 +98,11 @@ export const listGroups = async ({ name, userToken }: {
  * Get a specific group by name or ID with detailed information
  * @param groupNameOrId The group display name or ID
  * @param includeMembers Whether to include group members (default: true)
- * @param userToken Optional user token for delegated permissions
  * @returns Promise with group data including members
  */
-export const readGroup = async ({ groupNameOrId, includeMembers = true, userToken }: {
+export const readGroup = async ({ groupNameOrId, includeMembers = true }: {
   groupNameOrId: string;
   includeMembers?: boolean;
-  userToken?: string;
 }): Promise<any> => {
   const config = getGraphConfig();
   const selectFields = "id,displayName,description,groupTypes,securityEnabled,mailEnabled,mail,visibility,createdDateTime";
@@ -122,16 +113,14 @@ export const readGroup = async ({ groupNameOrId, includeMembers = true, userToke
     // Direct lookup by ID
     group = await graphApiRequest({
       path: `groups/${groupNameOrId}?$select=${selectFields}`,
-      config,
-      userToken
+      config
     });
   } else {
     // Search by display name
     const filter = `displayName eq '${groupNameOrId.replace(/'/g, "''")}'`;
     const searchResponse = await graphApiRequest({
       path: `groups?$filter=${encodeURIComponent(filter)}&$select=${selectFields}`,
-      config,
-      userToken
+      config
     });
 
     if (!searchResponse?.value || searchResponse.value.length === 0) {
@@ -149,8 +138,7 @@ export const readGroup = async ({ groupNameOrId, includeMembers = true, userToke
     // Get group members
     const membersResponse = await graphApiRequest({
       path: `groups/${group.id}/members?$select=id,displayName,userPrincipalName,userType`,
-      config,
-      userToken
+      config
     });
 
     group.members = membersResponse?.value || [];
@@ -163,12 +151,10 @@ export const readGroup = async ({ groupNameOrId, includeMembers = true, userToke
 /**
  * Create a new group in Entra ID with the provided configuration
  * @param options Group creation options
- * @param userToken Optional user token for delegated permissions
  * @returns Promise with created group data
  */
-export const createGroup = async ({ options, userToken }: {
+export const createGroup = async ({ options }: {
   options: EntraGroupConfig;
-  userToken?: string
 }): Promise<any> => {
   const config = getGraphConfig();
   const groupConfig = buildGroupConfig(options);
@@ -177,7 +163,6 @@ export const createGroup = async ({ options, userToken }: {
     path: "groups",
     method: "POST",
     data: groupConfig,
-    config,
-    userToken
+    config
   });
 };

@@ -1,6 +1,6 @@
 // Vault API client utilities
 import type { VaultConfig } from "./config.js";
-import { getVaultConfig } from "./config.js";
+import { getVaultConfig, getVaultAccessToken } from "./config.js";
 import { VAULT_ENGINE_TYPES_WITH_ROLES } from "./types.js";
 import { resourceCache, checkCache } from "../../cache.js";
 
@@ -20,9 +20,9 @@ const vaultApiRequest = async ({ method = "GET", path, config, data }: {
   data?: any
 }): Promise<any> => {
   const url = `${config.endpoint}/v1/${path}`;
-
+  const vaultToken = await getVaultAccessToken({ config });
   const headers: Record<string, string> = {
-    "X-Vault-Token": config.token,
+    "X-Vault-Token": vaultToken,
     "Content-Type": "application/json",
   };
 

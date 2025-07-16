@@ -1,4 +1,5 @@
 import { GraphConfig, EntraGroupConfig } from "./types.js";
+import { getCurrentUserToken } from "../../auth/index.js";
 
 /**
  * Load Microsoft Graph configuration from environment variables
@@ -20,23 +21,22 @@ export const getGraphConfig = (): GraphConfig => {
 
 /**
  * Get access token for Microsoft Graph API using on-behalf-of flow
- * @param userToken Optional user JWT token for delegated permissions
+ * @param config Graph API configuration
  * @returns Access token string for Graph API calls
  * @throws Error if token acquisition fails
  */
-export const getGraphAccessToken = async ({ config, userToken }: {
+export const getGraphAccessToken = async ({ config }: {
   config: GraphConfig;
-  userToken?: string
 }): Promise<string> => {
-  // If token provided, bypass on-behalf-of flow and use token directly
+  // If service token provided, use it directly
   if (process.env.MS_ENTRA_TOKEN) return process.env.MS_ENTRA_TOKEN;
 
-  const tokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
+  const userToken = getCurrentUserToken();
 
   let tokenData: URLSearchParams;
 
   if (userToken) {
-    // Use on-behalf-of flow to preserve user's identity and permissions
+    // Use on-behalf-of flow to preserve user's identity and permissions (preferred)
     tokenData = new URLSearchParams({
       client_id: config.clientId,
       client_secret: config.clientSecret,
@@ -55,6 +55,7 @@ export const getGraphAccessToken = async ({ config, userToken }: {
     });
   }
 
+  const tokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
   const response = await fetch(tokenUrl, {
     method: "POST",
     headers: {

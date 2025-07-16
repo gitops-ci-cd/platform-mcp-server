@@ -4,7 +4,7 @@ import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
  * Static development AuthInfo for local testing
  */
 const DEV_AUTH_INFO: AuthInfo = {
-  token: process.env.MS_ENTRA_TOKEN || "dev-token", // Use real token if provided
+  token: "",
   clientId: "dev-client",
   scopes: ["openid", "profile"],
   expiresAt: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours from now

@@ -2,7 +2,6 @@ import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
 import { readGroup, listGroups } from "../../../lib/clients/entra/index.js";
-import { getCurrentUserSilent } from "../../../lib/auth/context.js";
 
 // Read callback function for Entra group resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables, _extra) => {
@@ -13,11 +12,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   }
 
   try {
-    // Get user context for delegated permissions
-    const user = getCurrentUserSilent();
-
     // Use client function to get group with members (accepts name or ID)
-    const data = await readGroup({ groupNameOrId: groupName, includeMembers: true, userToken: user.token });
+    const data = await readGroup({ groupNameOrId: groupName, includeMembers: true });
 
     return resourceResponse({
       message: `Entra ID group: ${data.displayName}`,
@@ -66,9 +62,7 @@ export const entraGroupsTemplate: ResourceTemplateDefinition = {
       complete: {
         groupName: async (value: string): Promise<string[]> => {
           try {
-            // Get user context for delegated permissions
-            const user = getCurrentUserSilent();
-            return await listGroups({ name: value, userToken: user.token });
+            return await listGroups(value);
           } catch (error) {
             console.error("Error in group autocomplete:", error);
             return [];

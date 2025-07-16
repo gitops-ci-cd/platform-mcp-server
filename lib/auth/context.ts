@@ -41,6 +41,7 @@ export const getCurrentUserSilent = (): AuthenticatedUser => {
   if (!context) {
     throw new Error("No request context available. This should only be called within an authenticated request.");
   }
+
   return context.user;
 };
 
@@ -56,5 +57,15 @@ export const getCurrentSessionId = (): string => {
   if (!context.sessionId) {
     throw new Error("No session ID available. This is expected only during initial connection before session is established.");
   }
+
   return context.sessionId;
+};
+
+export const getCurrentUserToken = (): string | undefined => {
+  const context = requestContext.getStore();
+  if (!context) {
+    throw new Error("No request context available. This should only be called within an authenticated request.");
+  }
+
+  return context.user.token;
 };

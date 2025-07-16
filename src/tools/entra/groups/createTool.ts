@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
-import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   createGroup,
   readGroup,
@@ -9,6 +8,7 @@ import {
   ENTRA_GROUP_VISIBILITY,
   type EntraGroupConfig
 } from "../../../../lib/clients/entra/index.js";
+import { getCurrentUser } from "../../../../lib/auth/index.js";
 
 const inputSchema = z.object({
   displayName: z.string().describe("Group display name (required)"),
@@ -37,7 +37,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
   try {
     // Get authenticated user for audit logging and token access
-    const user = getCurrentUser(`creating Entra group: ${displayName}`);
+    getCurrentUser(`creating Entra group: ${displayName}`);
 
     let data = null;
     let message = "";
@@ -46,8 +46,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       // Check if group with same display name already exists
       data = await readGroup({
         groupNameOrId: displayName,
-        includeMembers: true,
-        userToken: user.token
+        includeMembers: true
       });
       message = `Entra group "${displayName}" already exists and is ready to use`;
     } catch {
@@ -64,8 +63,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
             visibility,
             owners,
             members
-          },
-          userToken: user.token
+          }
         });
         message = `Entra group "${displayName}" created successfully`;
       } catch (createError: any) {
@@ -74,8 +72,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
           try {
             data = await readGroup({
               groupNameOrId: displayName,
-              includeMembers: true,
-              userToken: user.token
+              includeMembers: true
             });
             message = `Entra group "${displayName}" already exists (detected after creation attempt)`;
           } catch {
