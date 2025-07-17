@@ -38,6 +38,8 @@ export const getVaultConfig = (): VaultConfig => {
 export const getVaultAccessToken = async ({ config }: {
   config: VaultConfig;
 }): Promise<string> => {
+  if (process.env.VAULT_TOKEN) return process.env.VAULT_TOKEN;
+
   const userToken = getCurrentUserToken();
 
   if (userToken) {
@@ -65,19 +67,12 @@ export const getVaultAccessToken = async ({ config }: {
 
     return authResponse.auth.client_token;
   } else {
-    // Fallback to service token (environment variable or file)
-    let serviceToken = process.env.VAULT_TOKEN;
-
-    if (!serviceToken) {
-      try {
-        const tokenFilePath = join(homedir(), ".vault-token");
-        serviceToken = readFileSync(tokenFilePath, "utf8").trim();
-      } catch {
-        // Token file doesn't exist or can't be read
-      }
+    try {
+      const tokenFilePath = join(homedir(), ".vault-token");
+      return readFileSync(tokenFilePath, "utf8").trim();
+    } catch {
+      // Token file doesn't exist or can't be read
     }
-
-    if (serviceToken) return serviceToken;
   }
 
   throw new Error("No Vault token available. Set VAULT_TOKEN environment variable, create ~/.vault-token file, or provide userToken for JWT auth");
