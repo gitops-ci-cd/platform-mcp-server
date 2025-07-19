@@ -3,6 +3,7 @@ import { z, ZodTypeAny } from "zod";
 import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { sanitizeString } from "../../lib/string.js";
+import { initializeTools } from "./index.js";
 
 // https://modelcontextprotocol.io/docs/concepts/tools#tool-definition-structure
 export interface ToolDefinition extends Pick<RegisteredTool, "title" | "description" | "inputSchema" | "outputSchema" | "annotations"> {
@@ -60,6 +61,7 @@ export const getAuthorizedTools = (userPermissions: string[] = []): ToolDefiniti
 
 // Register all authorized tools with an MCP server instance
 export const registerToolsWithServer = (server: McpServer, userPermissions: string[] = []): void => {
+  initializeTools();
   const authorizedTools = getAuthorizedTools(userPermissions);
 
   for (const tool of authorizedTools) {

@@ -1,10 +1,10 @@
 import { Router } from "express";
 
-import { healthCheck } from "../controllers/index.js";
+import { check } from "../handlers/healthHandler.js";
 
 const router: Router = Router();
 
 // Public health check (no authentication required)
-router.get("/health", healthCheck);
+router.get("/health", check);
 
 export default router;

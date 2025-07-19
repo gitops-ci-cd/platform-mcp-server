@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/src/index.js",
-    "dev": "tsc && node dist/src/index.js",
+    "http": "node dist/src/index.js",
+    "stdio": "node dist/src/handlers/mcpSTDIOHandler.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:auth": "jest src/auth",

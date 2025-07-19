@@ -8,6 +8,7 @@ import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/typ
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { Variables } from "@modelcontextprotocol/sdk/shared/uriTemplate.js";
 import { sanitizeString } from "../../lib/string.js";
+import { initializeResources, initializeResourceTemplates } from "./index.js";
 
 // Resource definition interface
 export interface ResourceDefinition extends Pick<RegisteredResource, "title" | "metadata"> {
@@ -92,6 +93,7 @@ export const registerResourcesWithServer = (
   server: McpServer,
   userPermissions: string[] = []
 ): void => {
+  initializeResources();
   // Filter resources by permissions
   const authorizedResources = getAuthorizedResources(userPermissions);
 
@@ -112,6 +114,7 @@ export const registerResourceTemplatesWithServer = (
   server: McpServer,
   userPermissions: string[] = []
 ): void => {
+  initializeResourceTemplates();
   // Filter templates by permissions
   const authorizedTemplates = getAuthorizedTemplates(userPermissions);
 

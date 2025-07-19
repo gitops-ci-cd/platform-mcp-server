@@ -18,7 +18,10 @@ import { artifactoryRepositoriesTemplate } from "./artifactory/repositories.js";
 import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unifiedResources.js";
 
 export const initializeResources = (): void => {
-  // Register templates
+
+};
+
+export const initializeResourceTemplates = (): void => {
   registerResourceTemplate(mcpConceptsTemplate);
 
   registerResourceTemplate(vaultSecretsTemplate);

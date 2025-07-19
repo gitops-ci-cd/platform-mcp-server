@@ -39,6 +39,7 @@ services:
       context: .
       target: builder
     entrypoint: npm
+    # command: run stdio
     command: run start
     ports:
       - ${PORT:-8080}:${PORT:-8080}
