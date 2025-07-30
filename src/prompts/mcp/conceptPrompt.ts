@@ -22,7 +22,7 @@ Make it beginner-friendly with clear examples, and help me understand when I sho
   };
 };
 
-export const mcpConceptsPrompt: PromptDefinition = {
+export const mcpConceptPrompt: PromptDefinition = {
   title: "MCP Concepts",
   description: "Ask your AI assistant to explain MCP tools, prompts, and resources",
   callback,

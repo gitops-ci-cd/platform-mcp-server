@@ -54,7 +54,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for vault engines
-export const vaultEnginesTemplate: ResourceTemplateDefinition = {
+export const vaultEngineTemplate: ResourceTemplateDefinition = {
   title: "Vault Secret Engines",
   resourceTemplate: new ResourceTemplate(
     "vault://engines/{engineName}",

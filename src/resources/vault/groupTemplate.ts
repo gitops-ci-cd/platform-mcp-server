@@ -55,7 +55,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for vault groups
-export const vaultGroupsTemplate: ResourceTemplateDefinition = {
+export const vaultGroupTemplate: ResourceTemplateDefinition = {
   title: "Vault Groups",
   resourceTemplate: new ResourceTemplate(
     "vault://groups/{groupName}",

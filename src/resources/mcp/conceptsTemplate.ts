@@ -46,7 +46,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   }, uri);
 };
 
-export const mcpConceptsTemplate: ResourceTemplateDefinition = {
+export const mcpConceptTemplate: ResourceTemplateDefinition = {
   title: "MCP Concepts",
   resourceTemplate: new ResourceTemplate(
     "https://modelcontextprotocol.io/docs/concepts/{concept}",

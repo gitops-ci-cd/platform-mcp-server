@@ -56,7 +56,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for ArgoCD applications
-export const argoCDApplicationsTemplate: ResourceTemplateDefinition = {
+export const argoCDApplicationTemplate: ResourceTemplateDefinition = {
   title: "ArgoCD Applications",
   resourceTemplate: new ResourceTemplate(
     "argocd://applications/{applicationName}",

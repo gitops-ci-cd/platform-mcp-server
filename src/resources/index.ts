@@ -5,39 +5,39 @@ export {
 } from "./registry.js";
 
 import { registerResource, registerResourceTemplate } from "./registry.js";
-import { mcpConceptsTemplate } from "./mcp/conceptsTemplate.js";
-import { vaultEnginesTemplate } from "./vault/engines.js";
-import { vaultPoliciesTemplate } from "./vault/policies.js";
-import { vaultRolesTemplate } from "./vault/roles.js";
-import { vaultAuthMethodsTemplate } from "./vault/auths.js";
-import { vaultSecretsTemplate } from "./vault/secrets.js";
-import { vaultGroupsTemplate } from "./vault/groups.js";
-import { argoCDApplicationsTemplate } from "./argocd/applications.js";
-import { argoCDProjectsTemplate } from "./argocd/projects.js";
-import { entraGroupsTemplate } from "./entra/groups.js";
-import { artifactoryRepositoriesTemplate } from "./artifactory/repositories.js";
-import { kubernetesUnifiedResourcesTemplate } from "./kubernetes/unifiedResources.js";
+import { mcpConceptTemplate } from "./mcp/conceptsTemplate.js";
+import { vaultEngineTemplate } from "./vault/engineTemplate.js";
+import { vaultPolicyTemplate } from "./vault/policyTemplate.js";
+import { vaultRoleTemplate } from "./vault/roleTemplate.js";
+import { vaultAuthMethodTemplate } from "./vault/authMethodTemplate.js";
+import { vaultSecretMetadataTemplate } from "./vault/secretMetadataTemplate.js";
+import { vaultGroupTemplate } from "./vault/groupTemplate.js";
+import { argoCDApplicationTemplate } from "./argocd/applicationTemplate.js";
+import { argoCDProjectTemplate } from "./argocd/projectTemplate.js";
+import { entraGroupTemplate } from "./entra/groupTemplate.js";
+import { artifactoryRepositoryTemplate } from "./artifactory/repositoryTemplate.js";
+import { kubernetesUnifiedResourceTemplate } from "./kubernetes/unifiedResourceTemplate.js";
 
 export const initializeResources = (): void => {
 
 };
 
 export const initializeResourceTemplates = (): void => {
-  registerResourceTemplate(mcpConceptsTemplate);
+  registerResourceTemplate(mcpConceptTemplate);
 
-  registerResourceTemplate(vaultSecretsTemplate);
-  registerResourceTemplate(vaultPoliciesTemplate);
-  registerResourceTemplate(vaultAuthMethodsTemplate);
-  registerResourceTemplate(vaultEnginesTemplate);
-  registerResourceTemplate(vaultRolesTemplate);
-  registerResourceTemplate(vaultGroupsTemplate);
+  registerResourceTemplate(vaultSecretMetadataTemplate);
+  registerResourceTemplate(vaultPolicyTemplate);
+  registerResourceTemplate(vaultAuthMethodTemplate);
+  registerResourceTemplate(vaultEngineTemplate);
+  registerResourceTemplate(vaultRoleTemplate);
+  registerResourceTemplate(vaultGroupTemplate);
 
-  registerResourceTemplate(kubernetesUnifiedResourcesTemplate);
+  registerResourceTemplate(kubernetesUnifiedResourceTemplate);
 
-  registerResourceTemplate(artifactoryRepositoriesTemplate);
+  registerResourceTemplate(artifactoryRepositoryTemplate);
 
-  registerResourceTemplate(entraGroupsTemplate);
+  registerResourceTemplate(entraGroupTemplate);
 
-  registerResourceTemplate(argoCDApplicationsTemplate);
-  registerResourceTemplate(argoCDProjectsTemplate);
+  registerResourceTemplate(argoCDApplicationTemplate);
+  registerResourceTemplate(argoCDProjectTemplate);
 };

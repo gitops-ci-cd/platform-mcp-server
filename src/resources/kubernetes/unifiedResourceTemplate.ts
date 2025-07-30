@@ -49,7 +49,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for unified kubernetes resources
-export const kubernetesUnifiedResourcesTemplate: ResourceTemplateDefinition = {
+export const kubernetesUnifiedResourceTemplate: ResourceTemplateDefinition = {
   title: "Kubernetes Resources",
   resourceTemplate: new ResourceTemplate(
     "kubernetes://resources/{namespace}/{plural}",

@@ -1,12 +1,11 @@
-// Vault client exports
-export { getVaultConfig, getVaultAccessToken } from "./config.js";
+export { getVaultConfig } from "./config.js";
 export {
   listAuthMethods, readAuthMethod,
-  listEngines, readEngine, upsertEngine,
-  listPolicies, readPolicy, upsertPolicy,
   listRoles, readRole, upsertRole,
-  listGroups, readGroup, upsertGroup,
-  readSecretMetadata,
-  markKubernetesRoleAdmin
-} from "./client.js";
+  listGroups, readGroup, upsertGroup
+} from "./access.js";
+export { listEngines, readEngine, upsertEngine } from "./engines.js";
+export { listPolicies, readPolicy, upsertPolicy } from "./policies.js";
+export { readSecretMetadata } from "./secrets.js";
+export { markKubernetesRoleAdmin } from "./plugins.js";
 export { VAULT_ENGINE_TYPES, VAULT_ENGINE_TYPES_WITH_ROLES } from "./types.js";

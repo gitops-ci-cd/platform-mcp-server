@@ -4,10 +4,10 @@ export {
 } from "./registry.js";
 
 import { registerPrompt } from "./registry.js";
-import { mcpConceptsPrompt } from "./mcp/conceptsPrompt.js";
+import { mcpConceptPrompt } from "./mcp/conceptPrompt.js";
 import { mcpRoleExamplePrompt } from "./mcp/roleExamplePrompt.js";
 
 export const initializePrompts = (): void => {
-  registerPrompt(mcpConceptsPrompt);
+  registerPrompt(mcpConceptPrompt);
   registerPrompt(mcpRoleExamplePrompt);
 };

@@ -53,7 +53,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for Entra groups
-export const entraGroupsTemplate: ResourceTemplateDefinition = {
+export const entraGroupTemplate: ResourceTemplateDefinition = {
   title: "Entra Groups",
   resourceTemplate: new ResourceTemplate(
     "entra://groups/{groupName}",

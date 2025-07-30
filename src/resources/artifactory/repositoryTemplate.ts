@@ -64,7 +64,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for Artifactory repositories
-export const artifactoryRepositoriesTemplate: ResourceTemplateDefinition = {
+export const artifactoryRepositoryTemplate: ResourceTemplateDefinition = {
   title: "Artifactory Repositories",
   resourceTemplate: new ResourceTemplate(
     "artifactory://repositories/{repositoryKey}",

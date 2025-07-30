@@ -56,7 +56,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for vault policies
-export const vaultPoliciesTemplate: ResourceTemplateDefinition = {
+export const vaultPolicyTemplate: ResourceTemplateDefinition = {
   title: "Vault Policies",
   resourceTemplate: new ResourceTemplate(
     "vault://policies/{policyName}",

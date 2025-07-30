@@ -1,6 +1,3 @@
-// Vault type definitions
-
-
 // Common Vault engine types supported by the API
 export const VAULT_ENGINE_TYPES = [
   "kv",

@@ -93,7 +93,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for vault roles
-export const vaultRolesTemplate: ResourceTemplateDefinition = {
+export const vaultRoleTemplate: ResourceTemplateDefinition = {
   title: "Vault Authentication Roles",
   resourceTemplate: new ResourceTemplate(
     "vault://roles/{rolePath}",

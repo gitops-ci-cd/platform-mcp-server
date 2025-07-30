@@ -54,7 +54,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 };
 
 // Resource template definition for vault auth methods
-export const vaultAuthMethodsTemplate: ResourceTemplateDefinition = {
+export const vaultAuthMethodTemplate: ResourceTemplateDefinition = {
   title: "Vault Auth Methods",
   resourceTemplate: new ResourceTemplate(
     "vault://auth/{authPath}",

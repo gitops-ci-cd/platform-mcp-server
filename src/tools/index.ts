@@ -12,7 +12,7 @@ import { requestAccessTool } from "./vault/engines/requestAccessTool.js";
 import { upsertVaultPolicyTool } from "./vault/policies/upsertTool.js";
 import { upsertVaultRoleTool } from "./vault/roles/upsertTool.js";
 import { upsertVaultGroupTool } from "./vault/groups/upsertTool.js";
-import { markK8sAdminTool } from "./vault/roles/markK8sRoleAdminTool.js";
+import { markK8sAdminTool } from "./vault/plugins/markK8sRoleAdminTool.js";
 import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
 import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
 import { createArgoCDProjectTool } from "./argo/projects/createTool.js";
