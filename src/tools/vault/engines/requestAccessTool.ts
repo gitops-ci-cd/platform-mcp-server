@@ -1,3 +1,5 @@
+// TODO: How can we work this out?
+
 import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
