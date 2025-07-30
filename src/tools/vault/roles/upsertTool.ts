@@ -4,8 +4,7 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getVaultConfig,
-  readRole,
-  createRole,
+  upsertRole,
 } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
@@ -29,41 +28,26 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   };
 
   try {
-
     // Get authenticated user for audit logging
     getCurrentUser(`creating Vault role: ${roleName} for auth method: ${authMethod}`);
 
     const vaultConfig = getVaultConfig();
 
-    let data = null;
-    let message = "";
-
-    try {
-      // Check if role already exists
-      const response = await readRole({ authMethod, name: roleName });
-
-      data = response?.data;
-      message = `Vault role "${roleName}" already exists for ${authMethod} auth method`;
-    } catch (checkError: any) {
-      // Role doesn't exist, create it
-      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-
-      // Add policies if provided
-      if (policies && policies.length > 0) {
-        roleConfig.policies = policies;
-      }
-
-      // Create the role
-      await createRole({ authMethod, name: roleName, data: roleConfig });
-
-      // Get the role details to return comprehensive info
-      const response = await readRole({ authMethod, name: roleName });
-      // Some auth methods don't support GET on roles, that's okay
-      data = response?.data || {};
-      message = `Vault role "${roleName}" created successfully for ${authMethod} auth method`;
+    // Add policies if provided
+    if (policies && policies.length > 0) {
+      roleConfig.policies = policies;
     }
+
+    // Use the upsert function that handles all the create/update logic
+    const response = await upsertRole({
+      authMethod,
+      name: roleName,
+      data: roleConfig
+    });
+
+    const json = await response.json();
+    const data = json?.data || {};
+    const message = `Vault role "${roleName}" upserted successfully for ${authMethod} auth method`;
 
     return toolResponse({
       data,
@@ -81,7 +65,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
   } catch (error: any) {
     return toolResponse({
-      message: `Failed to create Vault role: ${error.message}`,
+      message: `Failed to Upsert Vault role: ${error.message}`,
       links: {
         docs: "https://developer.hashicorp.com/vault/docs/auth",
         troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
@@ -100,13 +84,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   }
 };
 
-export const createVaultRoleTool: ToolDefinition = {
-  title: "Create Vault Role",
+export const upsertVaultRoleTool: ToolDefinition = {
+  title: "Upsert Vault Role",
   annotations: {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or verify a new role for a specific authentication method in HashiCorp Vault via direct API call. Roles define authentication constraints and associated policies.",
+  description: "Create or update a new role for a specific authentication method in HashiCorp Vault via direct API call. Roles define authentication constraints and associated policies.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:roles:create", "admin"],
   callback

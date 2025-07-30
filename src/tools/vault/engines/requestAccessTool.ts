@@ -94,7 +94,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     });
   } catch (error: any) {
     return toolResponse({
-      message: `Failed to create Vault access request: ${error.message}`,
+      message: `Failed to Upsert Vault access request: ${error.message}`,
       data: error, // Raw error object
       links: {
         docs: "https://developer.hashicorp.com/vault/docs/auth",

@@ -11,6 +11,7 @@ import { vaultPoliciesTemplate } from "./vault/policies.js";
 import { vaultRolesTemplate } from "./vault/roles.js";
 import { vaultAuthMethodsTemplate } from "./vault/auths.js";
 import { vaultSecretsTemplate } from "./vault/secrets.js";
+import { vaultGroupsTemplate } from "./vault/groups.js";
 import { argoCDApplicationsTemplate } from "./argocd/applications.js";
 import { argoCDProjectsTemplate } from "./argocd/projects.js";
 import { entraGroupsTemplate } from "./entra/groups.js";
@@ -29,6 +30,7 @@ export const initializeResourceTemplates = (): void => {
   registerResourceTemplate(vaultAuthMethodsTemplate);
   registerResourceTemplate(vaultEnginesTemplate);
   registerResourceTemplate(vaultRolesTemplate);
+  registerResourceTemplate(vaultGroupsTemplate);
 
   registerResourceTemplate(kubernetesUnifiedResourcesTemplate);
 

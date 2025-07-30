@@ -12,7 +12,8 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   const { cluster, role } = args as { cluster: string; role: string };
 
   const response = await markKubernetesRoleAdmin({ cluster, role });
-  const data = response?.data || {};
+  const json = await response.json();
+  const data = json?.data || {};
 
   return toolResponse({
     data,

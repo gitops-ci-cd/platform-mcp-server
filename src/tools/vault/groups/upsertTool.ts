@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
-import { getVaultConfig, readGroup, createGroup, createGroupAlias } from "../../../../lib/clients/vault/index.js";
+import { getVaultConfig, upsertGroup } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   name: z.string().describe("Base name for the group and policies (e.g., 'my-service')"),
@@ -24,34 +24,17 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     const vaultConfig = getVaultConfig();
 
-    let data = null;
-    let message = "";
+    // Use the upsert function that handles all the create/update logic
+    const response = await upsertGroup({
+      name,
+      policies,
+      groupId,
+      mountAccessor
+    });
 
-    try {
-      const response = await readGroup(name);
-      data = response?.data;
-      message = `Vault group '${name}' already exists and is ready to use`;
-    } catch (checkError: any) {
-      // Group doesn't exist, create it
-      if (!checkError.message.includes("404")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-
-      const response = await createGroup({ name, policies });
-      await new Promise(r => setTimeout(r, 3000)); // Wait for group creation to propagate
-
-      // Create the group alias
-      await createGroupAlias({
-        name: groupId,
-        canonicalID: response.data.id,
-        mountAccessor
-      });
-
-      // Get the group details to return comprehensive info
-      const groupResponse = await readGroup(name);
-      data = groupResponse?.data;
-      message = `Vault group '${name}' created successfully and aliased to external group '${groupId}'`;
-    }
+    const json = await response.json();
+    const data = json?.data || {};
+    const message = `Vault group '${name}' upserted successfully`;
 
     return toolResponse({
       message,
@@ -66,15 +49,15 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         name,
         groupId,
         potentialActions: [
-          "Use createVaultPolicy tool to create policies for this group",
-          "Use createVaultRole tool to create roles that reference this group",
+          "Use upsertVaultPolicy tool to create policies for this group",
+          "Use upsertVaultRole tool to create roles that reference this group",
           "Use requestVaultAccess tool if you need additional permissions"
         ]
       }
     });
   } catch (error: any) {
     return toolResponse({
-      message: `Failed to create Vault group: ${error.message}`,
+      message: `Failed to Upsert Vault group: ${error.message}`,
       links: {
         docs: "https://developer.hashicorp.com/vault/api-docs/secret/identity/group",
         troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault"
@@ -92,13 +75,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   }
 };
 
-export const createVaultGroupTool: ToolDefinition = {
-  title: "Create Vault Group",
+export const upsertVaultGroupTool: ToolDefinition = {
+  title: "Upsert Vault Group",
   annotations: {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create a Vault identity group and alias it to an external group (e.g., Azure AD group) with admin policies.",
+  description: "Create or update a Vault identity group and alias it to an external group (e.g., Azure AD group) with admin policies.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:groups:create"],
   callback

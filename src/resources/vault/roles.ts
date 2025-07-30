@@ -29,25 +29,26 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   try {
     const vaultConfig = getVaultConfig();
     const response = await readRole({ authMethod, name: roleName });
+    const json = await response.json();
 
     // Determine the auth type based on the response data
     let authType = authMethod.split("/")[0]; // Default to first segment of auth method path
-    if (response?.data?.auth_type) {
+    if (json?.data?.auth_type) {
       // Special case: Vault uses 'iam' for AWS
-      authType = response.data.auth_type === "iam" ? "aws" : response.data.auth_type;
+      authType = json.data.auth_type === "iam" ? "aws" : json.data.auth_type;
     }
 
-    const data = response?.data || {};
+    const data = json?.data || {};
 
     if (data.policies) {
       data.policies = await Promise.all(
-        data.policies.map((name: string) => readPolicy(name).then(policy => policy.data).catch(() => name))
+        data.policies.map((name: string) => readPolicy(name).then(p => p.json()).then(p => p.data).catch(() => name))
       );
     }
 
     if (data.token_policies) {
       data.token_policies = await Promise.all(
-        data.token_policies.map((name: string) => readPolicy(name).then(policy => policy.data).catch(() => name))
+        data.token_policies.map((name: string) => readPolicy(name).then(p => p.json()).then(p => p.data).catch(() => name))
       );
     }
 

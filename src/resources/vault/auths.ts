@@ -15,10 +15,11 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   try {
     const vaultConfig = getVaultConfig();
     const response = await readAuthMethod(realAuthPath);
+    const json = await response.json();
 
     return resourceResponse({
       message: `Retrieved Vault auth method: ${realAuthPath}`,
-      data: response.data,
+      data: json.data,
       metadata: {
         name: realAuthPath,
         potentialActions: [

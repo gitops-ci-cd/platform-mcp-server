@@ -15,10 +15,11 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   try {
     const vaultConfig = getVaultConfig();
     const response = await readEngine(realEngineName);
+    const json = await response.json();
 
     return resourceResponse({
       message: `Retrieved Vault secret engine: ${realEngineName}`,
-      data: response.data,
+      data: json.data,
       metadata: {
         name: realEngineName,
         potentialActions: [

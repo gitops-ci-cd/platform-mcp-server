@@ -18,7 +18,7 @@ const vaultApiRequest = async ({ method = "GET", path, config, data }: {
   path: string,
   config: VaultConfig,
   data?: any
-}): Promise<any> => {
+}): Promise<Response> => {
   const url = `${config.endpoint}/v1/${path}`;
   const vaultToken = await getVaultAccessToken({ config });
   const headers: Record<string, string> = {
@@ -41,12 +41,7 @@ const vaultApiRequest = async ({ method = "GET", path, config, data }: {
     throw new Error(`Vault API error (${response.status}): ${errorText}`);
   }
 
-  // Some Vault operations return no content
-  if (response.status === 204) {
-    return {};
-  }
-
-  return await response.json();
+  return await response;
 };
 
 export const listAuthMethods = async (name?: string): Promise<string[]> => {
@@ -60,19 +55,19 @@ export const listAuthMethods = async (name?: string): Promise<string[]> => {
       path: "sys/auth",
       config
     });
+    const data = await response.json() || {};
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    return resourceCache.set(cacheKey, Object.keys(response.data).sort(), 30 * 60 * 1000);
-  } catch {
-    console.warn("Could not fetch auth methods");
+    return resourceCache.set(cacheKey, Object.keys(data).sort(), 30 * 60 * 1000);
+  } catch (error) {
+    console.warn("Could not fetch auth methods", error);
   }
 
   return [];
 };
 
-export const readAuthMethod = async (name?: string): Promise<any> => {
+export const readAuthMethod = async (name?: string): Promise<Response> => {
   const config = getVaultConfig();
-
   const response = await vaultApiRequest({
     path: `sys/auth/${name}`,
     config
@@ -88,22 +83,22 @@ export const listEngines = async (name?: string): Promise<string[]> => {
 
   try {
     const config = getVaultConfig();
-
     const response = await vaultApiRequest({
       path: "sys/mounts",
       config
     });
+    const data = await response.json() || {};
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    return resourceCache.set(cacheKey, Object.keys(response.data).sort(), 30 * 60 * 1000);
-  } catch {
-    console.warn("Could not fetch engines");
+    return resourceCache.set(cacheKey, Object.keys(data).sort(), 30 * 60 * 1000);
+  } catch (error) {
+    console.warn("Could not fetch engines", error);
   }
 
   return [];
 };
 
-export const readEngine = async (name?: string): Promise<any> => {
+export const readEngine = async (name?: string): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     path: `sys/mounts/${name}`,
@@ -116,14 +111,64 @@ export const readEngine = async (name?: string): Promise<any> => {
 export const createEngine = async ({ path, data }: {
   path: string,
   data: any,
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
-  await vaultApiRequest({
+  const response = await vaultApiRequest({
     method: "POST",
     path: `sys/mounts/${path}`,
     config,
     data
   });
+  return response;
+};
+
+export const updateEngine = async ({ path, data }: {
+  path: string,
+  data: any,
+}): Promise<Response> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: `sys/mounts/${path}/tune`,
+    config,
+    data
+  });
+
+  return response;
+};
+
+export const upsertEngine = async ({ path, engineType, description, options }: {
+  path: string,
+  engineType: string,
+  description?: string,
+  options?: Record<string, any>,
+}): Promise<Response> => {
+  // First, try to read the existing engine
+  const response = await readEngine(path);
+
+  if (response.status === 404) {
+    // Engine doesn't exist, create it
+    const engineConfig = {
+      type: engineType,
+      ...(description && { description }),
+      ...(options && { options })
+    };
+
+    await createEngine({ path, data: engineConfig });
+    return await readEngine(path);
+  } else if (response.status >= 200 && response.status < 300) {
+    // Update the existing engine configuration
+    const updateConfig = {
+      ...(description && { description }),
+      ...(options && options)
+    };
+
+    await updateEngine({ path, data: updateConfig });
+    return await readEngine(path);
+  } else {
+    // Some other error occurred
+    throw new Error(`Failed to read engine: ${response.status} : ${await response.text()}`);
+  }
 };
 
 export const listPolicies = async (name?: string): Promise<string[]> => {
@@ -138,17 +183,18 @@ export const listPolicies = async (name?: string): Promise<string[]> => {
       path: "sys/policies/acl",
       config
     });
+    const data = await response.json() || {};
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
-    return resourceCache.set(cacheKey, response.data.keys.sort(), 30 * 60 * 1000);
-  } catch {
-    console.warn("Could not fetch policies");
+    return resourceCache.set(cacheKey, data.data.keys.sort(), 30 * 60 * 1000);
+  } catch (error) {
+    console.warn("Could not fetch policies", error);
   }
 
   return [];
 };
 
-export const readPolicy = async (name?: string): Promise<any> => {
+export const readPolicy = async (name?: string): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     path: `sys/policies/acl/${name}`,
@@ -161,14 +207,72 @@ export const readPolicy = async (name?: string): Promise<any> => {
 export const createPolicy = async ({ name, data }: {
   name: string,
   data: any
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
-  await vaultApiRequest({
+  const response = await vaultApiRequest({
     method: "POST",
     path: `sys/policies/acl/${name}`,
     config,
     data
   });
+
+  return response;
+};
+
+/**
+ * Update an existing Vault ACL policy
+ * This updates the policy using the same endpoint as creation.
+ *
+ * @param name Policy name to update
+ * @param data Policy configuration data
+ * @returns Policy update response
+ * @throws Error if policy update fails
+ */
+export const updatePolicy = async ({ name, data }: {
+  name: string,
+  data: any
+}): Promise<Response> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: `sys/policies/acl/${name}`,
+    config,
+    data
+  });
+
+  return response;
+};
+
+/**
+ * Create or update a Vault ACL policy
+ * This function handles the complete flow of policy creation/update.
+ *
+ * @param name Policy name
+ * @param policy Policy document in HCL format
+ * @returns Final policy details after upsert
+ * @throws Error if policy operations fail or configuration is invalid
+ */
+export const upsertPolicy = async ({ name, policy }: {
+  name: string,
+  policy: string
+}): Promise<Response> => {
+  // First, try to read the existing policy
+  const response = await readPolicy(name);
+
+  const data = { policy };
+
+  if (response.status === 404) {
+    // Policy doesn't exist, create it
+    await createPolicy({ name, data });
+    return await readPolicy(name);
+  } else if (response.status >= 200 && response.status < 300) {
+    // Policy already exists, update it
+    await updatePolicy({ name, data });
+    return await readPolicy(name);
+  } else {
+    // Some other error occurred
+    throw new Error(`Failed to read policy: ${response.status} : ${await response.text()}`);
+  }
 };
 
 export const listRoles = async (name?: string): Promise<string[]> => {
@@ -183,30 +287,32 @@ export const listRoles = async (name?: string): Promise<string[]> => {
       path: "sys/auth",
       config
     });
+    const authMethodsData = await authMethodsResponse.json();
 
     let allRoles: string[] = [];
 
     // Check each auth method for roles
-    for (const [path, authMethod] of Object.entries(authMethodsResponse.data)) {
+    for (const [path, authMethod] of Object.entries(authMethodsData.data)) {
       const cleanPath = path.replace(/\/$/, "");
       const authType = (authMethod as any).type;
 
       // Only check auth methods that support roles
       if (VAULT_ENGINE_TYPES_WITH_ROLES.includes(authType)) {
-        let rolesResponse;
+        let rolesData;
         try {
-          rolesResponse = await vaultApiRequest({
+          const rolesResponse = await vaultApiRequest({
             method: "LIST",
             path: rolePath(cleanPath),
             config
           });
+          rolesData = await rolesResponse.json();
         } catch {
           // some auth types don't have roles
           continue;
         }
 
-        if (rolesResponse?.data?.keys) {
-          const roles = rolesResponse.data.keys.map((roleName: string) => {
+        if (rolesData?.data?.keys) {
+          const roles = rolesData.data.keys.map((roleName: string) => {
             return `${cleanPath}/${roleName}`;
           });
           allRoles.push(...roles);
@@ -216,8 +322,8 @@ export const listRoles = async (name?: string): Promise<string[]> => {
 
     // Cache the results for 30 minutes (30 * 60 * 1000 ms)
     return resourceCache.set(cacheKey, allRoles.sort(), 30 * 60 * 1000);
-  } catch {
-    console.warn("Could not fetch roles");
+  } catch (error) {
+    console.warn("Could not fetch roles", error);
   }
 
   return [];
@@ -226,7 +332,7 @@ export const listRoles = async (name?: string): Promise<string[]> => {
 export const readRole = async ({ authMethod, name }: {
   authMethod: string,
   name: string
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     path: `${rolePath(authMethod)}/${name}`,
@@ -240,14 +346,74 @@ export const createRole = async ({ authMethod, name, data }: {
   authMethod: string,
   name: string,
   data: any
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
-  await vaultApiRequest({
+  const response = await vaultApiRequest({
     method: "POST",
     path: `${rolePath(authMethod)}/${name}`,
     config,
     data
   });
+
+  return response;
+};
+
+/**
+ * Update an existing Vault role for a specific authentication method
+ * This updates the role configuration using the same endpoint as creation.
+ *
+ * @param authMethod Authentication method type (e.g., 'approle', 'kubernetes', 'aws')
+ * @param name Role name to update
+ * @param data Role configuration data
+ * @returns Role update response
+ * @throws Error if role update fails
+ */
+export const updateRole = async ({ authMethod, name, data }: {
+  authMethod: string,
+  name: string,
+  data: any
+}): Promise<Response> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: `${rolePath(authMethod)}/${name}`,
+    config,
+    data
+  });
+
+  return response;
+};
+
+/**
+ * Create or update a Vault role for a specific authentication method
+ * This function handles the complete flow of role creation/update.
+ *
+ * @param authMethod Authentication method type (e.g., 'approle', 'kubernetes', 'aws')
+ * @param name Role name
+ * @param data Role configuration data including policies and auth method-specific config
+ * @returns Final role details after upsert
+ * @throws Error if role operations fail or configuration is invalid
+ */
+export const upsertRole = async ({ authMethod, name, data }: {
+  authMethod: string,
+  name: string,
+  data: any
+}): Promise<Response> => {
+  // First, try to read the existing role
+  const response = await readRole({ authMethod, name });
+
+  if (response.status === 404) {
+    // Role doesn't exist, create it
+    await createRole({ authMethod, name, data });
+    return await readRole({ authMethod, name });
+  } else if (response.status >= 200 && response.status < 300) {
+    // Role already exists, update it
+    await updateRole({ authMethod, name, data });
+    return await readRole({ authMethod, name });
+  } else {
+    // Some other error occurred
+    throw new Error(`Failed to read role: ${response.status} : ${await response.text()}`);
+  }
 };
 
 const rolePath = (authMethod: string): string => {
@@ -295,7 +461,7 @@ const rolePath = (authMethod: string): string => {
 export const readSecretMetadata = async ({ engineName, path }: {
   engineName: string,
   path: string
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     method: "LIST",
@@ -312,7 +478,7 @@ export const markKubernetesRoleAdmin = async ({
 }: {
   cluster: string,
   role: string
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     method: "POST",
@@ -324,6 +490,29 @@ export const markKubernetesRoleAdmin = async ({
   return response;
 };
 
+export const listGroups = async (name?: string): Promise<string[]> => {
+  const cacheKey = "vault-groups";
+  const cache = checkCache({ cacheKey, value: name });
+  if (cache.length > 0) return cache;
+
+  try {
+    const config = getVaultConfig();
+    const response = await vaultApiRequest({
+      method: "LIST",
+      path: "/identity/group/name",
+      config
+    });
+    const data = await response.json() || {};
+
+    // Cache the results for 30 minutes (30 * 60 * 1000 ms)
+    return resourceCache.set(cacheKey, data.data.keys.sort(), 30 * 60 * 1000);
+  } catch (error) {
+    console.warn("Could not fetch groups", error);
+  }
+
+  return [];
+};
+
 /**
  * Read an identity group from HashiCorp Vault
  * Retrieves details about an existing identity group including its policies and metadata.
@@ -332,7 +521,7 @@ export const markKubernetesRoleAdmin = async ({
  * @returns Group details including ID, policies, and metadata
  * @throws Error if group does not exist or API request fails
  */
-export const readGroup = async (name: string): Promise<any> => {
+export const readGroup = async (name: string): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     path: `identity/group/name/${name}`,
@@ -363,7 +552,7 @@ export const createGroup = async ({
   name: string,
   policies: string[],
   type?: string
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     method: "POST",
@@ -398,7 +587,7 @@ export const createGroupAlias = async ({
   name: string,
   canonicalID: string,
   mountAccessor: string
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getVaultConfig();
   const response = await vaultApiRequest({
     method: "POST",
@@ -412,4 +601,95 @@ export const createGroupAlias = async ({
   });
 
   return response;
+};
+
+/**
+ * Update an existing Vault identity group
+ * This updates the group using the name-based endpoint which handles both create and update.
+ *
+ * @param name Name of the group to update
+ * @param policies Array of policy names to associate with this group
+ * @param type Group type - "external" for external identity providers, "internal" for Vault-managed
+ * @returns Group update response
+ * @throws Error if group update fails
+ */
+export const updateGroup = async ({
+  name,
+  policies,
+  type = "external"
+}: {
+  name: string,
+  policies: string[],
+  type?: string
+}): Promise<Response> => {
+  const config = getVaultConfig();
+  const response = await vaultApiRequest({
+    method: "POST",
+    path: `identity/group/name/${name}`,
+    config,
+    data: {
+      policies,
+      type
+    }
+  });
+
+  return response;
+};
+
+/**
+ * Create or update a Vault identity group with optional external group alias
+ * This function handles the complete flow of group creation/update and linking to external identity providers.
+ * Uses the existing createGroup and updateGroup functions properly.
+ *
+ * @param name Unique name for the group
+ * @param policies Array of policy names to associate with this group
+ * @param groupId Optional external group ID to create an alias for (only on creation)
+ * @param mountAccessor The accessor of the auth method mount (required if groupId is provided)
+ * @param type Group type - "external" for external identity providers, "internal" for Vault-managed
+ * @returns Final group details after upsert
+ * @throws Error if group operations fail or configuration is invalid
+ */
+export const upsertGroup = async ({
+  name,
+  policies,
+  groupId,
+  mountAccessor,
+  type = "external"
+}: {
+  name: string,
+  policies: string[],
+  groupId?: string,
+  mountAccessor?: string,
+  type?: string
+}): Promise<Response> => {
+  // First, try to read the existing group
+  const response = await readGroup(name);
+
+  if (response.status === 404) {
+    // Group doesn't exist, create it
+    const createResponse = await createGroup({ name, policies, type });
+
+    // If external group ID is provided, create the alias
+    if (groupId && mountAccessor) {
+      await new Promise(r => setTimeout(r, 3000)); // Wait for group creation to propagate
+
+      // Get the group ID for the alias
+      const createJson = await createResponse.json();
+
+      await createGroupAlias({
+        name: groupId,
+        canonicalID: createJson.data.id,
+        mountAccessor
+      });
+    }
+
+    return await readGroup(name);
+  } else if (response.status >= 200 && response.status < 300) {
+    // Group already exists, update it
+    await updateGroup({ name, policies, type });
+    return await readGroup(name);
+  } else {
+    // Some other error occurred
+    throw new Error(`Failed to read group: ${response.status} : ${await response.text()}`);
+  }
 };

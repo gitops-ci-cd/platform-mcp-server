@@ -7,10 +7,11 @@ import { mcpHealthCheckTool } from "./mcp/healthCheckTool.js";
 import { generateKubernetesManifestTool } from "./kubernetes/resources/generateTool.js";
 import { generateTerraformTool } from "./terraform/generateTool.js";
 import { generateAwsCdkTool } from "./awscdk/generateTool.js";
-import { createVaultEngineTool } from "./vault/engines/createTool.js";
+import { upsertVaultEngineTool } from "./vault/engines/upsertTool.js";
 import { requestAccessTool } from "./vault/engines/requestAccessTool.js";
-import { createVaultPolicyTool } from "./vault/policies/createTool.js";
-import { createVaultRoleTool } from "./vault/roles/createTool.js";
+import { upsertVaultPolicyTool } from "./vault/policies/upsertTool.js";
+import { upsertVaultRoleTool } from "./vault/roles/upsertTool.js";
+import { upsertVaultGroupTool } from "./vault/groups/upsertTool.js";
 import { markK8sAdminTool } from "./vault/roles/markK8sRoleAdminTool.js";
 import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
 import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
@@ -27,10 +28,12 @@ export const initializeTools = (): void => {
 
   registerTool(generateAwsCdkTool);
 
-  registerTool(createVaultEngineTool);
-  registerTool(requestAccessTool);
-  registerTool(createVaultPolicyTool);
-  registerTool(createVaultRoleTool);
+  registerTool(upsertVaultEngineTool);
+  // This is a feature we should consider in the future
+  // registerTool(requestAccessTool);
+  registerTool(upsertVaultPolicyTool);
+  registerTool(upsertVaultRoleTool);
+  registerTool(upsertVaultGroupTool);
   registerTool(markK8sAdminTool);
 
   // This is for creating repositories in Artifactory, which we don't really need since we primarily

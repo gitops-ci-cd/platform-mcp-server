@@ -19,7 +19,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 
     const extractKeys = async (path: string) => {
       const response = await readSecretMetadata({ engineName: realSecretMountPath, path });
-      const k = response?.data?.keys || [];
+      const json = await response.json();
+      const k = json.data?.keys || [];
       const secrets = k.filter((key: string) => !key.endsWith("/"));
       const folders = k.filter((key: string) => key.endsWith("/"));
 

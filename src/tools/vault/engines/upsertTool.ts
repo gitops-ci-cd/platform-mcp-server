@@ -4,8 +4,7 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getVaultConfig,
-  readEngine,
-  createEngine,
+  upsertEngine,
   VAULT_ENGINE_TYPES,
 } from "../../../../lib/clients/vault/index.js";
 
@@ -30,33 +29,16 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     const vaultConfig = getVaultConfig();
 
-    let data = null;
-    let message = "";
-
-    try {
-      const response = await readEngine(enginePath);
-      data = response?.data;
-      message = `Vault engine '${enginePath}' already exists and is ready to use`;
-    } catch (checkError: any) {
-      // Engine doesn't exist, create it
-      if (!checkError.message.includes("404")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-
-      const engineConfig = {
-        type: engineType,
-        ...(description && { description }),
-        ...(options && { options })
-      };
-
-      // Create the secrets engine
-      await createEngine({ path: enginePath, data: engineConfig });
-
-      // Get the engine details to return comprehensive info
-      const response = await readEngine(enginePath);
-      data = response?.data;
-      message = `Vault engine '${enginePath}' created successfully`;
-    }
+    // Use the upsert function that handles all the create/update logic
+    const response = await upsertEngine({
+      path: enginePath,
+      engineType,
+      description,
+      options
+    });
+    const json = await response.json();
+    const data = json?.data || {};
+    const message = `Vault engine '${enginePath}' upserted successfully`;
 
     return toolResponse({
       message,
@@ -71,14 +53,14 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         name: enginePath,
         potentialActions: [
           "Use generateVaultSecret tool to create secrets in this engine",
-          "Use createVaultPolicy tool to control access to this engine",
+          "Use upsertVaultPolicy tool to control access to this engine",
           "Use requestVaultAccess tool if you need additional permissions"
         ]
       }
     });
   } catch (error: any) {
     return toolResponse({
-      message: `Failed to create Vault engine: ${error.message}`,
+      message: `Failed to Upsert Vault engine: ${error.message}`,
       links: {
         docs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
         troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
@@ -95,13 +77,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   }
 };
 
-export const createVaultEngineTool: ToolDefinition = {
-  title: "Create Vault Engine",
+export const upsertVaultEngineTool: ToolDefinition = {
+  title: "Upsert Vault Engine",
   annotations: {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or verify a Vault secrets engine. Returns management links and guidance for both new and existing engines.",
+  description: "Create or update a Vault secrets engine. Returns management links and guidance for both new and existing engines.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:engines:create", "admin"],
   callback

@@ -15,15 +15,16 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   try {
     const vaultConfig = getVaultConfig();
     const response = await readPolicy(realPolicyName);
+    const json = await response.json();
 
     return resourceResponse({
       message: `Retrieved Vault ACL policy: ${realPolicyName}`,
-      data: response.data,
+      data: json.data,
       metadata: {
         name: realPolicyName,
         isSystemPolicy: ["default", "root"].includes(realPolicyName),
         potentialActions: [
-          "Use createVaultPolicy tool to create a similar policy",
+          "Use upsertVaultPolicy tool to create a similar policy",
           "Edit policy via Vault UI link above",
           "Review policy syntax documentation for customization"
         ]

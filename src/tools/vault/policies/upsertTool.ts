@@ -4,8 +4,7 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getVaultConfig,
-  createPolicy,
-  readPolicy,
+  upsertPolicy,
 } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
@@ -25,32 +24,12 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     const vaultConfig = getVaultConfig();
 
-    let data = null;
-    let message = "";
+    // Use the upsert function that handles all the create/update logic
+    const response = await upsertPolicy({ name, policy });
 
-    try {
-      // Check if policy already exists
-      const response = await readPolicy(name);
-      data = response?.data;
-      message = `Vault policy '${name}' already exists and is ready to use`;
-    } catch (checkError: any) {
-      // Policy doesn't exist, create it
-      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-
-      const policyConfig = {
-        policy: policy,
-      };
-
-      // Create the policy
-      await createPolicy({ name, data: policyConfig });
-
-      // Get the policy details to return comprehensive info
-      const response = await readPolicy(name);
-      data = response?.data;
-      message = `Vault policy '${name}' created successfully`;
-    }
+    const json = await response.json();
+    const data = json?.data || {};
+    const message = `Vault policy '${name}' upserted successfully`;
 
     return toolResponse({
       message,
@@ -68,7 +47,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
   } catch (error: any) {
     return toolResponse({
-      message: `Failed to create Vault policy: ${error.message}`,
+      message: `Failed to Upsert Vault policy: ${error.message}`,
       links: {
         docs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
         troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault"
@@ -85,13 +64,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   }
 };
 
-export const createVaultPolicyTool: ToolDefinition = {
-  title: "Create Vault Policy",
+export const upsertVaultPolicyTool: ToolDefinition = {
+  title: "Upsert Vault Policy",
   annotations: {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or verify a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
+  description: "Create or update a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:policies:create", "admin"],
   callback
