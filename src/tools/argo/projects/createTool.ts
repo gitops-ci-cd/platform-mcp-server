@@ -5,7 +5,6 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArgoCDConfig,
-  readProject,
   createProject
 } from "../../../../lib/clients/argocd/index.js";
 
@@ -74,30 +73,17 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
     // Load ArgoCD configuration
     const argoCDConfig = getArgoCDConfig();
 
-    let data = null;
-    let message = "";
-
-    try {
-      const existingProject = await readProject(name);
-      data = existingProject;
-      message = `ArgoCD project '${name}' already exists and is ready to use`;
-    } catch (checkError: any) {
-      // Project doesn't exist, create it
-      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-
-      // Use sampling to generate the ArgoCD project configuration
-      const response = await extra.sendRequest(
-        {
-          method: "sampling/createMessage",
-          params: {
-            messages: [
-              {
-                role: "user",
-                content: {
-                  type: "text",
-                  text: `Generate an ArgoCD project configuration for:
+    // Use sampling to generate the ArgoCD project configuration
+    const sample = await extra.sendRequest(
+      {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `Generate an ArgoCD project configuration for:
 - Name: ${name}
 - Description: ${description || `ArgoCD project ${name}`}
 - Source repositories: ${JSON.stringify(sourceRepos, null, 2)}
@@ -118,25 +104,22 @@ Return the complete ArgoCD project configuration as a standard Kubernetes resour
 - spec: complete ArgoCD project specification
 
 Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`
-                }
               }
-            ],
-            maxTokens: 3072
-          }
-        } as ServerRequest,
-        CreateMessageWithValidatedResultSchema
-      );
+            }
+          ],
+          maxTokens: 3072
+        }
+      } as ServerRequest,
+      CreateMessageWithValidatedResultSchema
+    );
 
-      // Create the project
-      data = await createProject(response.content.text);
-
-      message = `ArgoCD project '${name}' created successfully`;
-    }
+    // Create the project
+    const response = await createProject(sample.content.text);
+    const data = response.json();
+    const message = `ArgoCD project '${name}' created successfully`;
 
     const argoWebUrl = argoCDConfig.endpoint.replace("/api/v1", "");
-    const projectWebUrl = `${argoWebUrl}/settings/projects/${name}`;
-
-    return toolResponse({
+    const projectWebUrl = `${argoWebUrl}/settings/projects/${name}`;    return toolResponse({
       message,
       data,
       links: {

@@ -12,13 +12,14 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     const argoCDConfig = getArgoCDConfig();
 
     // Get specific application using convenience method (returns raw response)
-    const data = await readApplication(applicationName);
+    const response = await readApplication(applicationName);
+    const data = await response.json();
 
     const argoCDWebUrl = argoCDConfig.endpoint;
     const appWebUrl = `${argoCDWebUrl}/applications/${applicationName}`;
 
     return resourceResponse({
-      message: `Retrieved ArgoCD Application: ${data.metadata?.name || applicationName}`,
+      message: `Retrieved ArgoCD Application: ${data?.metadata?.name || applicationName}`,
       data,
       links: {
         ui: appWebUrl,

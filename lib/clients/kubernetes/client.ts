@@ -279,7 +279,7 @@ const listAvailableCustomResources = async (): Promise<k8s.V1APIResource[]> => {
 };
 
 // List all namespaces in the Kubernetes cluster
-export const listNamespaces = async (name?: string): Promise<any> => {
+export const listNamespaces = async (name?: string): Promise<string[]> => {
   const cacheKey = "k8s-namespaces";
   const cache = checkCache({ cacheKey, value: name });
   if (cache.length > 0) return cache;
@@ -296,7 +296,7 @@ export const listNamespaces = async (name?: string): Promise<any> => {
   } catch (error: any) {
     console.error(`Failed to list Kubernetes namespaces: ${error.message}`);
 
-    return {};
+    return [];
   }
 };
 

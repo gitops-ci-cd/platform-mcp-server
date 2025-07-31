@@ -9,7 +9,8 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
 
   try {
     // Get project using client convenience method
-    const data = await readProject(projectName);
+    const response = await readProject(projectName);
+    const data = await response.json();
 
     // Load ArgoCD configuration for URL building
     const argoCDConfig = getArgoCDConfig();

@@ -5,7 +5,6 @@ import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArtifactoryConfig,
   applyPackageTypeDefaults,
-  readRepository,
   createRepository,
   ARTIFACTORY_PACKAGE_TYPES,
   ARTIFACTORY_REPOSITORY_TYPES,
@@ -50,31 +49,10 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Add type-specific properties
     Object.assign(repoConfig, applyPackageTypeDefaults({ packageType, properties }));
 
-    let data = null;
-    let message = "";
-    let action = "";
-
-    try {
-      // Check if repository already exists using the helper
-      const existingRepo = await readRepository(repositoryKey);
-      data = existingRepo;
-      message = `Artifactory repository "${repositoryKey}" already exists and is ready to use`;
-      action = "verified";
-    } catch (checkError: any) {
-      // Repository doesn't exist, create it
-      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-
-      // Create the repository
-      await createRepository(repoConfig);
-
-      // Get the repository details to return comprehensive info
-      const repoInfo = await readRepository(repositoryKey);
-      data = repoInfo;
-      message = `Artifactory repository "${repositoryKey}" created successfully`;
-      action = "created";
-    }
+    // Create the repository
+    const response = await createRepository(repoConfig);
+    const data = await response.json();
+    const message = `Artifactory repository "${repositoryKey}" created successfully`;
 
     return toolResponse({
       data,
@@ -84,7 +62,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         package_type: packageType,
         repository_type: repositoryType,
         description: description || "",
-        action
+        action: "created"
       },
       links: {
         ui: `${artifactoryWebUrl}/ui/repos/tree/General/${repositoryKey}`,

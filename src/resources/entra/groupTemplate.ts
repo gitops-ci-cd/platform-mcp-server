@@ -1,7 +1,7 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { readGroup, listGroups } from "../../../lib/clients/entra/index.js";
+import { readGroupWithMembers, listGroups } from "../../../lib/clients/entra/index.js";
 
 // Read callback function for Entra group resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables, _extra) => {
@@ -12,8 +12,7 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   }
 
   try {
-    // Use client function to get group with members (accepts name or ID)
-    const data = await readGroup({ groupNameOrId: groupName, includeMembers: true });
+    const data = await readGroupWithMembers(groupName);
 
     return resourceResponse({
       message: `Entra ID group: ${data.displayName}`,
@@ -61,12 +60,9 @@ export const entraGroupTemplate: ResourceTemplateDefinition = {
       list: undefined,
       complete: {
         groupName: async (value: string): Promise<string[]> => {
-          try {
-            return await listGroups(value);
-          } catch (error) {
-            console.error("Error in group autocomplete:", error);
-            return [];
-          }
+          const response = await listGroups(value);
+
+          return response;
         }
       }
     }

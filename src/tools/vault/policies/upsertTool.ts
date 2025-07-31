@@ -29,7 +29,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     const json = await response.json();
     const data = json?.data || {};
-    const message = `Vault policy '${name}' upserted successfully`;
+    const message = response.status === 201
+      ? `Vault policy '${name}' created successfully.`
+      : `Vault policy '${name}' already exists. Updated successfully.`;
 
     return toolResponse({
       message,

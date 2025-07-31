@@ -16,7 +16,7 @@ import { markK8sAdminTool } from "./vault/plugins/markK8sRoleAdminTool.js";
 import { createArtifactoryRepositoryTool } from "./artifactory/repositories/createTool.js";
 import { createArgoCDApplicationTool } from "./argo/applications/createTool.js";
 import { createArgoCDProjectTool } from "./argo/projects/createTool.js";
-import { createEntraGroupTool } from "./entra/groups/createTool.js";
+import { upsertEntraGroupTool } from "./entra/groups/upsertTool.js";
 
 export const initializeTools = (): void => {
   registerTool(mcpExplainerTool);
@@ -43,5 +43,5 @@ export const initializeTools = (): void => {
   registerTool(createArgoCDApplicationTool);
   registerTool(createArgoCDProjectTool);
 
-  registerTool(createEntraGroupTool);
+  registerTool(upsertEntraGroupTool);
 };

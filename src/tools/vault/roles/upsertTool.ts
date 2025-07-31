@@ -47,7 +47,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
 
     const json = await response.json();
     const data = json?.data || {};
-    const message = `Vault role "${roleName}" upserted successfully for ${authMethod} auth method`;
+    const message = response.status === 201
+      ? `Vault role '${authMethod}/${roleName}' created successfully.`
+      : `Vault role '${authMethod}/${roleName}' already exists. Updated successfully.`;
 
     return toolResponse({
       data,

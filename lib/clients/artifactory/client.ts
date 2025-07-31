@@ -19,7 +19,7 @@ import { resourceCache, checkCache } from "../../cache.js";
  * @param path API path relative to /artifactory/api/ (e.g., "repositories", "storage/repo-key/path")
  * @param config Artifactory configuration containing endpoint and API key
  * @param data Optional request body data (will be JSON serialized)
- * @returns Promise with parsed JSON response, or empty object for 204 responses
+ * @returns Raw response containing Artifactory API response data and headers
  * @throws Error if API request fails with descriptive error message including status code
  */
 export const artifactoryApiRequest = async ({ method, path, config, data }: {
@@ -27,7 +27,7 @@ export const artifactoryApiRequest = async ({ method, path, config, data }: {
   path: string,
   config: ArtifactoryConfig,
   data?: any
-}): Promise<any> => {
+}): Promise<Response> => {
   const url = `${config.endpoint}/artifactory/api/${path}`;
 
   const headers: Record<string, string> = {
@@ -41,17 +41,12 @@ export const artifactoryApiRequest = async ({ method, path, config, data }: {
     body: data ? JSON.stringify(data) : undefined,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Artifactory API error (${response.status}): ${errorText}`);
+  if ([401, 403].includes(response.status) || response.status >= 500) {
+    const cause = await response.json();
+    throw new Error(response.statusText, { cause });
   }
 
-  // Some operations return no content
-  if (response.status === 204) {
-    return {};
-  }
-
-  return await response.json();
+  return response;
 };
 
 /**

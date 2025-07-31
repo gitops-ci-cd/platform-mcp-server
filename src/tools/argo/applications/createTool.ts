@@ -5,7 +5,6 @@ import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 import {
   getArgoCDConfig,
-  readApplication,
   createApplication
 } from "../../../../lib/clients/argocd/index.js";
 
@@ -84,29 +83,17 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
     // Load ArgoCD configuration
     const argoCDConfig = getArgoCDConfig();
 
-    let data = null;
-    let message = "";
-
-    try {
-      const existingApp = await readApplication(name);
-      data = existingApp;
-      message = `ArgoCD application '${name}' already exists and is ready to use`;
-    } catch (checkError: any) {
-      // Application doesn't exist, create it
-      if (!checkError.message.includes("404") && !checkError.message.includes("not found")) {
-        throw checkError; // Re-throw if it's not a "not found" error
-      }
-      // Use sampling to generate the ArgoCD application configuration
-      const response = await extra.sendRequest(
-        {
-          method: "sampling/createMessage",
-          params: {
-            messages: [
-              {
-                role: "user",
-                content: {
-                  type: "text",
-                  text: `You must return a valid JSON object representing an ArgoCD Application resource.
+    // Use sampling to generate the ArgoCD application configuration
+    const sample = await extra.sendRequest(
+      {
+        method: "sampling/createMessage",
+        params: {
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `You must return a valid JSON object representing an ArgoCD Application resource.
 
 Generate an ArgoCD application configuration for:
 - Name: ${name}
@@ -130,19 +117,19 @@ Return ONLY a valid JSON object with:
 - spec: complete ArgoCD application specification
 
 Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`
-                }
               }
-            ],
-            maxTokens: 2048
-          }
-        } as ServerRequest,
-        CreateMessageWithValidatedResultSchema
-      );
+            }
+          ],
+          maxTokens: 2048
+        }
+      } as ServerRequest,
+      CreateMessageWithValidatedResultSchema
+    );
 
-      // Create the application
-      data = await createApplication(response.content.text);
-      message = `ArgoCD application '${name}' created successfully`;
-    }
+    // Create the application
+    const response = await createApplication(sample.content.text);
+    const data = await response.json();
+    const message = `ArgoCD application '${name}' created successfully`;
 
     const argoWebUrl = argoCDConfig.endpoint.replace("/api/v1", "");
     const appWebUrl = `${argoWebUrl}/applications/${name}`;

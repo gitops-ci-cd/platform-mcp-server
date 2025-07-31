@@ -38,7 +38,9 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     });
     const json = await response.json();
     const data = json?.data || {};
-    const message = `Vault engine '${enginePath}' upserted successfully`;
+    const message = response.status === 201
+      ? `Vault engine '${enginePath}' created successfully.`
+      : `Vault engine '${enginePath}' already exists. Updated successfully.`;
 
     return toolResponse({
       message,

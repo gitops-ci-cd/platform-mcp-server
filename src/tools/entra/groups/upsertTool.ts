@@ -2,8 +2,7 @@ import { z } from "zod";
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import {
-  createGroup,
-  readGroup,
+  upsertGroup,
   ENTRA_GROUP_TYPES,
   ENTRA_GROUP_VISIBILITY,
   type EntraGroupConfig
@@ -39,50 +38,25 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     // Get authenticated user for audit logging and token access
     getCurrentUser(`creating Entra group: ${displayName}`);
 
-    let data = null;
-    let message = "";
-
-    try {
-      // Check if group with same display name already exists
-      data = await readGroup({
-        groupNameOrId: displayName,
-        includeMembers: true
-      });
-      message = `Entra group "${displayName}" already exists and is ready to use`;
-    } catch {
-      // Group doesn't exist, create it
-      try {
-        data = await createGroup({
-          options: {
-            displayName,
-            description,
-            mailNickname,
-            groupTypes,
-            securityEnabled,
-            mailEnabled,
-            visibility,
-            owners,
-            members
-          }
-        });
-        message = `Entra group "${displayName}" created successfully`;
-      } catch (createError: any) {
-        // Handle common conflicts - try to read the group again
-        if (createError.message.includes("already exists") || createError.message.includes("conflict")) {
-          try {
-            data = await readGroup({
-              groupNameOrId: displayName,
-              includeMembers: true
-            });
-            message = `Entra group "${displayName}" already exists (detected after creation attempt)`;
-          } catch {
-            throw createError;
-          }
-        } else {
-          throw createError;
-        }
+    // Use upsert to create or verify the group
+    const response = await upsertGroup({
+      options: {
+        displayName,
+        description,
+        mailNickname,
+        groupTypes,
+        securityEnabled,
+        mailEnabled,
+        visibility,
+        owners,
+        members
       }
-    }
+    });
+
+    const data = await response.json();
+    const message = response.status === 201
+      ? `Entra group "${displayName}" created successfully.`
+      : `Entra group "${displayName}" already exists. Updated successfully.`;
 
     return toolResponse({
       data,
@@ -92,7 +66,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         group_id: data.id,
       },
       links: {
-        portal: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`
+        ui: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`
       }
     });
 
@@ -116,13 +90,13 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
   }
 };
 
-export const createEntraGroupTool: ToolDefinition = {
-  title: "Create Entra Group",
+export const upsertEntraGroupTool: ToolDefinition = {
+  title: "Upsert Entra Group",
   annotations: {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or verify a new group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
+  description: "Create or update a group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
   inputSchema,
   requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],
   callback

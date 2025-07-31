@@ -10,7 +10,7 @@ import { EntraGroupConfig, GraphConfig } from "./types.js";
  * @param path API path (without /v1.0/ prefix)
  * @param config Graph API configuration
  * @param data Optional request body data
- * @returns Promise with API response
+ * @returns Raw response containing Graph API response data and headers
  * @throws Error if API request fails
  */
 export const graphApiRequest = async ({ method = "GET", path, config, data }: {
@@ -18,7 +18,7 @@ export const graphApiRequest = async ({ method = "GET", path, config, data }: {
   path: string;
   config: GraphConfig;
   data?: any;
-}): Promise<any> => {
+}): Promise<Response> => {
   const accessToken = await getGraphAccessToken({ config });
   const url = `${config.endpoint}/${path}`;
 
@@ -33,12 +33,12 @@ export const graphApiRequest = async ({ method = "GET", path, config, data }: {
     body: data ? JSON.stringify(data) : undefined,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Microsoft Graph API error (${response.status}): ${errorText}`);
+  if ([401, 403].includes(response.status) || response.status >= 500) {
+    const cause = await response.json();
+    throw new Error(response.statusText, { cause });
   }
 
-  return await response.json();
+  return response;
 };
 
 /**
@@ -69,13 +69,14 @@ export const listGroups = async (name?: string): Promise<string[]> => {
         path: currentPath,
         config
       });
+      const json = await response.json();
 
-      if (response?.value) {
-        allGroups.push(...response.value);
+      if (json?.value) {
+        allGroups.push(...json.value);
       }
 
       // Check for next page
-      nextLink = response?.["@odata.nextLink"];
+      nextLink = json?.["@odata.nextLink"];
       if (nextLink) {
         // Extract just the query portion from the nextLink URL
         const url = new URL(nextLink);
@@ -95,57 +96,89 @@ export const listGroups = async (name?: string): Promise<string[]> => {
 };
 
 /**
- * Get a specific group by name or ID with detailed information
+ * Get a specific group by name or ID
  * @param groupNameOrId The group display name or ID
- * @param includeMembers Whether to include group members (default: true)
- * @returns Promise with group data including members
+ * @returns Raw response containing group data
  */
-export const readGroup = async ({ groupNameOrId, includeMembers = true }: {
-  groupNameOrId: string;
-  includeMembers?: boolean;
-}): Promise<any> => {
+export const readGroup = async (groupNameOrId: string): Promise<Response> => {
   const config = getGraphConfig();
   const selectFields = "id,displayName,description,groupTypes,securityEnabled,mailEnabled,mail,visibility,createdDateTime";
 
-  let group;
-
   if (validUUID(groupNameOrId)) {
     // Direct lookup by ID
-    group = await graphApiRequest({
+    return await graphApiRequest({
       path: `groups/${groupNameOrId}?$select=${selectFields}`,
       config
     });
   } else {
     // Search by display name
     const filter = `displayName eq '${groupNameOrId.replace(/'/g, "''")}'`;
-    const searchResponse = await graphApiRequest({
+    const response = await graphApiRequest({
       path: `groups?$filter=${encodeURIComponent(filter)}&$select=${selectFields}`,
       config
     });
+    const json = await response.json();
 
-    if (!searchResponse?.value || searchResponse.value.length === 0) {
-      throw new Error(`Group not found: ${groupNameOrId}`);
+    if (!json?.value || json.value.length === 0) {
+      return new Response(JSON.stringify({ error: "Group not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
-    if (searchResponse.value.length > 1) {
-      throw new Error(`Multiple groups found with name: ${groupNameOrId}. Please use the group ID instead.`);
+    if (json.value.length > 1) {
+      return new Response(JSON.stringify({ error: "Multiple groups found" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
-    group = searchResponse.value[0];
-  }
-
-  if (includeMembers) {
-    // Get group members
-    const membersResponse = await graphApiRequest({
-      path: `groups/${group.id}/members?$select=id,displayName,userPrincipalName,userType`,
-      config
+    // Return the single group data
+    return new Response(JSON.stringify(json.value[0]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
     });
+  }
+};
 
-    group.members = membersResponse?.value || [];
-    group.memberCount = group.members.length;
+/**
+ * Get members for a specific group
+ * @param groupId The group ID
+ * @returns Raw response containing group members data
+ */
+export const readGroupMembers = async (groupId: string): Promise<Response> => {
+  const config = getGraphConfig();
+  return await graphApiRequest({
+    path: `groups/${groupId}/members?$select=id,displayName,userPrincipalName,userType`,
+    config
+  });
+};
+
+/**
+ * Get a group with its members included
+ * Higher-level function that combines group and member data
+ * @param groupNameOrId The group display name or ID
+ * @returns Combined group data with members
+ */
+export const readGroupWithMembers = async (groupNameOrId: string) => {
+  const groupResponse = await readGroup(groupNameOrId);
+
+  if (groupResponse.status !== 200) {
+    // Return early if group lookup failed
+    const errorData = await groupResponse.json();
+    throw new Error(errorData.error || `Failed to read group: ${groupResponse.status}`);
   }
 
-  return group;
+  const groupData = await groupResponse.json();
+
+  const membersResponse = await readGroupMembers(groupData.id);
+  const membersData = await membersResponse.json();
+
+  return {
+    ...groupData,
+    members: membersData?.value || [],
+    memberCount: membersData?.value?.length || 0
+  };
 };
 
 /**
@@ -155,14 +188,45 @@ export const readGroup = async ({ groupNameOrId, includeMembers = true }: {
  */
 export const createGroup = async ({ options }: {
   options: EntraGroupConfig;
-}): Promise<any> => {
+}): Promise<Response> => {
   const config = getGraphConfig();
   const groupConfig = buildGroupConfig(options);
 
-  return await graphApiRequest({
+  const response = await graphApiRequest({
     path: "groups",
     method: "POST",
     data: groupConfig,
     config
   });
+
+  return response;
+};
+
+/**
+ * Create or verify a group in Microsoft Entra ID
+ * This function handles the complete flow of group creation/verification.
+ * If the group doesn't exist, it creates a new one. If it exists, it returns the existing group.
+ *
+ * @param options Group configuration options
+ * @returns Raw response containing final group details after upsert operation
+ * @throws Error if group operations fail or configuration is invalid
+ */
+export const upsertGroup = async ({ options }: {
+  options: EntraGroupConfig;
+}): Promise<Response> => {
+  // First, try to read the existing group
+  const response = await readGroup(options.displayName);
+
+  if (response.status === 404) {
+    // Group doesn't exist, create it
+    await createGroup({ options });
+    return await readGroup(options.displayName);
+  } else if (response.status >= 200 && response.status < 300) {
+    // Group already exists, return it
+    return response;
+  } else {
+    // Some other error occurred
+    const errorText = await response.text();
+    throw new Error(`Failed to read group: ${response.status} : ${errorText}`);
+  }
 };

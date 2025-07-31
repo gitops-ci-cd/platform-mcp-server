@@ -36,10 +36,10 @@ export const vaultApiRequest = async ({ method = "GET", path, config, data }: {
     body: data ? JSON.stringify(data) : undefined,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Vault API error (${response.status}): ${errorText}`);
+  if ([401, 403].includes(response.status) || response.status >= 500) {
+    const cause = await response.json();
+    throw new Error(response.statusText, { cause });
   }
 
-  return await response;
+  return response;
 };
