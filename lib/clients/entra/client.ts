@@ -1,8 +1,35 @@
 import { validate as validUUID } from "uuid";
 
 import { resourceCache, checkCache } from "../../cache.js";
-import { getGraphConfig, buildGroupConfig, getGraphAccessToken } from "./config.js";
-import { EntraGroupConfig, GraphConfig } from "./types.js";
+import { getEntraConfig, buildGroupConfig, getGraphAccessToken } from "./config.js";
+import { EntraGroupConfig, EntraConfig } from "./types.js";
+
+/**
+ * Fetch user's group memberships from Microsoft Graph using an access token
+ * @param token The user's access token
+ * @returns Array of group display names or IDs
+ */
+export const fetchUserGroups = async (token: string): Promise<string[]> => {
+  try {
+    const response = await fetch("https://graph.microsoft.com/v1.0/me/memberOf", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn("Failed to fetch user groups from Microsoft Graph:", response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.value?.map((group: any) => group.displayName || group.id) || [];
+  } catch (error) {
+    console.warn("Error fetching user groups:", error);
+    return [];
+  }
+};
 
 /**
  * Make HTTP request to Microsoft Graph API with proper authentication
@@ -16,7 +43,7 @@ import { EntraGroupConfig, GraphConfig } from "./types.js";
 export const graphApiRequest = async ({ method = "GET", path, config, data }: {
   method?: string;
   path: string;
-  config: GraphConfig;
+  config: EntraConfig;
   data?: any;
 }): Promise<Response> => {
   const accessToken = await getGraphAccessToken({ config });
@@ -52,7 +79,7 @@ export const listGroups = async (name?: string): Promise<string[]> => {
   if (cache.length > 0) return cache;
 
   try {
-    const config = getGraphConfig();
+    const config = getEntraConfig();
     let allGroups: any[] = [];
     let nextLink: string | undefined;
 
@@ -101,7 +128,7 @@ export const listGroups = async (name?: string): Promise<string[]> => {
  * @returns Raw response containing group data
  */
 export const readGroup = async (groupNameOrId: string): Promise<Response> => {
-  const config = getGraphConfig();
+  const config = getEntraConfig();
   const selectFields = "id,displayName,description,groupTypes,securityEnabled,mailEnabled,mail,visibility,createdDateTime";
 
   if (validUUID(groupNameOrId)) {
@@ -147,7 +174,7 @@ export const readGroup = async (groupNameOrId: string): Promise<Response> => {
  * @returns Raw response containing group members data
  */
 export const readGroupMembers = async (groupId: string): Promise<Response> => {
-  const config = getGraphConfig();
+  const config = getEntraConfig();
   return await graphApiRequest({
     path: `groups/${groupId}/members?$select=id,displayName,userPrincipalName,userType`,
     config
@@ -189,7 +216,7 @@ export const readGroupWithMembers = async (groupNameOrId: string) => {
 export const createGroup = async ({ options }: {
   options: EntraGroupConfig;
 }): Promise<Response> => {
-  const config = getGraphConfig();
+  const config = getEntraConfig();
   const groupConfig = buildGroupConfig(options);
 
   const response = await graphApiRequest({

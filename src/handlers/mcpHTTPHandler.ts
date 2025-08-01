@@ -16,7 +16,7 @@ export const httpHandler = async (req: Request, res: Response, _next: NextFuncti
   try {
     sessionId = getCurrentSessionId();
   } catch {
-    // No session context available
+    // No session context available. This is normal during initialization
     sessionId = undefined;
   }
 
@@ -27,6 +27,7 @@ export const httpHandler = async (req: Request, res: Response, _next: NextFuncti
     transport = transports[sessionId];
   } else if (!sessionId && isInitializeRequest(req.body)) {
     // New initialization request
+    console.info("Initializing new HTTP connection!");
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sessionId) => {
@@ -38,6 +39,7 @@ export const httpHandler = async (req: Request, res: Response, _next: NextFuncti
     // Clean up transport when closed
     transport.onclose = () => {
       if (transport.sessionId) {
+        console.info("Closing HTTP connection. Goodbye.");
         delete transports[transport.sessionId];
 
         // Clear session-specific cache entries

@@ -1,4 +1,4 @@
-import { GraphConfig, EntraGroupConfig } from "./types.js";
+import { EntraConfig, EntraGroupConfig } from "./types.js";
 import { getCurrentUserToken } from "../../auth/index.js";
 
 /**
@@ -6,17 +6,18 @@ import { getCurrentUserToken } from "../../auth/index.js";
  * @returns Graph API configuration object
  * @throws Error if required environment variables are missing
  */
-export const getGraphConfig = (): GraphConfig => {
+export const getEntraConfig = (): EntraConfig => {
+  const { MS_ENTRA_TENANT_ID: tenantId } = process.env;
   const endpoint = "https://graph.microsoft.com/v1.0";
-  const tenantId = process.env.MS_ENTRA_TENANT_ID;
-  const clientId = process.env.MS_ENTRA_CLIENT_ID;
-  const clientSecret = process.env.MS_ENTRA_CLIENT_SECRET;
 
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("MS_ENTRA_TENANT_ID, MS_ENTRA_CLIENT_ID, and MS_ENTRA_CLIENT_SECRET environment variables are required");
+  if (!tenantId) {
+    throw new Error("MS_ENTRA_TENANT_ID is required");
   }
 
-  return { endpoint, tenantId, clientId, clientSecret };
+  return {
+    endpoint,
+    tenantId
+  };
 };
 
 /**
@@ -26,7 +27,7 @@ export const getGraphConfig = (): GraphConfig => {
  * @throws Error if token acquisition fails
  */
 export const getGraphAccessToken = async ({ config }: {
-  config: GraphConfig;
+  config: EntraConfig;
 }): Promise<string> => {
   // If service token provided, use it directly
   if (process.env.MS_ENTRA_TOKEN) return process.env.MS_ENTRA_TOKEN;
@@ -38,8 +39,6 @@ export const getGraphAccessToken = async ({ config }: {
   if (userToken) {
     // Use on-behalf-of flow to preserve user's identity and permissions (preferred)
     tokenData = new URLSearchParams({
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
       scope: "https://graph.microsoft.com/Group.ReadWrite.All https://graph.microsoft.com/User.Read.All",
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion: userToken,
@@ -48,8 +47,6 @@ export const getGraphAccessToken = async ({ config }: {
   } else {
     // Fallback to client credentials flow (for system operations)
     tokenData = new URLSearchParams({
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
       scope: "https://graph.microsoft.com/.default",
       grant_type: "client_credentials",
     });

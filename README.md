@@ -73,7 +73,6 @@ export ARGOCD_TOKEN=$(yq '.users[] | select(.name == "argo.devops.prd.aws-01.leg
 
     ```bash
     MS_ENTRA_TENANT_ID=your-tenant-id
-    MS_ENTRA_CLIENT_ID=your-client-id
     ```
 
 1. **Test Setup**: `npm run test-auth`

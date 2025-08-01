@@ -25,9 +25,7 @@ export interface EntraGroupConfig {
   members?: string[];
 }
 
-export interface GraphConfig {
+export interface EntraConfig {
   endpoint: string;
   tenantId: string;
-  clientId: string;
-  clientSecret: string;
 }
