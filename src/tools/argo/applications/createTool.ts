@@ -131,7 +131,7 @@ Guidelines:
 Return ONLY a valid JSON object with:
 - apiVersion: argoproj.io/v1alpha1
 - kind: Application
-- metadata: name (${name}), namespace (argocd), labels, annotations (user: ${user.email})
+- metadata: name (${name}), namespace (argocd), labels, annotations (user: ${user.extra?.email})
 - spec: complete ArgoCD application specification
 
 Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`,

@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from "async_hooks";
-import type { AuthenticatedUser } from "./user.js";
+import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 interface RequestContext {
-  user: AuthenticatedUser;
+  info: AuthInfo | undefined; // AuthInfo from MCP SDK, required for authenticated requests
   sessionId?: string;
 }
 
@@ -13,8 +13,8 @@ const requestContext = new AsyncLocalStorage<RequestContext>();
  * Set the authenticated user and session context for the current async execution
  * This should be called at the beginning of each request
  */
-export const setRequestContext = ({ user, sessionId }: RequestContext): void => {
-  requestContext.enterWith({ user, sessionId });
+export const setRequestContext = ({ info, sessionId }: RequestContext): void => {
+  requestContext.enterWith({ info, sessionId });
 };
 
 /**
@@ -22,13 +22,13 @@ export const setRequestContext = ({ user, sessionId }: RequestContext): void => 
  * @param operation - Description of the operation being performed (required)
  * @returns The authenticated user
  */
-export const getCurrentUser = (operation: string): AuthenticatedUser => {
-  const user = getCurrentUserSilent();
+export const getCurrentUser = (operation: string): AuthInfo => {
+  const info = getCurrentUserSilent();
 
   // Always log the operation
-  console.info(`User ${user.email} (${operation})`);
+  console.info(`User ${info.extra!.email} (${operation})`);
 
-  return user;
+  return info;
 };
 
 /**
@@ -36,13 +36,13 @@ export const getCurrentUser = (operation: string): AuthenticatedUser => {
  * This should only be used in rare cases where logging is handled elsewhere
  * @returns The authenticated user
  */
-export const getCurrentUserSilent = (): AuthenticatedUser => {
+export const getCurrentUserSilent = (): AuthInfo => {
   const context = requestContext.getStore();
   if (!context) {
     throw new Error("No request context available. This should only be called within an authenticated request.");
   }
 
-  return context.user;
+  return context.info!;
 };
 
 /**
@@ -67,5 +67,5 @@ export const getCurrentUserToken = (): string | undefined => {
     throw new Error("No request context available. This should only be called within an authenticated request.");
   }
 
-  return context.user.token;
+  return context.info!.token;
 };

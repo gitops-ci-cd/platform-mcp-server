@@ -114,7 +114,7 @@ Please generate a complete ArgoCD project spec following these guidelines:
 Return the complete ArgoCD project configuration as a standard Kubernetes resource with:
 - apiVersion: current ArgoCD API version (e.g., argoproj.io/v1alpha1)
 - kind: AppProject
-- metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.email})
+- metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.extra?.email})
 - spec: complete ArgoCD project specification
 
 Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`,

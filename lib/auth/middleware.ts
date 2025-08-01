@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
-import { getUserInfo } from "./user.js";
 import { setRequestContext } from "./context.js";
 
 // Extend Request type to include MCP auth info
@@ -14,9 +13,10 @@ interface AuthenticatedRequest extends Request {
  * Assumes authentication has already been handled by MCP auth router
  */
 export const userContextMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const user = getUserInfo(req.auth);
+  const info = req.auth;
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  setRequestContext({ user, sessionId });
+
+  setRequestContext({ info, sessionId });
 
   next();
 };

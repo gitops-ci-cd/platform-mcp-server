@@ -66,38 +66,56 @@ const verifyAccessToken = async (token: string): Promise<AuthInfo> => {
 
     console.debug("JWT token validated (structure and claims)");
 
-    // Extract user information and permissions
-    const roles = payload.roles || [];
-    const scopes = payload.scp ? payload.scp.split(" ") : [];
-    const wids = payload.wids || []; // Windows Directory Service roles
+    let authInfo: AuthInfo;
+    if (process.env.NODE_ENV === "development") {
+      authInfo = {
+        token: "",
+        clientId: "dev-client",
+        scopes: ["openid", "profile"],
+        expiresAt: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours from now
+        extra: {
+          userId: "dev-user",
+          email: "developer@localhost",
+          name: "Development User",
+          roles: ["admin"],
+          permissions: ["admin"], // Full access in dev mode
+          wids: [],
+          groups: []
+        },
+      };
+    } else {
+      // Fetch user's group memberships from Microsoft Graph
+      const groups = await fetchUserGroups(token);
+      // Extract user information and permissions
+      const roles = payload.roles || [];
+      const scopes = payload.scp ? payload.scp.split(" ") : [];
+      const wids = payload.wids || []; // Windows Directory Service roles
 
-    // Fetch user's group memberships from Microsoft Graph
-    const groups = await fetchUserGroups(token);
+      authInfo = {
+        token,
+        clientId: payload.aud,
+        scopes,
+        expiresAt: payload.exp,
+        extra: {
+          userId: payload.sub || payload.oid,
+          email: payload.email || payload.preferred_username || payload.upn,
+          name: payload.name,
+          roles,
+          permissions: roles.slice(), // Copy of roles as permissions
+          wids, // Include Windows Directory Service roles
+          groups, // Groups from Microsoft Graph API
+        },
+      };
 
-    const authInfo: AuthInfo = {
-      token,
-      clientId: payload.aud,
-      scopes,
-      expiresAt: payload.exp,
-      extra: {
-        userId: payload.sub || payload.oid,
-        email: payload.email || payload.preferred_username || payload.upn,
-        name: payload.name,
-        roles,
-        permissions: roles.slice(), // Copy of roles as permissions
-        wids, // Include Windows Directory Service roles
-        groups, // Groups from Microsoft Graph API
-      },
-    };
-
-    console.debug("Token verified successfully", {
-      user: authInfo.extra?.name,
-      email: authInfo.extra?.email,
-      scopeCount: authInfo.scopes.length,
-      roleCount: (authInfo.extra?.roles as string[])?.length || 0,
-      widsCount: wids.length,
-      groupCount: groups.length,
-    });
+      console.debug("Token verified successfully", {
+        user: authInfo.extra?.name,
+        email: authInfo.extra?.email,
+        scopeCount: authInfo.scopes.length,
+        roleCount: (authInfo.extra?.roles as string[])?.length || 0,
+        widsCount: wids.length,
+        groupCount: groups.length,
+      });
+    }
 
     return authInfo;
   } catch (error) {

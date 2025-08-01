@@ -76,7 +76,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         urgency: urgency,
       },
       requester: {
-        user: user.email,
+        user: user.extra?.email,
         timestamp: new Date().toISOString(),
       },
       justification: justification,

@@ -23,7 +23,7 @@ export const initializeMcpServer = (auth: boolean = true): McpServer => {
   if (auth) {
     user = getCurrentUser("accessing MCP server");
   }
-  const userPermissions = user?.permissions || [];
+  const userPermissions: string[] = Array.isArray(user?.extra?.permissions) ? user.extra.permissions : [];
 
   // Register all authorized capabilities
   registerToolsWithServer(server, userPermissions);
