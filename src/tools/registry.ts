@@ -6,9 +6,16 @@ import { sanitizeString } from "../../lib/string.js";
 import { initializeTools } from "./index.js";
 
 // https://modelcontextprotocol.io/docs/concepts/tools#tool-definition-structure
-export interface ToolDefinition extends Pick<RegisteredTool, "title" | "description" | "inputSchema" | "outputSchema" | "annotations"> {
+export interface ToolDefinition
+  extends Pick<
+    RegisteredTool,
+    "title" | "description" | "inputSchema" | "outputSchema" | "annotations"
+  > {
   requiredPermissions?: string[];
-  callback: (args: z.objectOutputType<any, ZodTypeAny>, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => Promise<ReturnType<typeof toolResponse>>;
+  callback: (
+    args: z.objectOutputType<any, ZodTypeAny>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ) => Promise<ReturnType<typeof toolResponse>>;
 }
 
 interface ToolResponseData {
@@ -31,10 +38,10 @@ export const toolResponse = (data: ToolResponseData, isError: boolean = false) =
         type: "text" as const,
         text: JSON.stringify(data, null, 2),
         mimeType: "application/json",
-      }
+      },
     ],
     structuredContent: data,
-    isError
+    isError,
   };
 };
 
@@ -60,12 +67,15 @@ export const getAuthorizedTools = (userPermissions: string[] = []): ToolDefiniti
 };
 
 // Register all authorized tools with an MCP server instance
-export const registerToolsWithServer = (server: McpServer, userPermissions: string[] = []): void => {
+export const registerToolsWithServer = (
+  server: McpServer,
+  userPermissions: string[] = []
+): void => {
   initializeTools();
   const authorizedTools = getAuthorizedTools(userPermissions);
 
   for (const tool of authorizedTools) {
-    const { title, description, inputSchema, outputSchema, annotations, callback } = tool;;
+    const { title, description, inputSchema, outputSchema, annotations, callback } = tool;
     server.registerTool(
       sanitizeString(title),
       {
@@ -73,7 +83,7 @@ export const registerToolsWithServer = (server: McpServer, userPermissions: stri
         description,
         inputSchema: inputSchema ? inputSchema.shape : undefined,
         outputSchema: outputSchema ? outputSchema.shape : undefined,
-        annotations
+        annotations,
       },
       callback
     );

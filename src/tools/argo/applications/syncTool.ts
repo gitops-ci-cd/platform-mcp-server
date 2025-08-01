@@ -7,7 +7,7 @@ const inputSchema = z.object({
   dryRun: z.boolean().default(false).describe("Perform a dry-run sync"),
   prune: z.boolean().default(false).describe("Prune resources during sync"),
   force: z.boolean().default(false).describe("Force sync even if no changes"),
-  resources: z.array(z.string()).optional().describe("Specific resources to sync")
+  resources: z.array(z.string()).optional().describe("Specific resources to sync"),
 });
 
 const callback: ToolDefinition["callback"] = async (_args, _extra) => {
@@ -15,21 +15,24 @@ const callback: ToolDefinition["callback"] = async (_args, _extra) => {
   // Will initiate sync operation and return status
   // Output: Sync operation result
 
-  return toolResponse({
-    message: "ArgoCD application sync tool not implemented yet",
-    links: {
-      docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/sync/",
-      api: "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/"
+  return toolResponse(
+    {
+      message: "ArgoCD application sync tool not implemented yet",
+      links: {
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/sync/",
+        api: "https://argo-cd.readthedocs.io/en/stable/developer-guide/api-docs/",
+      },
+      metadata: {
+        status: "not_implemented",
+        potentialActions: [
+          "Implement ArgoCD sync API integration",
+          "Add authentication and authorization",
+          "Handle sync operation responses",
+        ],
+      },
     },
-    metadata: {
-      status: "not_implemented",
-      potentialActions: [
-        "Implement ArgoCD sync API integration",
-        "Add authentication and authorization",
-        "Handle sync operation responses"
-      ]
-    }
-  }, true);
+    true
+  );
 };
 
 export const syncArgoApplicationTool: ToolDefinition = {
@@ -40,5 +43,5 @@ export const syncArgoApplicationTool: ToolDefinition = {
   description: "Trigger ArgoCD application sync via direct API",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:sync", "admin"],
-  callback
+  callback,
 };

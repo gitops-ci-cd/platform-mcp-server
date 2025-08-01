@@ -6,7 +6,7 @@ import { getVaultConfig, readPolicy, listPolicies } from "../../../lib/clients/v
 // Read callback function for vault policy resource template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
   const { policyName } = variables as {
-    policyName: string
+    policyName: string;
   };
 
   // Convert the flattened policy name back to the real name (replace -- with /)
@@ -17,63 +17,67 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     const response = await readPolicy(realPolicyName);
     const json = await response.json();
 
-    return resourceResponse({
-      message: `Retrieved Vault ACL policy: ${realPolicyName}`,
-      data: json.data,
-      metadata: {
-        name: realPolicyName,
-        isSystemPolicy: ["default", "root"].includes(realPolicyName),
-        potentialActions: [
-          "Use upsertVaultPolicy tool to create a similar policy",
-          "Edit policy via Vault UI link above",
-          "Review policy syntax documentation for customization"
-        ]
+    return resourceResponse(
+      {
+        message: `Retrieved Vault ACL policy: ${realPolicyName}`,
+        data: json.data,
+        metadata: {
+          name: realPolicyName,
+          isSystemPolicy: ["default", "root"].includes(realPolicyName),
+          potentialActions: [
+            "Use upsertVaultPolicy tool to create a similar policy",
+            "Edit policy via Vault UI link above",
+            "Review policy syntax documentation for customization",
+          ],
+        },
+        links: {
+          ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/policy/acl/${encodeURIComponent(realPolicyName)}`,
+          concept: "https://developer.hashicorp.com/vault/docs/concepts/policies",
+          apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
+          cliDocs: "https://developer.hashicorp.com/vault/docs/commands/policy",
+        },
       },
-      links: {
-        ui: `${vaultConfig.endpoint.replace("/v1", "")}/ui/vault/policy/acl/${encodeURIComponent(realPolicyName)}`,
-        concept: "https://developer.hashicorp.com/vault/docs/concepts/policies",
-        apiDocs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
-        cliDocs: "https://developer.hashicorp.com/vault/docs/commands/policy",
-      },
-    }, uri);
+      uri
+    );
   } catch (error: any) {
-    return resourceResponse({
-      message: `Failed to read Vault policy ${realPolicyName}: ${error.message}`,
-      links: {
-        docs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
-        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault"
+    return resourceResponse(
+      {
+        message: `Failed to read Vault policy ${realPolicyName}: ${error.message}`,
+        links: {
+          docs: "https://developer.hashicorp.com/vault/api-docs/system/policy",
+          troubleshooting:
+            "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
+        },
+        metadata: {
+          troubleshooting: [
+            "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
+            "Verify your Vault token has 'sys/policies/acl' read permissions",
+            `Check that the policy name '${realPolicyName}' exists and is spelled correctly`,
+            "Check Vault server connectivity and accessibility",
+          ],
+        },
       },
-      metadata: {
-        troubleshooting: [
-          "Ensure VAULT_TOKEN environment variable is set or ~/.vault-token file exists",
-          "Verify your Vault token has 'sys/policies/acl' read permissions",
-          `Check that the policy name '${realPolicyName}' exists and is spelled correctly`,
-          "Check Vault server connectivity and accessibility"
-        ]
-      }
-    }, uri);
+      uri
+    );
   }
 };
 
 // Resource template definition for vault policies
 export const vaultPolicyTemplate: ResourceTemplateDefinition = {
   title: "Vault Policies",
-  resourceTemplate: new ResourceTemplate(
-    "vault://policies/{policyName}",
-    {
-      list: undefined,
-      complete: {
-        policyName: async (value: string): Promise<string[]> => {
-          const response = await listPolicies(value);
+  resourceTemplate: new ResourceTemplate("vault://policies/{policyName}", {
+    list: undefined,
+    complete: {
+      policyName: async (value: string): Promise<string[]> => {
+        const response = await listPolicies(value);
 
-          return response
-            .map((path: string) => path.replace(/\//g, "--")); // Replace / with -- for URI safety
-        }
-      }
-    }
-  ),
+        return response.map((path: string) => path.replace(/\//g, "--")); // Replace / with -- for URI safety
+      },
+    },
+  }),
   metadata: {
-    description: "Access specific Vault ACL policies by name. Provides policy details, rules, and management actions",
+    description:
+      "Access specific Vault ACL policies by name. Provides policy details, rules, and management actions",
   },
   requiredPermissions: ["vault:read", "vault:policies:read", "admin"],
   readCallback,

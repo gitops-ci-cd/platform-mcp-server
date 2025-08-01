@@ -14,61 +14,64 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   try {
     const data = await readGroupWithMembers(groupName);
 
-    return resourceResponse({
-      message: `Entra ID group: ${data.displayName}`,
-      data,
-      links: {
-        ui: `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Overview/groupId/${data.id}`,
-        docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
-        api_docs: "https://docs.microsoft.com/en-us/graph/api/group-get"
+    return resourceResponse(
+      {
+        message: `Entra ID group: ${data.displayName}`,
+        data,
+        links: {
+          ui: `https://portal.azure.com/#blade/Microsoft_AAD_IAM/GroupDetailsMenuBlade/Overview/groupId/${data.id}`,
+          docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
+          api_docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
+        },
+        metadata: {
+          potentialActions: [
+            "Use createEntraGroup tool to create similar groups",
+            "Click 'members' link to manage group membership",
+            "Visit Azure Portal to manage this group",
+            "Check group permissions and access rights",
+          ],
+        },
       },
-      metadata: {
-        potentialActions: [
-          "Use createEntraGroup tool to create similar groups",
-          "Click 'members' link to manage group membership",
-          "Visit Azure Portal to manage this group",
-          "Check group permissions and access rights"
-        ]
-      }
-    }, uri);
-
+      uri
+    );
   } catch (error: any) {
-    return resourceResponse({
-      message: `Failed to read Entra group: ${error.message}`,
-      links: {
-        docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
-        troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting"
+    return resourceResponse(
+      {
+        message: `Failed to read Entra group: ${error.message}`,
+        links: {
+          docs: "https://docs.microsoft.com/en-us/graph/api/group-get",
+          troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting",
+        },
+        metadata: {
+          troubleshooting: [
+            "Verify the group ID exists",
+            "Ensure ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, and ENTRA_TENANT_ID environment variables are set",
+            "Verify your app registration has Group.Read.All permissions",
+            "Check Microsoft Graph API connectivity and service status",
+          ],
+        },
       },
-      metadata: {
-        troubleshooting: [
-          "Verify the group ID exists",
-          "Ensure ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, and ENTRA_TENANT_ID environment variables are set",
-          "Verify your app registration has Group.Read.All permissions",
-          "Check Microsoft Graph API connectivity and service status"
-        ]
-      }
-    }, uri);
+      uri
+    );
   }
 };
 
 // Resource template definition for Entra groups
 export const entraGroupTemplate: ResourceTemplateDefinition = {
   title: "Entra Groups",
-  resourceTemplate: new ResourceTemplate(
-    "entra://groups/{groupName}",
-    {
-      list: undefined,
-      complete: {
-        groupName: async (value: string): Promise<string[]> => {
-          const response = await listGroups(value);
+  resourceTemplate: new ResourceTemplate("entra://groups/{groupName}", {
+    list: undefined,
+    complete: {
+      groupName: async (value: string): Promise<string[]> => {
+        const response = await listGroups(value);
 
-          return response;
-        }
-      }
-    }
-  ),
+        return response;
+      },
+    },
+  }),
   metadata: {
-    description: "Access specific Entra ID (Azure AD) groups by name or ID. Provides group details, member list, and management actions",
+    description:
+      "Access specific Entra ID (Azure AD) groups by name or ID. Provides group details, member list, and management actions",
   },
   requiredPermissions: ["entra:read", "entra:groups:read", "admin"],
   readCallback,

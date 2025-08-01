@@ -1,7 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { registerToolsWithServer } from "../tools/index.js";
-import { registerResourcesWithServer, registerResourceTemplatesWithServer } from "../resources/index.js";
+import {
+  registerResourcesWithServer,
+  registerResourceTemplatesWithServer,
+} from "../resources/index.js";
 import { registerPromptsWithServer } from "../prompts/index.js";
 import { getCurrentUser } from "../../lib/auth/index.js";
 import pkg from "../../package.json" with { type: "json" };

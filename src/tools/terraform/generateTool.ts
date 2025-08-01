@@ -18,7 +18,11 @@ const PROVIDER_MAP: Record<string, string> = {
 };
 
 // Helper function to generate Terraform registry URLs
-const getTerraformDocLinks = (provider: string, resourceType: string, resourceCategory: "resources" | "data-sources" = "resources") => {
+const getTerraformDocLinks = (
+  provider: string,
+  resourceType: string,
+  resourceCategory: "resources" | "data-sources" = "resources"
+) => {
   const baseUrl = "https://registry.terraform.io/providers";
 
   const providerPath = PROVIDER_MAP[provider] || provider;
@@ -27,20 +31,39 @@ const getTerraformDocLinks = (provider: string, resourceType: string, resourceCa
 
   return {
     provider: providerUrl,
-    resource: resourceUrl
+    resource: resourceUrl,
   };
 };
 
 const inputSchema = z.object({
-  provider: z.enum(Object.keys(PROVIDER_MAP) as [string, ...string[]]).describe("The terraform provider to use (e.g., 'aws', 'vault', 'datadog')."),
-  resourceType: z.string().describe("The type of resource to generate (e.g., 'instance', 'bucket')."),
-  name: z.string().describe("The name of the resource to generate (e.g., 'my_instance', 'my_bucket')."),
-  parameters: z.record(z.any()).optional().describe("Parameters for the resource, including configuration options and settings."),
-  resourceCategory: z.enum(["resources", "data-sources"]).optional().describe("The category of the resource, building infrastructure or querying existing.").default("resources"),
+  provider: z
+    .enum(Object.keys(PROVIDER_MAP) as [string, ...string[]])
+    .describe("The terraform provider to use (e.g., 'aws', 'vault', 'datadog')."),
+  resourceType: z
+    .string()
+    .describe("The type of resource to generate (e.g., 'instance', 'bucket')."),
+  name: z
+    .string()
+    .describe("The name of the resource to generate (e.g., 'my_instance', 'my_bucket')."),
+  parameters: z
+    .record(z.any())
+    .optional()
+    .describe("Parameters for the resource, including configuration options and settings."),
+  resourceCategory: z
+    .enum(["resources", "data-sources"])
+    .optional()
+    .describe("The category of the resource, building infrastructure or querying existing.")
+    .default("resources"),
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
-  const { provider, resourceType, name, parameters, resourceCategory = "resources" } = args as {
+  const {
+    provider,
+    resourceType,
+    name,
+    parameters,
+    resourceCategory = "resources",
+  } = args as {
     provider: string;
     resourceType: string;
     name: string;
@@ -81,8 +104,8 @@ Generate complete Terraform configuration:`;
         params: {
           messages: [{ role: "user", content: { type: "text", text: prompt } }],
           maxTokens: 2000,
-          temperature: 0.1
-        }
+          temperature: 0.1,
+        },
       } as ServerRequest,
       CreateMessageResultSchema
     );
@@ -94,30 +117,33 @@ Generate complete Terraform configuration:`;
         provider: provider,
         resource_type: fullResourceType,
         category: resourceCategory,
-        documentation: docLinks
+        documentation: docLinks,
       },
       links: {
         resource_docs: docLinks.resource,
-        provider_docs: docLinks.provider
-      }
+        provider_docs: docLinks.provider,
+      },
     });
   } catch (error: any) {
-    return toolResponse({
-      message: `Error generating Terraform configuration: ${error.message}`,
-      links: {
-        docs: "https://registry.terraform.io/",
-        troubleshooting: "https://developer.hashicorp.com/terraform/troubleshooting"
+    return toolResponse(
+      {
+        message: `Error generating Terraform configuration: ${error.message}`,
+        links: {
+          docs: "https://registry.terraform.io/",
+          troubleshooting: "https://developer.hashicorp.com/terraform/troubleshooting",
+        },
+        metadata: {
+          provider: provider,
+          resource_type: fullResourceType,
+          troubleshooting: [
+            "Check that the provider and resource type are valid",
+            "Verify the parameters match the expected schema",
+            "Review Terraform documentation for correct syntax",
+          ],
+        },
       },
-      metadata: {
-        provider: provider,
-        resource_type: fullResourceType,
-        troubleshooting: [
-          "Check that the provider and resource type are valid",
-          "Verify the parameters match the expected schema",
-          "Review Terraform documentation for correct syntax"
-        ]
-      }
-    }, true);
+      true
+    );
   }
 };
 
@@ -126,7 +152,8 @@ export const generateTerraformTool: ToolDefinition = {
   annotations: {
     openWorldHint: true,
   },
-  description: "Generate Terraform configurations for various cloud resources and services using AI sampling with best practices and examples.",
+  description:
+    "Generate Terraform configurations for various cloud resources and services using AI sampling with best practices and examples.",
   inputSchema,
-  callback
+  callback,
 };

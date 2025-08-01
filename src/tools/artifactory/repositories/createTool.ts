@@ -11,11 +11,20 @@ import {
 } from "../../../../lib/clients/artifactory/index.js";
 
 const inputSchema = z.object({
-  repositoryKey: z.string().describe("Unique repository key/name (e.g., 'docker-local', 'maven-central')"),
+  repositoryKey: z
+    .string()
+    .describe("Unique repository key/name (e.g., 'docker-local', 'maven-central')"),
   packageType: z.enum(ARTIFACTORY_PACKAGE_TYPES).describe("Package type for the repository"),
-  repositoryType: z.enum(ARTIFACTORY_REPOSITORY_TYPES).describe("Repository type (local, remote, virtual, or federated)"),
+  repositoryType: z
+    .enum(ARTIFACTORY_REPOSITORY_TYPES)
+    .describe("Repository type (local, remote, virtual, or federated)"),
   description: z.string().optional().describe("Human-readable description of the repository"),
-  properties: z.record(z.any()).optional().describe("Repository-specific configuration properties (e.g., dockerApiVersion, handleReleases)")
+  properties: z
+    .record(z.any())
+    .optional()
+    .describe(
+      "Repository-specific configuration properties (e.g., dockerApiVersion, handleReleases)"
+    ),
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
@@ -62,34 +71,37 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         package_type: packageType,
         repository_type: repositoryType,
         description: description || "",
-        action: "created"
+        action: "created",
       },
       links: {
         ui: `${artifactoryWebUrl}/ui/repos/tree/General/${repositoryKey}`,
         browse: `${artifactoryWebUrl}/ui/repos/tree/General/${repositoryKey}`,
         settings: `${artifactoryWebUrl}/ui/admin/repositories/${repositoryType.toLowerCase()}/${repositoryKey}`,
         api: `${artifactoryConfig.endpoint}/repositories/${repositoryKey}`,
-        endpoint: artifactoryConfig.endpoint
-      }
-    });
-
-  } catch (error: any) {
-    return toolResponse({
-      message: `Failed to create Artifactory repository: ${error.message}`,
-      links: {
-        docs: "https://jfrog.com/help/r/jfrog-artifactory-documentation",
-        troubleshooting: "https://jfrog.com/help/r/jfrog-artifactory-documentation/troubleshooting"
+        endpoint: artifactoryConfig.endpoint,
       },
-      metadata: {
-        repository_key: repositoryKey,
-        troubleshooting: [
-          "Check that the repository key is unique",
-          "Verify Artifactory server connectivity",
-          "Ensure you have admin permissions",
-          "Review package type and repository type compatibility"
-        ]
-      }
-    }, true);
+    });
+  } catch (error: any) {
+    return toolResponse(
+      {
+        message: `Failed to create Artifactory repository: ${error.message}`,
+        links: {
+          docs: "https://jfrog.com/help/r/jfrog-artifactory-documentation",
+          troubleshooting:
+            "https://jfrog.com/help/r/jfrog-artifactory-documentation/troubleshooting",
+        },
+        metadata: {
+          repository_key: repositoryKey,
+          troubleshooting: [
+            "Check that the repository key is unique",
+            "Verify Artifactory server connectivity",
+            "Ensure you have admin permissions",
+            "Review package type and repository type compatibility",
+          ],
+        },
+      },
+      true
+    );
   }
 };
 
@@ -99,8 +111,9 @@ export const createArtifactoryRepositoryTool: ToolDefinition = {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or verify a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
+  description:
+    "Create or verify a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
   inputSchema,
   requiredPermissions: ["artifactory:admin", "artifactory:repos:create", "admin"],
-  callback
+  callback,
 };

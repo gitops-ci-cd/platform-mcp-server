@@ -1,8 +1,5 @@
 // Re-export only what's needed externally
-export {
-  registerResourcesWithServer,
-  registerResourceTemplatesWithServer,
-} from "./registry.js";
+export { registerResourcesWithServer, registerResourceTemplatesWithServer } from "./registry.js";
 
 import { registerResource, registerResourceTemplate } from "./registry.js";
 import { mcpConceptTemplate } from "./mcp/conceptsTemplate.js";
@@ -18,9 +15,7 @@ import { entraGroupTemplate } from "./entra/groupTemplate.js";
 import { artifactoryRepositoryTemplate } from "./artifactory/repositoryTemplate.js";
 import { kubernetesUnifiedResourceTemplate } from "./kubernetes/unifiedResourceTemplate.js";
 
-export const initializeResources = (): void => {
-
-};
+export const initializeResources = (): void => {};
 
 export const initializeResourceTemplates = (): void => {
   registerResourceTemplate(mcpConceptTemplate);

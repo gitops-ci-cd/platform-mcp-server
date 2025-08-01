@@ -7,18 +7,16 @@ const argsSchema = z.object({
   name: z.string().describe("Name of the service to bootstrap (e.g., 'my-service')"),
   idea: z.string().describe("Describe the business purpose or high-level idea for the service."),
   language: z.string().describe("Programming language for the service."),
-  devCluster: z.enum(listClusters() as [string, ...string[]]).describe("Kubernetes cluster for the development environment."),
-  prdCluster: z.enum(listClusters() as [string, ...string[]]).describe("Kubernetes cluster for the production environment."),
+  devCluster: z
+    .enum(listClusters() as [string, ...string[]])
+    .describe("Kubernetes cluster for the development environment."),
+  prdCluster: z
+    .enum(listClusters() as [string, ...string[]])
+    .describe("Kubernetes cluster for the production environment."),
 });
 
 const callback: PromptDefinition["callback"] = async (args: any, _extra: any) => {
-  const {
-    name,
-    idea,
-    language,
-    devCluster,
-    prdCluster
-  } =  args as {
+  const { name, idea, language, devCluster, prdCluster } = args as {
     name: string;
     idea: string;
     language: string;
@@ -42,7 +40,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
         name: `${name}-prd`,
         type: "kv-v2",
         description: `Production secrets for ${name}`,
-      }
+      },
     ],
     policies: [
       {
@@ -104,7 +102,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
             capabilities = ["read"]
           }
         `,
-      }
+      },
     ],
     roles: [
       {
@@ -118,7 +116,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
         },
       },
       {
-        authMethod:  `kubernetes/${devCluster}`,
+        authMethod: `kubernetes/${devCluster}`,
         roleName: `${name}-usw2-qa`,
         policies: [`${name}-dev-read`],
         roleConfig: {
@@ -128,7 +126,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
         },
       },
       {
-        authMethod:  `kubernetes/${prdCluster}`,
+        authMethod: `kubernetes/${prdCluster}`,
         roleName: `${name}-usw2-prd`,
         policies: [`${name}-prd-read`],
         roleConfig: {
@@ -142,10 +140,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
       {
         name: `${name} admins`,
         groupId: "Inferred from Azure AD group object ID",
-        policies: [
-          `${name}-dev-admin`,
-          `${name}-prd-admin`,
-        ],
+        policies: [`${name}-dev-admin`, `${name}-prd-admin`],
       },
     ],
     markKubernetesRoleAdmin: [
@@ -209,7 +204,8 @@ Please provide a step-by-step plan, referencing the specific MCP tools/resources
 
 export const serviceBootstrapPrompt: PromptDefinition = {
   title: "Service Bootstrap",
-  description: "Ask your AI assistant to help you take an idea to production using only MCP server tooling.",
+  description:
+    "Ask your AI assistant to help you take an idea to production using only MCP server tooling.",
   callback,
   argsSchema,
 };

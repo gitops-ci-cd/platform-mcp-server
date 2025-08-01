@@ -1,11 +1,25 @@
 import { z } from "zod";
-import { ServerRequest, CreateMessageResultSchema, ElicitResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  ServerRequest,
+  CreateMessageResultSchema,
+  ElicitResultSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
 import { ToolDefinition, toolResponse } from "../registry.js";
 
 const inputSchema = z.object({
-  concept: z.enum(["resources", "tools", "prompts", "sampling", "elicitation", "architecture", "transports", "all"])
-    .describe("Which MCP concept to explain")
+  concept: z
+    .enum([
+      "resources",
+      "tools",
+      "prompts",
+      "sampling",
+      "elicitation",
+      "architecture",
+      "transports",
+      "all",
+    ])
+    .describe("Which MCP concept to explain"),
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
@@ -14,23 +28,33 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
 
   // Build the explanation prompt based on the concept
   const conceptPrompts = {
-    resources: "Explain MCP Resources: what they are, how they work, when to use them, and how they differ from tools and prompts.",
-    tools: "Explain MCP Tools: what they are, how they work, when to use them, and how they differ from resources and prompts.",
-    prompts: "Explain MCP Prompts: what they are, how they work, when to use them, and how they differ from resources and tools.",
-    sampling: "Explain MCP Sampling: what it is, how servers can request LLM completions through clients, and why this is useful.",
-    elicitation: "Explain MCP Elicitation: how it works, its purpose, and its role in the overall MCP framework.",
-    architecture: "Explain MCP Architecture: the client-server model, JSON-RPC communication, and how different components work together.",
-    transports: "Explain MCP Transports: how clients and servers communicate, different transport types, and connection patterns.",
-    all: "Provide a comprehensive overview of MCP (Model Context Protocol): its purpose, core concepts (resources, tools, prompts, sampling), and architecture."
+    resources:
+      "Explain MCP Resources: what they are, how they work, when to use them, and how they differ from tools and prompts.",
+    tools:
+      "Explain MCP Tools: what they are, how they work, when to use them, and how they differ from resources and prompts.",
+    prompts:
+      "Explain MCP Prompts: what they are, how they work, when to use them, and how they differ from resources and tools.",
+    sampling:
+      "Explain MCP Sampling: what it is, how servers can request LLM completions through clients, and why this is useful.",
+    elicitation:
+      "Explain MCP Elicitation: how it works, its purpose, and its role in the overall MCP framework.",
+    architecture:
+      "Explain MCP Architecture: the client-server model, JSON-RPC communication, and how different components work together.",
+    transports:
+      "Explain MCP Transports: how clients and servers communicate, different transport types, and connection patterns.",
+    all: "Provide a comprehensive overview of MCP (Model Context Protocol): its purpose, core concepts (resources, tools, prompts, sampling), and architecture.",
   };
 
   const basePrompt = conceptPrompts[concept as keyof typeof conceptPrompts] || conceptPrompts.all;
 
   // Tailor the explanation based on audience
   const audienceInstructions = {
-    beginner: "Explain in simple terms with minimal technical jargon. Use analogies and real-world examples.",
-    developer: "Focus on technical implementation details, code examples, and practical development considerations.",
-    architect: "Emphasize system design, integration patterns, scalability, and architectural decisions."
+    beginner:
+      "Explain in simple terms with minimal technical jargon. Use analogies and real-world examples.",
+    developer:
+      "Focus on technical implementation details, code examples, and practical development considerations.",
+    architect:
+      "Emphasize system design, integration patterns, scalability, and architectural decisions.",
   };
 
   const fullPrompt = `${basePrompt}
@@ -55,17 +79,26 @@ Structure your response with clear sections and make it engaging and informative
                 type: "string",
                 title: "Audience",
                 enum: Object.keys(audienceInstructions),
-                enumNames: Object.keys(audienceInstructions).map(key => key.charAt(0).toUpperCase() + key.slice(1)),
-              }
+                enumNames: Object.keys(audienceInstructions).map(
+                  (key) => key.charAt(0).toUpperCase() + key.slice(1)
+                ),
+              },
             },
-            required: ["audience"]
-          }
-        }
+            required: ["audience"],
+          },
+        },
       },
       ElicitResultSchema.extend({
         content: z.object({
-          audience: z.enum(Object.keys(audienceInstructions) as [keyof typeof audienceInstructions, ...Array<keyof typeof audienceInstructions>]).default("beginner")
-        })
+          audience: z
+            .enum(
+              Object.keys(audienceInstructions) as [
+                keyof typeof audienceInstructions,
+                ...Array<keyof typeof audienceInstructions>,
+              ]
+            )
+            .default("beginner"),
+        }),
       })
     );
 
@@ -81,46 +114,51 @@ Structure your response with clear sections and make it engaging and informative
               role: "user",
               content: {
                 type: "text",
-                text: fullPrompt + `\n\n${audienceInstructions[elicitation.content.audience]}`
-              }
-            }
+                text: fullPrompt + `\n\n${audienceInstructions[elicitation.content.audience]}`,
+              },
+            },
           ],
           maxTokens: 1000,
           temperature: 0.7,
-          topP: 0.9
-        }
+          topP: 0.9,
+        },
       } as ServerRequest,
       CreateMessageResultSchema
     );
 
-    explanation = response.content.type === "text"
-      ? response.content.text
-      : "Expected text response but received different content type";
+    explanation =
+      response.content.type === "text"
+        ? response.content.text
+        : "Expected text response but received different content type";
   } catch (error: any) {
     isError = true;
     console.error("Error in MCP explainer tool:", error.message);
     explanation = `Error generating explanation: ${error.message}`;
   }
 
-  return toolResponse({
-    data: explanation,
-    message: `Generated explanation for MCP ${concept} concept`,
-    links: {
-      docs: "https://modelcontextprotocol.io/docs/",
-      spec: "https://spec.modelcontextprotocol.io/"
+  return toolResponse(
+    {
+      data: explanation,
+      message: `Generated explanation for MCP ${concept} concept`,
+      links: {
+        docs: "https://modelcontextprotocol.io/docs/",
+        spec: "https://spec.modelcontextprotocol.io/",
+      },
+      metadata: {
+        concept,
+        audience,
+        generated: new Date().toISOString(),
+        word_count: explanation.split(/\s+/).length,
+      },
     },
-    metadata: {
-      concept,
-      audience,
-      generated: new Date().toISOString(),
-      word_count: explanation.split(/\s+/).length
-    }
-  }, isError);
+    isError
+  );
 };
 
 export const mcpExplainerTool: ToolDefinition = {
   title: "Explain MCP Concept",
-  description: "Generate detailed explanations of MCP concepts using sampling. This tool demonstrates both MCP tools and sampling capabilities by explaining MCP itself!",
+  description:
+    "Generate detailed explanations of MCP concepts using sampling. This tool demonstrates both MCP tools and sampling capabilities by explaining MCP itself!",
   inputSchema,
-  callback
+  callback,
 };

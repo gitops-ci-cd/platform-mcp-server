@@ -17,63 +17,66 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
     const argoCDWebUrl = argoCDConfig.endpoint;
     const projectWebUrl = `${argoCDWebUrl}/settings/projects/${projectName}`;
 
-    return resourceResponse({
-      message: `Retrieved ArgoCD Project: ${data.name}`,
-      data,
-      links: {
-        ui: projectWebUrl,
-        applications: `${argoCDWebUrl}/applications?projects=${projectName}`,
-        api: `${argoCDWebUrl}/api/v1/projects/${projectName}`,
-        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/"
+    return resourceResponse(
+      {
+        message: `Retrieved ArgoCD Project: ${data.name}`,
+        data,
+        links: {
+          ui: projectWebUrl,
+          applications: `${argoCDWebUrl}/applications?projects=${projectName}`,
+          api: `${argoCDWebUrl}/api/v1/projects/${projectName}`,
+          docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
+        },
+        metadata: {
+          name: data.name,
+          potentialActions: [
+            "Use createArgoCDProject tool to create similar projects",
+            "Click 'applications' link to view applications in this project",
+            "Review sourceRepos and destinations for allowed resources",
+            "Check roles array for RBAC configuration",
+          ],
+        },
       },
-      metadata: {
-        name: data.name,
-        potentialActions: [
-          "Use createArgoCDProject tool to create similar projects",
-          "Click 'applications' link to view applications in this project",
-          "Review sourceRepos and destinations for allowed resources",
-          "Check roles array for RBAC configuration"
-        ]
-      }
-    }, uri);
-
+      uri
+    );
   } catch (error: any) {
-    return resourceResponse({
-      message: `Failed to read ArgoCD project: ${error.message}`,
-      links: {
-        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
-        troubleshooting: "https://argo-cd.readthedocs.io/en/stable/faq/"
+    return resourceResponse(
+      {
+        message: `Failed to read ArgoCD project: ${error.message}`,
+        links: {
+          docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
+          troubleshooting: "https://argo-cd.readthedocs.io/en/stable/faq/",
+        },
+        metadata: {
+          troubleshooting: [
+            "Verify the project name exists in ArgoCD",
+            "Ensure ARGOCD_TOKEN environment variable is set",
+            "Verify your ArgoCD token has 'projects' read permissions",
+            "Check ArgoCD API connectivity and service status",
+          ],
+        },
       },
-      metadata: {
-        troubleshooting: [
-          "Verify the project name exists in ArgoCD",
-          "Ensure ARGOCD_TOKEN environment variable is set",
-          "Verify your ArgoCD token has 'projects' read permissions",
-          "Check ArgoCD API connectivity and service status"
-        ]
-      }
-    }, uri);
+      uri
+    );
   }
 };
 
 // Resource template definition for ArgoCD projects
 export const argoCDProjectTemplate: ResourceTemplateDefinition = {
   title: "ArgoCD Projects",
-  resourceTemplate: new ResourceTemplate(
-    "argocd://projects/{projectName}",
-    {
-      list: undefined,
-      complete: {
-        projectName: async (value: string): Promise<string[]> => {
-          const response = await listProjects(value);
+  resourceTemplate: new ResourceTemplate("argocd://projects/{projectName}", {
+    list: undefined,
+    complete: {
+      projectName: async (value: string): Promise<string[]> => {
+        const response = await listProjects(value);
 
-          return response;
-        }
-      }
-    }
-  ),
+        return response;
+      },
+    },
+  }),
   metadata: {
-    description: "Access specific ArgoCD projects by name. Provides project details, RBAC configuration, and resource restrictions",
+    description:
+      "Access specific ArgoCD projects by name. Provides project details, RBAC configuration, and resource restrictions",
   },
   requiredPermissions: ["argocd:read", "argocd:projects:read", "admin"],
   readCallback,

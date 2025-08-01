@@ -3,8 +3,12 @@ import { z } from "zod";
 import { ToolDefinition, toolResponse } from "../registry.js";
 
 const inputSchema = z.object({
-  endpoint: z.string().url().optional().default(`http://localhost:${process.env.PORT || "8080"}/health`)
-    .describe("The health endpoint URL to check")
+  endpoint: z
+    .string()
+    .url()
+    .optional()
+    .default(`http://localhost:${process.env.PORT || "8080"}/health`)
+    .describe("The health endpoint URL to check"),
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
@@ -15,11 +19,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     const response = await fetch(endpoint, {
       method: "GET",
       headers: {
-        "Accept": "application/json",
-        "User-Agent": "MCP-Health-Check-Tool"
+        Accept: "application/json",
+        "User-Agent": "MCP-Health-Check-Tool",
       },
       // 5 second timeout
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(5000),
     });
 
     let responseBody: any = {};
@@ -42,25 +46,26 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       status: {
         code: response.status,
         text: response.statusText,
-        healthy: response.ok
+        healthy: response.ok,
       },
       headers: Object.fromEntries(response.headers.entries()),
-      body: responseBody
+      body: responseBody,
     };
 
     return toolResponse({
       data: healthData,
-      message: response.ok ? "Health check successful" : `Health check failed with status ${response.status}`,
+      message: response.ok
+        ? "Health check successful"
+        : `Health check failed with status ${response.status}`,
       links: {
-        docs: "https://modelcontextprotocol.io/docs/concepts/architecture#health-checks"
+        docs: "https://modelcontextprotocol.io/docs/concepts/architecture#health-checks",
       },
       metadata: {
         endpoint: endpoint,
         timestamp: healthData.timestamp,
-        healthy: response.ok
-      }
+        healthy: response.ok,
+      },
     });
-
   } catch (error: any) {
     // Return error data in structured format
     const errorData = {
@@ -68,27 +73,30 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       timestamp: new Date().toISOString(),
       error: {
         type: error.name || "UnknownError",
-        message: error.message || error.toString()
+        message: error.message || error.toString(),
       },
       status: {
-        healthy: false
-      }
+        healthy: false,
+      },
     };
 
-    return toolResponse({
-      data: errorData,
-      message: `Health check failed: ${error.message}`,
-      links: {
-        docs: "https://modelcontextprotocol.io/docs/concepts/architecture#health-checks",
-        troubleshooting: "https://modelcontextprotocol.io/docs/troubleshooting"
+    return toolResponse(
+      {
+        data: errorData,
+        message: `Health check failed: ${error.message}`,
+        links: {
+          docs: "https://modelcontextprotocol.io/docs/concepts/architecture#health-checks",
+          troubleshooting: "https://modelcontextprotocol.io/docs/troubleshooting",
+        },
+        metadata: {
+          endpoint: endpoint,
+          timestamp: errorData.timestamp,
+          healthy: false,
+          error_type: error.name || "UnknownError",
+        },
       },
-      metadata: {
-        endpoint: endpoint,
-        timestamp: errorData.timestamp,
-        healthy: false,
-        error_type: error.name || "UnknownError"
-      }
-    }, true);
+      true
+    );
   }
 };
 
@@ -97,7 +105,8 @@ export const mcpHealthCheckTool: ToolDefinition = {
   annotations: {
     openWorldHint: true,
   },
-  description: "Check the health status of the MCP server by calling its health endpoint. Returns raw JSON data for the AI to parse.",
+  description:
+    "Check the health status of the MCP server by calling its health endpoint. Returns raw JSON data for the AI to parse.",
   inputSchema,
-  callback
+  callback,
 };

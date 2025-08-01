@@ -14,13 +14,21 @@ import { initializeResources, initializeResourceTemplates } from "./index.js";
 export interface ResourceDefinition extends Pick<RegisteredResource, "title" | "metadata"> {
   uri: string;
   requiredPermissions?: string[];
-  readCallback: (uri: URL, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => Promise<ReturnType<typeof resourceResponse>>;
+  readCallback: (
+    uri: URL,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ) => Promise<ReturnType<typeof resourceResponse>>;
 }
 
 // Template definition interface
-export interface ResourceTemplateDefinition extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "title" | "metadata"> {
+export interface ResourceTemplateDefinition
+  extends Pick<RegisteredResourceTemplate, "resourceTemplate" | "title" | "metadata"> {
   requiredPermissions?: string[];
-  readCallback: (uri: URL, variables: Variables, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => Promise<ReturnType<typeof resourceResponse>>;
+  readCallback: (
+    uri: URL,
+    variables: Variables,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ) => Promise<ReturnType<typeof resourceResponse>>;
 }
 
 interface ResourceResponseData {
@@ -43,8 +51,8 @@ export const resourceResponse = (data: ResourceResponseData, uri: URL) => {
         uri: uri.href,
         text: JSON.stringify(data, null, 2),
         mimeType: "application/json",
-      }
-    ]
+      },
+    ],
   };
 };
 
@@ -76,7 +84,9 @@ export const getAuthorizedResources = (userPermissions: string[] = []): Resource
 };
 
 // Get templates filtered by permissions
-export const getAuthorizedTemplates = (userPermissions: string[] = []): ResourceTemplateDefinition[] => {
+export const getAuthorizedTemplates = (
+  userPermissions: string[] = []
+): ResourceTemplateDefinition[] => {
   return Array.from(templateRegistry.values()).filter((template) => {
     // If no permissions required, template is available to everyone
     if (!template.requiredPermissions || template.requiredPermissions.length === 0) {
@@ -100,12 +110,7 @@ export const registerResourcesWithServer = (
   // Register direct resources
   for (const resource of authorizedResources) {
     const { title, uri, metadata, readCallback } = resource;
-    server.resource(
-      sanitizeString(title),
-      uri,
-      metadata || {},
-      readCallback
-    );
+    server.resource(sanitizeString(title), uri, metadata || {}, readCallback);
   }
 };
 
@@ -121,11 +126,6 @@ export const registerResourceTemplatesWithServer = (
   // Register resource templates
   for (const template of authorizedTemplates) {
     const { title, resourceTemplate, metadata, readCallback } = template;
-    server.resource(
-      sanitizeString(title),
-      resourceTemplate,
-      metadata || {},
-      readCallback,
-    );
+    server.resource(sanitizeString(title), resourceTemplate, metadata || {}, readCallback);
   }
 };

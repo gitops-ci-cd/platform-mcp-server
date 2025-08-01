@@ -3,37 +3,51 @@ import { ServerRequest, CreateMessageResultSchema } from "@modelcontextprotocol/
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
-import {
-  getArgoCDConfig,
-  createProject
-} from "../../../../lib/clients/argocd/index.js";
+import { getArgoCDConfig, createProject } from "../../../../lib/clients/argocd/index.js";
 
 const inputSchema = z.object({
   name: z.string().describe("Project name"),
   description: z.string().optional().describe("Human-readable description of the project"),
-  sourceRepos: z.array(z.string()).describe("List of Git repositories this project can access (* for all)"),
-  destinations: z.array(z.object({
-    server: z.string().describe("Kubernetes cluster server URL"),
-    namespace: z.string().optional().describe("Target namespace (* for all namespaces)")
-  })).describe("List of allowed deployment destinations"),
-  parameters: z.record(z.any()).optional().describe("Additional project parameters (resource restrictions, roles, RBAC policies, etc.)")
+  sourceRepos: z
+    .array(z.string())
+    .describe("List of Git repositories this project can access (* for all)"),
+  destinations: z
+    .array(
+      z.object({
+        server: z.string().describe("Kubernetes cluster server URL"),
+        namespace: z.string().optional().describe("Target namespace (* for all namespaces)"),
+      })
+    )
+    .describe("List of allowed deployment destinations"),
+  parameters: z
+    .record(z.any())
+    .optional()
+    .describe("Additional project parameters (resource restrictions, roles, RBAC policies, etc.)"),
 });
 
 const resultSchema = z.object({
   apiVersion: z.string(),
   kind: z.literal("AppProject"),
-  metadata: z.object({
-    name: z.string(),
-    namespace: z.string()
-  }).passthrough(),
-  spec: z.object({
-    description: z.string().optional(),
-    sourceRepos: z.array(z.string()),
-    destinations: z.array(z.object({
-      server: z.string(),
-      namespace: z.string().optional()
-    }).passthrough())
-  }).passthrough()
+  metadata: z
+    .object({
+      name: z.string(),
+      namespace: z.string(),
+    })
+    .passthrough(),
+  spec: z
+    .object({
+      description: z.string().optional(),
+      sourceRepos: z.array(z.string()),
+      destinations: z.array(
+        z
+          .object({
+            server: z.string(),
+            namespace: z.string().optional(),
+          })
+          .passthrough()
+      ),
+    })
+    .passthrough(),
 });
 const CreateMessageWithValidatedResultSchema = CreateMessageResultSchema.extend({
   content: z.discriminatedUnion("type", [
@@ -49,9 +63,9 @@ const CreateMessageWithValidatedResultSchema = CreateMessageResultSchema.extend(
         }
         return val;
       }, resultSchema),
-      annotations: z.any().optional()
+      annotations: z.any().optional(),
     }),
-  ])
+  ]),
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
@@ -103,12 +117,12 @@ Return the complete ArgoCD project configuration as a standard Kubernetes resour
 - metadata: including name (${name}), namespace (argocd), labels, and annotations (user: ${user.email})
 - spec: complete ArgoCD project specification
 
-Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`
-              }
-            }
+Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`,
+              },
+            },
           ],
-          maxTokens: 3072
-        }
+          maxTokens: 3072,
+        },
       } as ServerRequest,
       CreateMessageWithValidatedResultSchema
     );
@@ -119,7 +133,8 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
     const message = `ArgoCD project '${name}' created successfully`;
 
     const argoWebUrl = argoCDConfig.endpoint.replace("/api/v1", "");
-    const projectWebUrl = `${argoWebUrl}/settings/projects/${name}`;    return toolResponse({
+    const projectWebUrl = `${argoWebUrl}/settings/projects/${name}`;
+    return toolResponse({
       message,
       data,
       links: {
@@ -127,33 +142,36 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
         applications: `${argoWebUrl}/applications?proj=${name}`,
         settings: `${projectWebUrl}/summary`,
         roles: `${projectWebUrl}/roles`,
-        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/"
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
       },
       metadata: {
         potentialActions: [
           "Use createArgoCDApplication tool to create applications in this project",
           "Configure additional RBAC roles and policies via ArgoCD UI",
-          "Set up resource restrictions and security policies"
-        ]
-      }
-    });
-
-  } catch (error: any) {
-    return toolResponse({
-      message: `Failed to create ArgoCD project: ${error.message}`,
-      links: {
-        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
-        troubleshooting: "https://argo-cd.readthedocs.io/en/stable/operator-manual/troubleshooting/"
+          "Set up resource restrictions and security policies",
+        ],
       },
-      metadata: {
-        troubleshooting: [
-          "Ensure ARGOCD_TOKEN environment variable is set with appropriate permissions",
-          "Verify your token has projects create/read permissions",
-          "Check that the project name is DNS-compliant and unique",
-          "Verify source repositories and destination clusters are accessible"
-        ]
-      }
-    }, true);
+    });
+  } catch (error: any) {
+    return toolResponse(
+      {
+        message: `Failed to create ArgoCD project: ${error.message}`,
+        links: {
+          docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/projects/",
+          troubleshooting:
+            "https://argo-cd.readthedocs.io/en/stable/operator-manual/troubleshooting/",
+        },
+        metadata: {
+          troubleshooting: [
+            "Ensure ARGOCD_TOKEN environment variable is set with appropriate permissions",
+            "Verify your token has projects create/read permissions",
+            "Check that the project name is DNS-compliant and unique",
+            "Verify source repositories and destination clusters are accessible",
+          ],
+        },
+      },
+      true
+    );
   }
 };
 
@@ -163,8 +181,9 @@ export const createArgoCDProjectTool: ToolDefinition = {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create a new project in ArgoCD via direct API call. Projects provide multi-tenancy with RBAC, resource restrictions, and repository access control.",
+  description:
+    "Create a new project in ArgoCD via direct API call. Projects provide multi-tenancy with RBAC, resource restrictions, and repository access control.",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:projects:create", "admin"],
-  callback
+  callback,
 };

@@ -9,10 +9,15 @@ import {
 } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
-  enginePath: z.string().describe("Mount path for the secrets engine (e.g., 'secret', 'kv-v2', 'database')"),
+  enginePath: z
+    .string()
+    .describe("Mount path for the secrets engine (e.g., 'secret', 'kv-v2', 'database')"),
   engineType: z.enum(VAULT_ENGINE_TYPES).describe("Type of secrets engine to create"),
   description: z.string().optional().describe("Human-readable description of the engine"),
-  options: z.record(z.any()).optional().describe("Engine-specific configuration options (e.g., version for KV, default_lease_ttl)")
+  options: z
+    .record(z.any())
+    .optional()
+    .describe("Engine-specific configuration options (e.g., version for KV, default_lease_ttl)"),
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
@@ -34,13 +39,14 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
       path: enginePath,
       engineType,
       description,
-      options
+      options,
     });
     const json = await response.json();
     const data = json?.data || {};
-    const message = response.status === 201
-      ? `Vault engine '${enginePath}' created successfully.`
-      : `Vault engine '${enginePath}' already exists. Updated successfully.`;
+    const message =
+      response.status === 201
+        ? `Vault engine '${enginePath}' created successfully.`
+        : `Vault engine '${enginePath}' already exists. Updated successfully.`;
 
     return toolResponse({
       message,
@@ -56,26 +62,30 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         potentialActions: [
           "Use generateVaultSecret tool to create secrets in this engine",
           "Use upsertVaultPolicy tool to control access to this engine",
-          "Use requestVaultAccess tool if you need additional permissions"
-        ]
-      }
+          "Use requestVaultAccess tool if you need additional permissions",
+        ],
+      },
     });
   } catch (error: any) {
-    return toolResponse({
-      message: `Failed to Upsert Vault engine: ${error.message}`,
-      links: {
-        docs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
-        troubleshooting: "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
+    return toolResponse(
+      {
+        message: `Failed to Upsert Vault engine: ${error.message}`,
+        links: {
+          docs: "https://developer.hashicorp.com/vault/api-docs/system/mounts",
+          troubleshooting:
+            "https://developer.hashicorp.com/vault/tutorials/monitoring/troubleshooting-vault",
+        },
+        metadata: {
+          name: enginePath,
+          troubleshooting: [
+            "Ensure VAULT_TOKEN environment variable is set with admin permissions",
+            "Verify your token has sys/mounts/* write capabilities",
+            "Ensure the engine path doesn't conflict with existing mounts",
+          ],
+        },
       },
-      metadata: {
-        name: enginePath,
-        troubleshooting: [
-          "Ensure VAULT_TOKEN environment variable is set with admin permissions",
-          "Verify your token has sys/mounts/* write capabilities",
-          "Ensure the engine path doesn't conflict with existing mounts"
-        ]
-      }
-    }, true);
+      true
+    );
   }
 };
 
@@ -85,8 +95,9 @@ export const upsertVaultEngineTool: ToolDefinition = {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or update a Vault secrets engine. Returns management links and guidance for both new and existing engines.",
+  description:
+    "Create or update a Vault secrets engine. Returns management links and guidance for both new and existing engines.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:engines:create", "admin"],
-  callback
+  callback,
 };

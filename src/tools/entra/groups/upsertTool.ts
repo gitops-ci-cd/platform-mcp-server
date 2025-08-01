@@ -5,20 +5,38 @@ import {
   upsertGroup,
   ENTRA_GROUP_TYPES,
   ENTRA_GROUP_VISIBILITY,
-  type EntraGroupConfig
+  type EntraGroupConfig,
 } from "../../../../lib/clients/entra/index.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
 
 const inputSchema = z.object({
   displayName: z.string().describe("Group display name (required)"),
   description: z.string().optional().describe("Group description"),
-  mailNickname: z.string().optional().describe("Mail nickname (auto-generated from display name if not provided)"),
-  groupTypes: z.array(z.enum(ENTRA_GROUP_TYPES)).optional().describe("Group types (Unified for Microsoft 365 groups, DynamicMembership for dynamic groups)"),
-  securityEnabled: z.boolean().optional().default(true).describe("Whether this is a security group"),
+  mailNickname: z
+    .string()
+    .optional()
+    .describe("Mail nickname (auto-generated from display name if not provided)"),
+  groupTypes: z
+    .array(z.enum(ENTRA_GROUP_TYPES))
+    .optional()
+    .describe(
+      "Group types (Unified for Microsoft 365 groups, DynamicMembership for dynamic groups)"
+    ),
+  securityEnabled: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Whether this is a security group"),
   mailEnabled: z.boolean().optional().default(false).describe("Whether this group is mail-enabled"),
   visibility: z.enum(ENTRA_GROUP_VISIBILITY).optional().describe("Group visibility"),
-  owners: z.array(z.string()).optional().describe("Array of user object IDs to set as group owners"),
-  members: z.array(z.string()).optional().describe("Array of user object IDs to add as initial members"),
+  owners: z
+    .array(z.string())
+    .optional()
+    .describe("Array of user object IDs to set as group owners"),
+  members: z
+    .array(z.string())
+    .optional()
+    .describe("Array of user object IDs to add as initial members"),
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
@@ -31,7 +49,7 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     mailEnabled,
     visibility,
     owners,
-    members
+    members,
   } = args as EntraGroupConfig;
 
   try {
@@ -49,14 +67,15 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         mailEnabled,
         visibility,
         owners,
-        members
-      }
+        members,
+      },
     });
 
     const data = await response.json();
-    const message = response.status === 201
-      ? `Entra group "${displayName}" created successfully.`
-      : `Entra group "${displayName}" already exists. Updated successfully.`;
+    const message =
+      response.status === 201
+        ? `Entra group "${displayName}" created successfully.`
+        : `Entra group "${displayName}" already exists. Updated successfully.`;
 
     return toolResponse({
       data,
@@ -66,27 +85,29 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         group_id: data.id,
       },
       links: {
-        ui: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`
-      }
-    });
-
-  } catch (error: any) {
-    return toolResponse({
-      message: `Failed to create Entra group: ${error.message}`,
-      links: {
-        docs: "https://docs.microsoft.com/en-us/graph/api/group-post-groups",
-        troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting"
+        ui: `https://portal.azure.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/${data.id}`,
       },
-      metadata: {
-        name: displayName,
-        troubleshooting: [
-          "Check that you have Group.ReadWrite.All permissions",
-          "Verify the display name is unique",
-          "Ensure the mail nickname is valid and unique",
-          "Review Microsoft Graph API documentation"
-        ]
-      }
-    }, true);
+    });
+  } catch (error: any) {
+    return toolResponse(
+      {
+        message: `Failed to create Entra group: ${error.message}`,
+        links: {
+          docs: "https://docs.microsoft.com/en-us/graph/api/group-post-groups",
+          troubleshooting: "https://docs.microsoft.com/en-us/graph/troubleshooting",
+        },
+        metadata: {
+          name: displayName,
+          troubleshooting: [
+            "Check that you have Group.ReadWrite.All permissions",
+            "Verify the display name is unique",
+            "Ensure the mail nickname is valid and unique",
+            "Review Microsoft Graph API documentation",
+          ],
+        },
+      },
+      true
+    );
   }
 };
 
@@ -96,8 +117,9 @@ export const upsertEntraGroupTool: ToolDefinition = {
     openWorldHint: true,
     idempotentHint: true,
   },
-  description: "Create or update a group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
+  description:
+    "Create or update a group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
   inputSchema,
   requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],
-  callback
+  callback,
 };

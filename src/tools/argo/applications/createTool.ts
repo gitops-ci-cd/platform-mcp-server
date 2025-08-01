@@ -3,51 +3,69 @@ import { ServerRequest, CreateMessageResultSchema } from "@modelcontextprotocol/
 
 import { ToolDefinition, toolResponse } from "../../registry.js";
 import { getCurrentUser } from "../../../../lib/auth/index.js";
-import {
-  getArgoCDConfig,
-  createApplication
-} from "../../../../lib/clients/argocd/index.js";
+import { getArgoCDConfig, createApplication } from "../../../../lib/clients/argocd/index.js";
 
 const inputSchema = z.object({
   name: z.string().describe("Application name"),
   repoURL: z.string().describe("Git repository URL containing the application manifests"),
   destinationNamespace: z.string().describe("Target namespace for application deployment"),
-  parameters: z.record(z.any()).optional().describe("Specific parameters for the application (e.g., image, replicas, env vars, ports, etc.)"),
+  parameters: z
+    .record(z.any())
+    .optional()
+    .describe(
+      "Specific parameters for the application (e.g., image, replicas, env vars, ports, etc.)"
+    ),
 });
 
 const resultSchema = z.object({
   apiVersion: z.string(),
   kind: z.literal("Application"),
-  metadata: z.object({
-    name: z.string(),
-    namespace: z.string()
-  }).passthrough(),
+  metadata: z
+    .object({
+      name: z.string(),
+      namespace: z.string(),
+    })
+    .passthrough(),
   spec: z.union([
     // Single source
-    z.object({
-      project: z.string(),
-      source: z.object({
-        repoURL: z.string(),
-        targetRevision: z.string()
-      }).passthrough(),
-      destination: z.object({
-        server: z.string(),
-        namespace: z.string()
-      }).passthrough()
-    }).passthrough(),
+    z
+      .object({
+        project: z.string(),
+        source: z
+          .object({
+            repoURL: z.string(),
+            targetRevision: z.string(),
+          })
+          .passthrough(),
+        destination: z
+          .object({
+            server: z.string(),
+            namespace: z.string(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
     // Multiple sources
-    z.object({
-      project: z.string(),
-      sources: z.array(z.object({
-        repoURL: z.string(),
-        targetRevision: z.string()
-      }).passthrough()),
-      destination: z.object({
-        server: z.string(),
-        namespace: z.string()
-      }).passthrough()
-    }).passthrough()
-  ])
+    z
+      .object({
+        project: z.string(),
+        sources: z.array(
+          z
+            .object({
+              repoURL: z.string(),
+              targetRevision: z.string(),
+            })
+            .passthrough()
+        ),
+        destination: z
+          .object({
+            server: z.string(),
+            namespace: z.string(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+  ]),
 });
 const CreateMessageWithValidatedResultSchema = CreateMessageResultSchema.extend({
   content: z.discriminatedUnion("type", [
@@ -63,9 +81,9 @@ const CreateMessageWithValidatedResultSchema = CreateMessageResultSchema.extend(
         }
         return val;
       }, resultSchema),
-      annotations: z.any().optional()
+      annotations: z.any().optional(),
     }),
-  ])
+  ]),
 });
 
 const callback: ToolDefinition["callback"] = async (args, extra) => {
@@ -116,12 +134,12 @@ Return ONLY a valid JSON object with:
 - metadata: name (${name}), namespace (argocd), labels, annotations (user: ${user.email})
 - spec: complete ArgoCD application specification
 
-Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`
-              }
-            }
+Do not include any markdown, explanations, or code blocks. Return only the raw JSON object.`,
+              },
+            },
           ],
-          maxTokens: 2048
-        }
+          maxTokens: 2048,
+        },
       } as ServerRequest,
       CreateMessageWithValidatedResultSchema
     );
@@ -142,33 +160,36 @@ Do not include any markdown, explanations, or code blocks. Return only the raw J
         sync: `${appWebUrl}?operation=sync`,
         logs: `${appWebUrl}?view=tree&logs=true`,
         events: `${appWebUrl}?view=events`,
-        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/applications/"
+        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/applications/",
       },
       metadata: {
         potentialActions: [
           "Use ArgoCD UI to manually sync the application",
           "Use createArgoCDProject tool to organize applications",
-          "Check application health and sync status in ArgoCD UI"
-        ]
-      }
-    });
-
-  } catch (error: any) {
-    return toolResponse({
-      message: `Failed to create ArgoCD application: ${error.message}`,
-      links: {
-        docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/applications/",
-        troubleshooting: "https://argo-cd.readthedocs.io/en/stable/operator-manual/troubleshooting/"
+          "Check application health and sync status in ArgoCD UI",
+        ],
       },
-      metadata: {
-        troubleshooting: [
-          "Ensure ARGOCD_TOKEN environment variable is set with appropriate permissions",
-          "Verify your token has applications create/read permissions",
-          "Ensure the specified ArgoCD project exists",
-          "Verify ArgoCD can access the specified Git repository"
-        ]
-      }
-    }, true);
+    });
+  } catch (error: any) {
+    return toolResponse(
+      {
+        message: `Failed to create ArgoCD application: ${error.message}`,
+        links: {
+          docs: "https://argo-cd.readthedocs.io/en/stable/user-guide/applications/",
+          troubleshooting:
+            "https://argo-cd.readthedocs.io/en/stable/operator-manual/troubleshooting/",
+        },
+        metadata: {
+          troubleshooting: [
+            "Ensure ARGOCD_TOKEN environment variable is set with appropriate permissions",
+            "Verify your token has applications create/read permissions",
+            "Ensure the specified ArgoCD project exists",
+            "Verify ArgoCD can access the specified Git repository",
+          ],
+        },
+      },
+      true
+    );
   }
 };
 
@@ -181,5 +202,5 @@ export const createArgoCDApplicationTool: ToolDefinition = {
   description: "Create or verify an ArgoCD application using AI to generate optimal configuration.",
   inputSchema,
   requiredPermissions: ["argocd:admin", "argocd:applications:create", "admin"],
-  callback
+  callback,
 };

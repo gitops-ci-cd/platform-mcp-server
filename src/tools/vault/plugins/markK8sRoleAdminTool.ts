@@ -20,11 +20,11 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
     message: `Marked Vault Kubernetes role '${role}' in cluster '${cluster}' as admin.`,
     metadata: {
       cluster,
-      role
+      role,
     },
     links: {
       concept: "TODO: Add link to kubernetes-roles plugin documentation",
-    }
+    },
   });
 };
 
@@ -37,5 +37,5 @@ export const markK8sAdminTool: ToolDefinition = {
   description: "Mark a Vault Kubernetes role as admin in the kubernetes-roles plugin.",
   inputSchema,
   requiredPermissions: ["vault:admin", "vault:kubernetes-roles:admin"],
-  callback
+  callback,
 };

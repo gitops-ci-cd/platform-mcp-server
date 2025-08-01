@@ -1,7 +1,12 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { ResourceTemplateDefinition, resourceResponse } from "../registry.js";
-import { listResources, listNamespaces, listAvailableResourcesInNamespace, listAvailableClusterResources } from "../../../lib/clients/kubernetes/index.js";
+import {
+  listResources,
+  listNamespaces,
+  listAvailableResourcesInNamespace,
+  listAvailableClusterResources,
+} from "../../../lib/clients/kubernetes/index.js";
 
 // Read callback function for unified kubernetes resources template
 const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, variables) => {
@@ -20,31 +25,38 @@ const readCallback: ResourceTemplateDefinition["readCallback"] = async (uri, var
   try {
     const data = await listResources({ plural, namespace });
 
-    return resourceResponse({
-      message: `Successfully retrieved ${plural} resources from namespace '${namespace}'`,
-      data,
-      metadata: {
-        plural,
-        namespace,
+    return resourceResponse(
+      {
+        message: `Successfully retrieved ${plural} resources from namespace '${namespace}'`,
+        data,
+        metadata: {
+          plural,
+          namespace,
+        },
+        links: {
+          apiDocs: "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/",
+          cliDocs: "https://kubernetes.io/docs/reference/kubectl/kubectl/",
+          customResources:
+            "https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/",
+        },
       },
-      links: {
-        apiDocs: "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/",
-        cliDocs: "https://kubernetes.io/docs/reference/kubectl/kubectl/",
-        customResources: "https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/",
-      }
-    }, uri);
+      uri
+    );
   } catch (error: any) {
-    return resourceResponse({
-      message: `Failed to read Kubernetes resources: ${error.message}`,
-      metadata: {
-        plural,
-        namespace,
+    return resourceResponse(
+      {
+        message: `Failed to read Kubernetes resources: ${error.message}`,
+        metadata: {
+          plural,
+          namespace,
+        },
+        links: {
+          apiDocs: "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/",
+          cliDocs: "https://kubernetes.io/docs/reference/kubectl/kubectl/",
+        },
       },
-      links: {
-        apiDocs: "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/",
-        cliDocs: "https://kubernetes.io/docs/reference/kubectl/kubectl/",
-      }
-    }, uri);
+      uri
+    );
   }
 };
 
@@ -65,7 +77,10 @@ export const kubernetesUnifiedResourceTemplate: ResourceTemplateDefinition = {
             return ["none", "default", "kube-system"];
           }
         },
-        plural: async (value: string, context?: { arguments?: Record<string, string>; }): Promise<string[]> => {
+        plural: async (
+          value: string,
+          context?: { arguments?: Record<string, string> }
+        ): Promise<string[]> => {
           let namespace = context?.arguments?.namespace;
           if (namespace === "none") {
             namespace = "";
@@ -84,7 +99,8 @@ export const kubernetesUnifiedResourceTemplate: ResourceTemplateDefinition = {
     }
   ),
   metadata: {
-    description: "List Kubernetes native and custom resources by type and optional namespace. Supports both native resources (pods, services, etc.) and custom resources (plural format). Omit namespace for cluster-scoped resources",
+    description:
+      "List Kubernetes native and custom resources by type and optional namespace. Supports both native resources (pods, services, etc.) and custom resources (plural format). Omit namespace for cluster-scoped resources",
   },
   requiredPermissions: ["kubernetes:read", "kubernetes:list", "admin"],
   readCallback,

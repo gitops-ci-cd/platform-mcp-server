@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   mcpAuthMetadataRouter,
   createOAuthMetadata,
-  getOAuthProtectedResourceMetadataUrl
+  getOAuthProtectedResourceMetadataUrl,
 } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 
@@ -17,15 +17,19 @@ const config = getEntraConfig();
 const provider = createEntraProxyProvider();
 const resourceServerUrl = new URL("http://localhost:8080");
 
-router.use(mcpAuthMetadataRouter({
-  oauthMetadata: createOAuthMetadata({
-    provider,
-    issuerUrl: new URL(`https://login.microsoftonline.com/${config.tenantId}/v2.0`),
-    serviceDocumentationUrl: new URL("https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow"),
-  }),
-  resourceServerUrl,
-  serviceDocumentationUrl: new URL("https://github.com/legalzoom/platform-mcp-server"),
-}));
+router.use(
+  mcpAuthMetadataRouter({
+    oauthMetadata: createOAuthMetadata({
+      provider,
+      issuerUrl: new URL(`https://login.microsoftonline.com/${config.tenantId}/v2.0`),
+      serviceDocumentationUrl: new URL(
+        "https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow"
+      ),
+    }),
+    resourceServerUrl,
+    serviceDocumentationUrl: new URL("https://github.com/legalzoom/platform-mcp-server"),
+  })
+);
 
 const authMiddleware = requireBearerAuth({
   verifier: provider,

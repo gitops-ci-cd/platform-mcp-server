@@ -2,7 +2,8 @@ import { McpServer, RegisteredPrompt } from "@modelcontextprotocol/sdk/server/mc
 import { sanitizeString } from "../../lib/string.js";
 import { initializePrompts } from "./index.js";
 
-export interface PromptDefinition extends Pick<RegisteredPrompt, "title" | "description" | "argsSchema"> {
+export interface PromptDefinition
+  extends Pick<RegisteredPrompt, "title" | "description" | "argsSchema"> {
   callback: any;
   requiredPermissions?: string[];
 }
@@ -29,7 +30,10 @@ export const getAuthorizedPrompts = (userPermissions: string[] = []): PromptDefi
 };
 
 // Register prompts with an MCP server instance
-export const registerPromptsWithServer = (server: McpServer, userPermissions: string[] = []): void => {
+export const registerPromptsWithServer = (
+  server: McpServer,
+  userPermissions: string[] = []
+): void => {
   initializePrompts();
   // Filter prompts by permissions
   const authorizedPrompts = getAuthorizedPrompts(userPermissions);
@@ -38,18 +42,9 @@ export const registerPromptsWithServer = (server: McpServer, userPermissions: st
   for (const prompt of authorizedPrompts) {
     const { title, description, callback, argsSchema } = prompt;
     if (argsSchema) {
-      server.prompt(
-        sanitizeString(title),
-        description || "",
-        argsSchema.shape,
-        callback
-      );
+      server.prompt(sanitizeString(title), description || "", argsSchema.shape, callback);
     } else {
-      server.prompt(
-        sanitizeString(title),
-        description || "",
-        callback
-      );
+      server.prompt(sanitizeString(title), description || "", callback);
     }
   }
 };

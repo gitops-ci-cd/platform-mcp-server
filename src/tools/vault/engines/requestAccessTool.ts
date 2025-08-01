@@ -8,12 +8,24 @@ import { getVaultConfig } from "../../../../lib/clients/vault/index.js";
 
 const inputSchema = z.object({
   enginePath: z.string().describe("The secrets engine path (e.g., 'secret', 'database', 'kv-v2')"),
-  secretPath: z.string().optional().describe("Specific secret path within the engine (optional, for granular access)"),
-  requestType: z.enum(["read", "write", "admin"]).default("read").describe("Type of access being requested"),
+  secretPath: z
+    .string()
+    .optional()
+    .describe("Specific secret path within the engine (optional, for granular access)"),
+  requestType: z
+    .enum(["read", "write", "admin"])
+    .default("read")
+    .describe("Type of access being requested"),
   justification: z.string().describe("Business justification for the access request"),
-  duration: z.string().default("24h").describe("Requested access duration (e.g., '24h', '7d', '30d')"),
+  duration: z
+    .string()
+    .default("24h")
+    .describe("Requested access duration (e.g., '24h', '7d', '30d')"),
   team: z.string().describe("Team or project name requiring access"),
-  urgency: z.enum(["low", "medium", "high", "critical"]).default("medium").describe("Urgency level of the access request"),
+  urgency: z
+    .enum(["low", "medium", "high", "critical"])
+    .default("medium")
+    .describe("Urgency level of the access request"),
 });
 
 const callback: ToolDefinition["callback"] = async (args, _extra) => {
@@ -89,33 +101,36 @@ const callback: ToolDefinition["callback"] = async (args, _extra) => {
         potentialActions: [
           "Check request status at the provided URL",
           "Contact security team if urgent",
-          "Prepare necessary Vault CLI/UI access"
+          "Prepare necessary Vault CLI/UI access",
         ],
-        policyPreview: `path "${targetPath}/*" {\n  capabilities = ["${requestType}"]\n}`
-      }
+        policyPreview: `path "${targetPath}/*" {\n  capabilities = ["${requestType}"]\n}`,
+      },
     });
   } catch (error: any) {
-    return toolResponse({
-      message: `Failed to Upsert Vault access request: ${error.message}`,
-      data: error, // Raw error object
-      links: {
-        docs: "https://developer.hashicorp.com/vault/docs/auth",
-        troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting"
+    return toolResponse(
+      {
+        message: `Failed to Upsert Vault access request: ${error.message}`,
+        data: error, // Raw error object
+        links: {
+          docs: "https://developer.hashicorp.com/vault/docs/auth",
+          troubleshooting: "https://developer.hashicorp.com/vault/docs/troubleshooting",
+        },
+        metadata: {
+          troubleshooting: [
+            "Ensure all required parameters are provided",
+            "Verify the secrets engine path exists",
+            "Ensure you have permission to request access",
+            "Contact security team if issues persist",
+          ],
+          examples: [
+            "Request read access to 'secret' engine for troubleshooting",
+            "Request access to 'database/prod-mysql' for application deployment",
+            "Request admin access to 'pki' engine for certificate management",
+          ],
+        },
       },
-      metadata: {
-        troubleshooting: [
-          "Ensure all required parameters are provided",
-          "Verify the secrets engine path exists",
-          "Ensure you have permission to request access",
-          "Contact security team if issues persist"
-        ],
-        examples: [
-          "Request read access to 'secret' engine for troubleshooting",
-          "Request access to 'database/prod-mysql' for application deployment",
-          "Request admin access to 'pki' engine for certificate management"
-        ]
-      }
-    }, true);
+      true
+    );
   }
 };
 
