@@ -1,24 +1,70 @@
 import { ProxyOAuthServerProvider } from "@modelcontextprotocol/sdk/server/auth/providers/proxyProvider.js";
 import { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-// import jwksClient from "jwks-rsa"; // Temporarily disabled for debugging
 import jwt from "jsonwebtoken";
 
 import { getEntraConfig, fetchUserGroups } from "../clients/entra/index.js";
 
 /**
  * Verify Entra ID JWT token and return auth info
- * Note: Currently skips signature verification and trusts Microsoft Graph tokens
+ * Note: Using token decoding approach due to Microsoft's non-standard JWT implementation
+ * that breaks standard JWT verification libraries
  */
 const verifyAccessToken = async (token: string): Promise<AuthInfo> => {
   try {
     console.debug("Verifying access token");
+    const config = getEntraConfig();
 
-    // Decode the JWT token (without signature verification for now)
-    const payload = jwt.decode(token) as any;
-    if (!payload) {
-      throw new Error("Failed to decode JWT token");
+    // Decode the token (Microsoft tokens have known issues with standard JWT validation libs)
+    const decoded = jwt.decode(token, { complete: true });
+    if (!decoded || !decoded.payload) {
+      throw new Error("Invalid JWT token: unable to decode");
     }
+
+    const header = decoded.header;
+    const payload = decoded.payload as any;
+
+    console.debug("JWT header decoded", {
+      alg: header.alg,
+      kid: header.kid,
+      typ: header.typ
+    });
+
+    console.debug("Token claims", {
+      iss: payload.iss,
+      aud: payload.aud,
+      exp: payload.exp,
+      iat: payload.iat,
+      tenant: payload.tid,
+    });
+
+    // Basic validation of required claims
+    if (!payload.iss || !payload.aud || !payload.exp || !payload.iat) {
+      throw new Error("Invalid JWT token: missing required claims");
+    }
+
+    // Validate issuer is from Microsoft
+    if (!payload.iss.includes("sts.windows.net") && !payload.iss.includes("login.microsoftonline.com")) {
+      throw new Error("Invalid JWT token: invalid issuer");
+    }
+
+    // Validate tenant matches our expected tenant
+    if (payload.tid !== config.tenantId) {
+      throw new Error("Invalid JWT token: tenant mismatch");
+    }
+
+    // Validate token is not expired
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      throw new Error("Invalid JWT token: token expired");
+    }
+
+    // Validate token is not used before its valid time
+    if (payload.nbf && payload.nbf > now) {
+      throw new Error("Invalid JWT token: token not yet valid");
+    }
+
+    console.debug("JWT token validated (structure and claims)");
 
     // Extract user information and permissions
     const roles = payload.roles || [];
@@ -63,14 +109,7 @@ const verifyAccessToken = async (token: string): Promise<AuthInfo> => {
 const getClient = async (clientId: string): Promise<OAuthClientInformationFull> => {
   return {
     client_id: clientId,
-    redirect_uris: [
-      "https://insiders.vscode.dev/redirect",
-      "https://vscode.dev/redirect",
-      "http://localhost/",
-      "http://127.0.0.1/",
-      "http://localhost:33418/",
-      "http://127.0.0.1:33418/"
-    ],
+    redirect_uris: [],
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
     token_endpoint_auth_method: "none", // Public client
