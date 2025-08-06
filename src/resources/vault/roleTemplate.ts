@@ -135,6 +135,5 @@ export const vaultRoleTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Vault authentication roles by auth method and role name. Uses -- as separator in completion (slashes in auth method paths are converted to -- for clarity).",
   },
-  requiredPermissions: ["vault:read", "vault:auth:read", "admin"],
   readCallback,
 };

@@ -36,6 +36,6 @@ export const markK8sAdminTool: ToolDefinition = {
   },
   description: "Mark a Vault Kubernetes role as admin in the kubernetes-roles plugin.",
   inputSchema,
-  requiredPermissions: ["vault:admin", "vault:kubernetes-roles:admin"],
+  requiredPermissions: [],
   callback,
 };

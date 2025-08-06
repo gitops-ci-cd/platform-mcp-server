@@ -78,6 +78,5 @@ export const vaultGroupTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Vault access groups by name. Provides group details, rules, and management actions",
   },
-  requiredPermissions: ["vault:read", "vault:groups:read", "admin"],
   readCallback,
 };

@@ -114,6 +114,6 @@ export const createArtifactoryRepositoryTool: ToolDefinition = {
   description:
     "Create or verify a new repository in JFrog Artifactory via direct API call. Supports Docker, Maven, NPM, Gradle, and other package types.",
   inputSchema,
-  requiredPermissions: ["artifactory:admin", "artifactory:repos:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

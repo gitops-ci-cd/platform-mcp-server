@@ -73,6 +73,5 @@ export const entraGroupTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Entra ID (Azure AD) groups by name or ID. Provides group details, member list, and management actions",
   },
-  requiredPermissions: ["entra:read", "entra:groups:read", "admin"],
   readCallback,
 };

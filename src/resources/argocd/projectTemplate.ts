@@ -78,6 +78,5 @@ export const argoCDProjectTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific ArgoCD projects by name. Provides project details, RBAC configuration, and resource restrictions",
   },
-  requiredPermissions: ["argocd:read", "argocd:projects:read", "admin"],
   readCallback,
 };

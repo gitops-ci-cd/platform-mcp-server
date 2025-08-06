@@ -138,6 +138,6 @@ export const requestAccessTool: ToolDefinition = {
   title: "Request Vault Access",
   description: "Request access to a Vault secrets engine or specific secret path",
   inputSchema,
+  requiredPermissions: [],
   callback,
-  requiredPermissions: ["vault:request", "security:access-request"],
 };

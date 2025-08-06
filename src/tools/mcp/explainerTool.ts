@@ -15,9 +15,7 @@ const inputSchema = z.object({
       "prompts",
       "sampling",
       "elicitation",
-      "architecture",
-      "transports",
-      "all",
+      "roots",
     ])
     .describe("Which MCP concept to explain"),
 });
@@ -28,33 +26,22 @@ const callback: ToolDefinition["callback"] = async (args, extra) => {
 
   // Build the explanation prompt based on the concept
   const conceptPrompts = {
-    resources:
-      "Explain MCP Resources: what they are, how they work, when to use them, and how they differ from tools and prompts.",
-    tools:
-      "Explain MCP Tools: what they are, how they work, when to use them, and how they differ from resources and prompts.",
-    prompts:
-      "Explain MCP Prompts: what they are, how they work, when to use them, and how they differ from resources and tools.",
-    sampling:
-      "Explain MCP Sampling: what it is, how servers can request LLM completions through clients, and why this is useful.",
-    elicitation:
-      "Explain MCP Elicitation: how it works, its purpose, and its role in the overall MCP framework.",
-    architecture:
-      "Explain MCP Architecture: the client-server model, JSON-RPC communication, and how different components work together.",
-    transports:
-      "Explain MCP Transports: how clients and servers communicate, different transport types, and connection patterns.",
-    all: "Provide a comprehensive overview of MCP (Model Context Protocol): its purpose, core concepts (resources, tools, prompts, sampling), and architecture.",
+    resources: "Explain MCP Resources: what they are, how they work, when to use them, and how they differ from tools and prompts.",
+    tools: "Explain MCP Tools: what they are, how they work, when to use them, and how they differ from resources and prompts.",
+    prompts: "Explain MCP Prompts: what they are, how they work, when to use them, and how they differ from resources and tools.",
+    sampling: "Explain MCP Sampling: what it is, how servers can request LLM completions through clients, and why this is useful.",
+    elicitation: "Explain MCP Elicitation: how it works, its purpose, and its role in the overall MCP framework.",
+    roots: "Explain MCP Roots: how they define filesystem boundaries for server operations and allow clients to specify which directories servers should focus on.",
+    all: "Provide a comprehensive overview of MCP (Model Context Protocol): its purpose, core concepts, and architecture.",
   };
 
   const basePrompt = conceptPrompts[concept as keyof typeof conceptPrompts] || conceptPrompts.all;
 
   // Tailor the explanation based on audience
   const audienceInstructions = {
-    beginner:
-      "Explain in simple terms with minimal technical jargon. Use analogies and real-world examples.",
-    developer:
-      "Focus on technical implementation details, code examples, and practical development considerations.",
-    architect:
-      "Emphasize system design, integration patterns, scalability, and architectural decisions.",
+    beginner: "Explain in simple terms with minimal technical jargon. Use analogies and real-world examples.",
+    developer: "Focus on technical implementation details, code examples, and practical development considerations.",
+    architect: "Emphasize system design, integration patterns, scalability, and architectural decisions.",
   };
 
   const fullPrompt = `${basePrompt}
@@ -141,8 +128,11 @@ Structure your response with clear sections and make it engaging and informative
       data: explanation,
       message: `Generated explanation for MCP ${concept} concept`,
       links: {
-        docs: "https://modelcontextprotocol.io/docs/",
-        spec: "https://spec.modelcontextprotocol.io/",
+        overview: "https://modelcontextprotocol.io/overview",
+        introduction: "https://modelcontextprotocol.io/docs/getting-started/intro",
+        architecture: "https://modelcontextprotocol.io/docs/learn/architecture",
+        transports: "https://modelcontextprotocol.io/specification/2025-06-18/basic/transports",
+        documentation: `https://modelcontextprotocol.io/docs/concepts/${concept}`,
       },
       metadata: {
         concept,

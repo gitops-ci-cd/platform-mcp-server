@@ -42,6 +42,6 @@ export const syncArgoApplicationTool: ToolDefinition = {
   },
   description: "Trigger ArgoCD application sync via direct API",
   inputSchema,
-  requiredPermissions: ["argocd:admin", "argocd:sync", "admin"],
+  requiredPermissions: [],
   callback,
 };

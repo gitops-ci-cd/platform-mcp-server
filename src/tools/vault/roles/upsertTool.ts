@@ -106,6 +106,6 @@ export const upsertVaultRoleTool: ToolDefinition = {
   description:
     "Create or update a new role for a specific authentication method in HashiCorp Vault via direct API call. Roles define authentication constraints and associated policies.",
   inputSchema,
-  requiredPermissions: ["vault:admin", "vault:roles:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

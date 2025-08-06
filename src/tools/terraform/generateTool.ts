@@ -155,5 +155,6 @@ export const generateTerraformTool: ToolDefinition = {
   description:
     "Generate Terraform configurations for various cloud resources and services using AI sampling with best practices and examples.",
   inputSchema,
+  requiredPermissions: [],
   callback,
 };

@@ -184,6 +184,6 @@ export const createArgoCDProjectTool: ToolDefinition = {
   description:
     "Create a new project in ArgoCD via direct API call. Projects provide multi-tenancy with RBAC, resource restrictions, and repository access control.",
   inputSchema,
-  requiredPermissions: ["argocd:admin", "argocd:projects:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

@@ -257,5 +257,6 @@ export const generateAwsCdkTool: ToolDefinition = {
   description:
     "Generate AWS CDK TypeScript constructs with best practices, security configurations, and proper resource management.",
   inputSchema,
+  requiredPermissions: [],
   callback,
 };

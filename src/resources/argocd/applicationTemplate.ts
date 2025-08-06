@@ -82,6 +82,5 @@ export const argoCDApplicationTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific ArgoCD applications by name. Provides application details, sync status, and management actions",
   },
-  requiredPermissions: ["argocd:read", "argocd:applications:read", "admin"],
   readCallback,
 };

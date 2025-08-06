@@ -92,6 +92,5 @@ export const artifactoryRepositoryTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Artifactory repositories by key. Provides repository details, statistics, and management actions",
   },
-  requiredPermissions: ["artifactory:read", "artifactory:repositories:read", "admin"],
   readCallback,
 };

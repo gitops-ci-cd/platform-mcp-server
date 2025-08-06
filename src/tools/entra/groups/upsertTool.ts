@@ -120,6 +120,6 @@ export const upsertEntraGroupTool: ToolDefinition = {
   description:
     "Create or update a group in Microsoft Entra ID (Azure AD) via Microsoft Graph API. Supports security groups, Microsoft 365 groups, and distribution lists.",
   inputSchema,
-  requiredPermissions: ["entra:admin", "entra:groups:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

@@ -102,6 +102,5 @@ export const kubernetesUnifiedResourceTemplate: ResourceTemplateDefinition = {
     description:
       "List Kubernetes native and custom resources by type and optional namespace. Supports both native resources (pods, services, etc.) and custom resources (plural format). Omit namespace for cluster-scoped resources",
   },
-  requiredPermissions: ["kubernetes:read", "kubernetes:list", "admin"],
   readCallback,
 };

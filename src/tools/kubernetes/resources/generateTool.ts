@@ -188,5 +188,6 @@ export const generateKubernetesManifestTool: ToolDefinition = {
   description:
     "Generate Kubernetes resource manifest using AI sampling with reference templates and best practices.",
   inputSchema,
+  requiredPermissions: [],
   callback,
 };

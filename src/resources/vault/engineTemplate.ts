@@ -79,6 +79,5 @@ export const vaultEngineTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Vault secret engines by path. Provides engine details and configuration",
   },
-  requiredPermissions: ["vault:read", "vault:engines:read", "admin"],
   readCallback,
 };

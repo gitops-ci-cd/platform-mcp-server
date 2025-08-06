@@ -99,6 +99,6 @@ export const upsertVaultGroupTool: ToolDefinition = {
   description:
     "Create or update a Vault identity group and alias it to an external group (e.g., Azure AD group) with admin policies.",
   inputSchema,
-  requiredPermissions: ["vault:admin", "vault:groups:create"],
+  requiredPermissions: [],
   callback,
 };

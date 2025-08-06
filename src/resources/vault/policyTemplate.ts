@@ -79,6 +79,5 @@ export const vaultPolicyTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Vault ACL policies by name. Provides policy details, rules, and management actions",
   },
-  requiredPermissions: ["vault:read", "vault:policies:read", "admin"],
   readCallback,
 };

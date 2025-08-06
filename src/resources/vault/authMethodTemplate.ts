@@ -83,6 +83,5 @@ export const vaultAuthMethodTemplate: ResourceTemplateDefinition = {
     description:
       "Access specific Vault auth methods by path. Provides auth method details and configuration",
   },
-  requiredPermissions: ["vault:read", "vault:auth:read", "admin"],
   readCallback,
 };

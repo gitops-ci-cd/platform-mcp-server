@@ -82,6 +82,6 @@ export const upsertVaultPolicyTool: ToolDefinition = {
   description:
     "Create or update a new ACL policy in HashiCorp Vault via direct API call. Policies define access permissions for authentication methods and users.",
   inputSchema,
-  requiredPermissions: ["vault:admin", "vault:policies:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

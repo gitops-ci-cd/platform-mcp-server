@@ -98,6 +98,5 @@ export const vaultSecretMetadataTemplate: ResourceTemplateDefinition = {
   metadata: {
     description: "List secrets in a specific Vault secret engine with management links",
   },
-  requiredPermissions: ["vault:read", "vault:secrets:list", "admin"],
   readCallback,
 };

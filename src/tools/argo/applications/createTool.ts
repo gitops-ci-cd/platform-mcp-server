@@ -201,6 +201,6 @@ export const createArgoCDApplicationTool: ToolDefinition = {
   },
   description: "Create or verify an ArgoCD application using AI to generate optimal configuration.",
   inputSchema,
-  requiredPermissions: ["argocd:admin", "argocd:applications:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

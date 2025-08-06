@@ -98,6 +98,6 @@ export const upsertVaultEngineTool: ToolDefinition = {
   description:
     "Create or update a Vault secrets engine. Returns management links and guidance for both new and existing engines.",
   inputSchema,
-  requiredPermissions: ["vault:admin", "vault:engines:create", "admin"],
+  requiredPermissions: [],
   callback,
 };

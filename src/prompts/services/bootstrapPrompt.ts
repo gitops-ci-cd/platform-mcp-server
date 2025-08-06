@@ -208,4 +208,5 @@ export const serviceBootstrapPrompt: PromptDefinition = {
     "Ask your AI assistant to help you take an idea to production using only MCP server tooling.",
   callback,
   argsSchema,
+  requiredPermissions: []
 };
