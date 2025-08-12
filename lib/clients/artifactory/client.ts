@@ -98,8 +98,7 @@ export const applyPackageTypeDefaults = ({ packageType, properties = {} }: {
  * to enable efficient auto-completion and resource browsing in MCP clients.
  *
  * For Docker repositories, it specifically looks for services under predefined folder hierarchies
- * (engineering, devops, legalzoom, data-engineering, data-sciences) to provide meaningful
- * completion paths like "docker/engineering/authorization-service".
+ * to provide meaningful completion paths like "docker/engineering/authorization-service".
  *
  * @param name Optional repository name filter (currently unused but kept for compatibility)
  * @returns Array of repository keys and Docker service paths, cached for 30 minutes
@@ -133,7 +132,7 @@ export const listRepositories = async (name?: string): Promise<string[]> => {
     );
 
     // Hardcoded folders we care about under docker repositories
-    const targetFolders = ["engineering", "devops", "legalzoom", "data-engineering", "data-sciences"];
+    const targetFolders = ["engineering", "devops", "data-engineering", "data-sciences"];
 
     for (const dockerRepo of dockerRepos) {
       // Add the folder paths first

@@ -27,7 +27,7 @@ router.use(
       ),
     }),
     resourceServerUrl,
-    serviceDocumentationUrl: new URL("https://github.com/legalzoom/platform-mcp-server"),
+    serviceDocumentationUrl: new URL("https://github.com/gitops-ci-cd/platform-mcp-server"),
   })
 );
 

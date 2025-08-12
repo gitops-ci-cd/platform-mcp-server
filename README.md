@@ -62,8 +62,8 @@ vault login -method=oidc
 az login --allow-no-subscriptions
 export MS_ENTRA_TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
 
-argocd login argo.devops.prd.aws-01.legalzoom.com --sso
-export ARGOCD_TOKEN=$(yq '.users[] | select(.name == "$ARGO_URL") | .auth-token' ~/.config/argocd/config)
+argocd login $ARGOCD_SERVER --sso
+export ARGOCD_TOKEN=$(yq '.users[] | select(.name == "$ARGOCD_SERVER") | .auth-token' ~/.config/argocd/config)
 ```
 
 #### Quick Setup

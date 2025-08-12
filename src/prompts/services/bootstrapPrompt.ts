@@ -82,7 +82,7 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
         `,
       },
       {
-        name: `legalzoom-${name}-gh-actions`,
+        name: `acme-${name}-gh-actions`,
         policy: `
           path "artifactory/token/github-actions" {
             capabilities = ["read"]
@@ -91,7 +91,6 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
             capabilities = ["read"]
             required_parameters = ["org_name", "repositories"]
             allowed_parameters = {
-              "org_name"= ["legalzoom"]
               "repositories" = ["${name}-deployment"]
             }
           }
@@ -168,8 +167,8 @@ const callback: PromptDefinition["callback"] = async (args: any, _extra: any) =>
           text: `You are an AI agent responsible for bootstrapping a new microservice using only MCP server tooling. Your workflow must be fully automated and idempotent, and should leverage the following:
 
 - Use the GitHub MCP server to:
-  - Use the GitHub template 'legalzoom/k8s-deployment-template' to create 'legalzoom/${name}-deployment'.
-  - Verify with the user to see if they have a repo they'd like to use, otherwise use the GitHub template 'legalzoom/${language}-backend-template' to create 'legalzoom/${name}'.
+  - Use the GitHub template 'gitops-ci-cd/go-grpc-service' to create 'acme/${name}-deployment'.
+  - Verify with the user to see if they have a repo they'd like to use, otherwise use the GitHub template 'acme/${language}-backend-template' to create 'acme/${name}'.
   - Trigger repository_dispatch events to run cookiecutter in each new repo.
 - Use the DevEx MCP Server to:
   - Set up Vault with ${JSON.stringify(vaultSetup, null, 2)}.
